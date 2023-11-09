@@ -1,6 +1,6 @@
 ﻿namespace OTAS.DTO.Post
 {
-    public class OrdreMissionTripOnRequestDTO
+    public class TripPostDTO
     {
 
         public string DeparturePlace { get; set; } = null!;

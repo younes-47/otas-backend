@@ -3,7 +3,7 @@ using OTAS.Models;
 
 namespace OTAS.DTO.Post
 {
-    public class OrdreMissionRequestDTO
+    public class OrdreMissionPostDTO
     {
         public int UserId { get; set; }
 
@@ -19,9 +19,9 @@ namespace OTAS.DTO.Post
 
         public int? OnBehalf { get; set; }
 
-        public ICollection<OrdreMissionTripOnRequestDTO> Trips { get; set; } = new List<OrdreMissionTripOnRequestDTO>();
+        public List<TripPostDTO> Trips { get; set; } = new List<TripPostDTO>();
 
-        public ICollection<OrdreMissionExpenseOnRequestDTO> Expenses { get; set; } = new List<OrdreMissionExpenseOnRequestDTO>();
+        public List<ExpensePostDTO> Expenses { get; set; } = new List<ExpensePostDTO>();
 
     }
 }

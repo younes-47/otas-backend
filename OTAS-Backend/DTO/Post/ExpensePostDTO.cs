@@ -1,6 +1,6 @@
 ﻿namespace OTAS.DTO.Post
 {
-    public class OrdreMissionExpenseOnRequestDTO
+    public class ExpensePostDTO
     {
         public decimal EstimatedFee { get; set; }
 

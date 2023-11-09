@@ -31,9 +31,9 @@ public partial class ActualRequester
 
     public virtual AvanceCaisse? AvanceCaisse { get; set; }
 
-    public virtual User ProxyUser { get; set; } = null!;
-
     public virtual DepenseCaisse? DepenseCaisse { get; set; }
 
     public virtual OrdreMission? OrdreMission { get; set; }
+
+    public virtual User ProxyUser { get; set; } = null!;
 }

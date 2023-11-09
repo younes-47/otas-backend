@@ -40,9 +40,9 @@ public partial class OtasContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-//    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-//        => optionsBuilder.UseSqlServer("Data Source=LENOVO-LAPTOP\\SQLEXPRESS;Initial Catalog=otas;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False");
+    //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+    //        => optionsBuilder.UseSqlServer("Data Source=LENOVO-LAPTOP\\SQLEXPRESS;Initial Catalog=otas;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -69,11 +69,6 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.AvanceCaisseId)
                 .HasConstraintName("AC_ActualRequester");
 
-            entity.HasOne(d => d.ProxyUser).WithMany(p => p.ActualRequesters)
-                .HasForeignKey(d => d.ProxyUserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProxyUser");
-
             entity.HasOne(d => d.DepenseCaisse).WithMany(p => p.ActualRequesters)
                 .HasForeignKey(d => d.DepenseCaisseId)
                 .HasConstraintName("DC_ActualRequester");
@@ -81,6 +76,11 @@ public partial class OtasContext : DbContext
             entity.HasOne(d => d.OrdreMission).WithMany(p => p.ActualRequesters)
                 .HasForeignKey(d => d.OrdreMissionId)
                 .HasConstraintName("OM_ActualRequester");
+
+            entity.HasOne(d => d.ProxyUser).WithMany(p => p.ActualRequesters)
+                .HasForeignKey(d => d.ProxyUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProxyUser_ActualRequeser");
         });
 
         modelBuilder.Entity<AvanceCaisse>(entity =>
@@ -115,10 +115,11 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.Currency)
                 .HasMaxLength(10)
-                .IsUnicode(false);
+                .IsUnicode(false)
+                .HasDefaultValueSql("('')");
+            entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
 
             entity.HasOne(d => d.OrdreMission).WithMany(p => p.AvanceVoyages)
                 .HasForeignKey(d => d.OrdreMissionId)

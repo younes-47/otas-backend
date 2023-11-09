@@ -14,7 +14,7 @@ public partial class Trip
     public string Destination { get; set; } = null!;
 
     public DateTime DepartureDate { get; set; }
-    
+
     public string TransportationMethod { get; set; } = null!;
 
     public string Unit { get; set; } = null!;

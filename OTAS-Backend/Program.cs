@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using OTAS.Repository;
 using System.Text.Json.Serialization;
 using OTAS.Interfaces.IRepository;
+using OTAS.Interfaces.IService;
+using OTAS.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +15,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-/* Dependency Injection - This enables Constructor Injection for controllers */
+/* Dependency Injection - This enables Constructor Injection for controllers/services */
+//Repositories
 builder.Services.AddScoped<IAvanceCaisseRepository, AvanceCaisseRepository>();
 builder.Services.AddScoped<IAvanceVoyageRepository, AvanceVoyageRepository>();
 builder.Services.AddScoped<IDelegationRepository, DelegationRepository>();
@@ -24,7 +27,8 @@ builder.Services.AddScoped<IOrdreMissionRepository, OrdreMissionRepository>();
 builder.Services.AddScoped<IStatusHistoryRepository, StatusHistoryRepository>();
 builder.Services.AddScoped<ITripRepository, TripRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-
+//Services
+builder.Services.AddScoped<IOrdreMissionService, OrdreMissionService>();
 
 //Add the DataConext
 builder.Services.AddDbContext<OtasContext>(options =>

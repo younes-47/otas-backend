@@ -30,5 +30,4 @@ public partial class Expense
     public virtual AvanceVoyage? AvanceVoyage { get; set; }
 
     public virtual DepenseCaisse? DepenseCaisse { get; set; }
-
 }
