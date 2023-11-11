@@ -25,6 +25,8 @@ public partial class Expense
 
     public DateTime? CreateDate { get; set; }
 
+    public DateTime? UpdateDate { get; set; }
+
     public virtual AvanceCaisse? AvanceCaisse { get; set; }
 
     public virtual AvanceVoyage? AvanceVoyage { get; set; }

@@ -15,13 +15,15 @@ public partial class AvanceVoyage
 
     public decimal? ActualTotal { get; set; }
 
+    public string Currency { get; set; } = null!;
+
     public int? ConfirmationNumber { get; set; }
 
     public int LatestStatus { get; set; }
 
     public DateTime? CreateDate { get; set; }
 
-    public string Currency { get; set; } = null!;
+    public DateTime? UpdateDate { get; set; }
 
     public virtual ICollection<Expense> Expenses { get; set; } = new List<Expense>();
 

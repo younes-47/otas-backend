@@ -4,7 +4,7 @@ namespace OTAS.Interfaces.IRepository
 {
     public interface IDelegationRepository
     {
-        public bool haveDelegate(int deciderUserId);
+        bool HaveDelegate(int deciderUserId);
         int[] GetDelegationPeriod(int deciderUserId);
         Delegation GetDelegation(int deciderUserId);
 

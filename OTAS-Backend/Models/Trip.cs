@@ -29,5 +29,7 @@ public partial class Trip
 
     public DateTime? CreateDate { get; set; }
 
+    public DateTime? UpdateDate { get; set; }
+
     public virtual AvanceVoyage AvanceVoyage { get; set; } = null!;
 }

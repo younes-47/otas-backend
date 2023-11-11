@@ -15,36 +15,36 @@ namespace OTAS.Repository
 
         
 
-        public ICollection<AvanceVoyage> GetAvancesVoyageByStatus(int status)
+        public async Task<List<AvanceVoyage>> GetAvancesVoyageByStatus(int status)
         {
-            return _Context.AvanceVoyages.Where(av => av.LatestStatus == status).ToList();
+            return await _Context.AvanceVoyages.Where(av => av.LatestStatus == status).ToListAsync();
         }
 
-        public AvanceVoyage GetAvanceVoyageById(int id)
+        public async Task<AvanceVoyage> GetAvanceVoyageById(int id)
         {
-            return _Context.AvanceVoyages.Where(av => av.Id == id).FirstOrDefault();
+            return await _Context.AvanceVoyages.Where(av => av.Id == id).FirstOrDefaultAsync();
         }
-        public ICollection<AvanceVoyage> GetAvancesVoyageByOrdreMissionId(int ordreMissionId)
+        public async Task<List<AvanceVoyage>> GetAvancesVoyageByOrdreMissionId(int ordreMissionId)
         {
-            return _Context.AvanceVoyages.Where(av => av.OrdreMissionId == ordreMissionId).ToList();
+            return await _Context.AvanceVoyages.Where(av => av.OrdreMissionId == ordreMissionId).ToListAsync();
         }
 
         /* ??????????????????????????*/
-        public ICollection<AvanceVoyage> GetAvancesVoyageByRequesterUsername(string requesterUsername)
+        public async Task<List<AvanceVoyage>> GetAvancesVoyageByRequesterUserId(int requesterUserId)
         {
             throw new NotImplementedException();
         }
 
-        public bool AddAvanceVoyage(AvanceVoyage voyage)
+        public async Task<bool> AddAvanceVoyage(AvanceVoyage voyage)
         {
-            _Context.Add(voyage);
-            return Save();
+            await _Context.AddAsync(voyage);
+            return await Save();
         }
 
-        public bool Save()
+        public async Task<bool> Save()
         {
-            var saved = _Context.SaveChanges();
-            return saved > 0 ? true : false;
+            var saved = await _Context.SaveChangesAsync();
+            return saved > 0;
         }
     }
 }

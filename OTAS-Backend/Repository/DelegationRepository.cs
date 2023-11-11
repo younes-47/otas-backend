@@ -24,8 +24,7 @@ namespace OTAS.Repository
             DateTime startDate = _Context.Delegations.Where(d => d.DeciderUserId == deciderUserId).FirstOrDefault().StartDate;
             DateTime endDate = _Context.Delegations.Where(d => d.DeciderUserId == deciderUserId).FirstOrDefault().EndDate;
 
-            //Validation
-            if (startDate == null || endDate == null) return null;
+            
 
             TimeSpan difference = endDate - startDate;
             daysAndHours[0] = difference.Days;
@@ -34,7 +33,7 @@ namespace OTAS.Repository
             return daysAndHours;
         }
 
-        public bool haveDelegate(int deciderUserId)
+        public bool HaveDelegate(int deciderUserId)
         {
             return _Context.Delegations.Any(d => d.DeciderUserId == deciderUserId);
         }

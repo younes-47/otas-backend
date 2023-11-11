@@ -27,8 +27,10 @@ builder.Services.AddScoped<IOrdreMissionRepository, OrdreMissionRepository>();
 builder.Services.AddScoped<IStatusHistoryRepository, StatusHistoryRepository>();
 builder.Services.AddScoped<ITripRepository, TripRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IActualRequesterRepository, ActualRequesterRepository>();
 //Services
 builder.Services.AddScoped<IOrdreMissionService, OrdreMissionService>();
+builder.Services.AddScoped<IActualRequesterService, ActualRequesterService>();
 
 //Add the DataConext
 builder.Services.AddDbContext<OtasContext>(options =>

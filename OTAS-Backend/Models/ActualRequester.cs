@@ -7,7 +7,7 @@ public partial class ActualRequester
 {
     public int Id { get; set; }
 
-    public int ProxyUserId { get; set; }
+    public int OrderingUserId { get; set; }
 
     public int? AvanceCaisseId { get; set; }
 
@@ -33,7 +33,7 @@ public partial class ActualRequester
 
     public virtual DepenseCaisse? DepenseCaisse { get; set; }
 
-    public virtual OrdreMission? OrdreMission { get; set; }
+    public virtual User OrderingUser { get; set; } = null!;
 
-    public virtual User ProxyUser { get; set; } = null!;
+    public virtual OrdreMission? OrdreMission { get; set; }
 }

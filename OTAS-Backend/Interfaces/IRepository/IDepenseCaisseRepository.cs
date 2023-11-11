@@ -4,8 +4,8 @@ namespace OTAS.Interfaces.IRepository
 {
     public interface IDepenseCaisseRepository
     {
-        public DepenseCaisse GetDepenseCaisseById(int id);
-        public ICollection<DepenseCaisse> GetDepensesCaisseByStatus(int status);
-        public ICollection<DepenseCaisse> GetDepensesCaisseByRequesterUserId(int requesterUserId);
+        DepenseCaisse GetDepenseCaisseById(int id);
+        ICollection<DepenseCaisse> GetDepensesCaisseByStatus(int status);
+        ICollection<DepenseCaisse> GetDepensesCaisseByRequesterUserId(int requesterUserId);
     }
 }

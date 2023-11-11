@@ -5,13 +5,13 @@ namespace OTAS.Interfaces.IRepository
     public interface IAvanceVoyageRepository
     {
         //Get Methods
-        public AvanceVoyage GetAvanceVoyageById(int id);
-        public ICollection<AvanceVoyage> GetAvancesVoyageByRequesterUsername(string requesterUsername);
-        public ICollection<AvanceVoyage> GetAvancesVoyageByStatus(int status);
-        public ICollection<AvanceVoyage> GetAvancesVoyageByOrdreMissionId(int ordreMissionId);
+        Task<AvanceVoyage> GetAvanceVoyageById(int id);
+        Task<List<AvanceVoyage>> GetAvancesVoyageByRequesterUserId(int requesterUserId);
+        Task<List<AvanceVoyage>> GetAvancesVoyageByStatus(int status);
+        Task<List<AvanceVoyage>> GetAvancesVoyageByOrdreMissionId(int ordreMissionId);
 
         //Post Methods
-        bool AddAvanceVoyage(AvanceVoyage voyage);
-        bool Save();
+        Task<bool> AddAvanceVoyage(AvanceVoyage voyage);
+        Task<bool> Save();
     }
 }
