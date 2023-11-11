@@ -9,7 +9,7 @@ namespace OTAS.DTO.Post
 
         public string Description { get; set; } = null!;
 
-        public string Region { get; set; } = null!;
+        public int Region { get; set; }
 
         public DateTime DepartureDate { get; set; }
 
@@ -21,7 +21,8 @@ namespace OTAS.DTO.Post
 
         public List<TripPostDTO> Trips { get; set; } = new List<TripPostDTO>();
 
-        public List<ExpensePostDTO> Expenses { get; set; } = new List<ExpensePostDTO>();
+        public List<ExpensePostDTO>? Expenses { get; set; } = new List<ExpensePostDTO>();
 
+        public ActualRequesterPostDTO? ActualRequester { get; set; }
     }
 }
