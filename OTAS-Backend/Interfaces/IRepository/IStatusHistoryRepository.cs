@@ -10,8 +10,8 @@ namespace OTAS.Interfaces.IRepository
         ICollection<StatusHistory> GetDepenseCaisseStatusHistory(int dcId);
         ICollection<StatusHistory> GetLiquidationStatusHistory(int lqId);
 
-        bool AddStatus(StatusHistory status);
-        bool Save();
+        Task<bool> AddStatusAsync(StatusHistory status);
+        Task<bool> SaveAsync();
 
     }
 }

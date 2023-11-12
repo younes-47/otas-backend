@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OTAS.Data;
 
@@ -11,9 +12,11 @@ using OTAS.Data;
 namespace OTAS.Migrations
 {
     [DbContext(typeof(OtasContext))]
-    partial class OtasContextModelSnapshot : ModelSnapshot
+    [Migration("20231111165501_Increase_JobTitle_VARCHAR_LENGTH")]
+    partial class Increase_JobTitle_VARCHAR_LENGTH
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -32,11 +35,6 @@ namespace OTAS.Migrations
 
                     b.Property<int?>("AvanceCaisseId")
                         .HasColumnType("int");
-
-                    b.Property<DateTime>("CreateDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(getdate())");
 
                     b.Property<string>("Department")
                         .IsRequired()
@@ -109,7 +107,7 @@ namespace OTAS.Migrations
                     b.Property<int?>("ConfirmationNumber")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreateDate")
+                    b.Property<DateTime?>("CreateDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("(getdate())");
@@ -130,6 +128,9 @@ namespace OTAS.Migrations
 
                     b.Property<int>("LatestStatus")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -156,7 +157,7 @@ namespace OTAS.Migrations
                     b.Property<int?>("ConfirmationNumber")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreateDate")
+                    b.Property<DateTime?>("CreateDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("(getdate())");
@@ -175,6 +176,9 @@ namespace OTAS.Migrations
 
                     b.Property<int>("OrdreMissionId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -196,11 +200,6 @@ namespace OTAS.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreateDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(getdate())");
 
                     b.Property<int>("DeciderUserId")
                         .HasColumnType("int");
@@ -238,7 +237,7 @@ namespace OTAS.Migrations
                     b.Property<int?>("ConfirmationNumber")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreateDate")
+                    b.Property<DateTime?>("CreateDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("(getdate())");
@@ -269,6 +268,9 @@ namespace OTAS.Migrations
                     b.Property<decimal>("Total")
                         .HasColumnType("decimal(10, 2)");
 
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime");
+
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
@@ -297,7 +299,7 @@ namespace OTAS.Migrations
                     b.Property<int?>("AvanceVoyageId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreateDate")
+                    b.Property<DateTime?>("CreateDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("(getdate())");
@@ -354,7 +356,7 @@ namespace OTAS.Migrations
                     b.Property<int?>("AvanceVoyageId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreateDate")
+                    b.Property<DateTime?>("CreateDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("(getdate())");
@@ -374,6 +376,9 @@ namespace OTAS.Migrations
 
                     b.Property<int?>("Result")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -398,7 +403,7 @@ namespace OTAS.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreateDate")
+                    b.Property<DateTime?>("CreateDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("(getdate())");
@@ -420,6 +425,9 @@ namespace OTAS.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("ReturnDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime");
 
                     b.Property<int>("UserId")
@@ -463,7 +471,7 @@ namespace OTAS.Migrations
                     b.Property<int?>("AvanceVoyageId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreateDate")
+                    b.Property<DateTime?>("CreateDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("(getdate())");
@@ -489,6 +497,9 @@ namespace OTAS.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime");
 
                     b.HasKey("Id")
                         .HasName("PK__StatusHi__3214EC0734700B76");
@@ -522,7 +533,7 @@ namespace OTAS.Migrations
                     b.Property<int>("AvanceVoyageId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreateDate")
+                    b.Property<DateTime?>("CreateDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("(getdate())");

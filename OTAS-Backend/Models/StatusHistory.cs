@@ -23,9 +23,7 @@ public partial class StatusHistory
 
     public string? DeciderComment { get; set; }
 
-    public DateTime? CreateDate { get; set; }
-
-    public DateTime? UpdateDate { get; set; }
+    public DateTime CreateDate { get; set; }
 
     public virtual AvanceCaisse? AvanceCaisse { get; set; }
 

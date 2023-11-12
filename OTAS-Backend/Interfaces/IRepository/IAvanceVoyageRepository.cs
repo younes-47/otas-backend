@@ -11,7 +11,7 @@ namespace OTAS.Interfaces.IRepository
         Task<List<AvanceVoyage>> GetAvancesVoyageByOrdreMissionId(int ordreMissionId);
 
         //Post Methods
-        Task<bool> AddAvanceVoyage(AvanceVoyage voyage);
-        Task<bool> Save();
+        Task<bool> AddAvanceVoyageAsync(AvanceVoyage voyage);
+        Task<bool> SaveAsync();
     }
 }

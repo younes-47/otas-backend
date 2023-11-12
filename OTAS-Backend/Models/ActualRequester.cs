@@ -29,6 +29,8 @@ public partial class ActualRequester
 
     public string Manager { get; set; } = null!;
 
+    public DateTime CreateDate { get; set; }
+
     public virtual AvanceCaisse? AvanceCaisse { get; set; }
 
     public virtual DepenseCaisse? DepenseCaisse { get; set; }

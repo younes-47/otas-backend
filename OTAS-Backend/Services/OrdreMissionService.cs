@@ -113,7 +113,7 @@ namespace OTAS.Services
                     Currency = "MAD",
                 };
 
-                if (! await _avanceVoyageRepository.AddAvanceVoyage(avanceVoyage_in_mad))
+                if (! await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_mad))
                 {
                     ServiceResult serviceResult = new()
                     {
@@ -130,7 +130,7 @@ namespace OTAS.Services
                     AvanceVoyage = avanceVoyage_in_mad,
                 };
 
-                if (!_statusHistoryRepository.AddStatus(AV_status))
+                if (!await _statusHistoryRepository.AddStatusAsync(AV_status))
                 {
                     ServiceResult serviceResult = new()
                     {
@@ -226,7 +226,7 @@ namespace OTAS.Services
                     Currency = "EUR",
                 };
 
-                if (!await _avanceVoyageRepository.AddAvanceVoyage(avanceVoyage_in_eur))
+                if (!await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_eur))
                 {
                     ServiceResult serviceResult = new()
                     {
@@ -243,7 +243,7 @@ namespace OTAS.Services
                 {
                     AvanceVoyage = avanceVoyage_in_eur,
                 };
-                if (!_statusHistoryRepository.AddStatus(AV_status))
+                if (! await _statusHistoryRepository.AddStatusAsync(AV_status))
                 {
                     ServiceResult serviceResult = new()
                     {
@@ -335,7 +335,7 @@ namespace OTAS.Services
                 {
                     OrdreMissionId = mappedOM.Id,
                 };
-                if (!_statusHistoryRepository.AddStatus(OM_status))
+                if (!await _statusHistoryRepository.AddStatusAsync(OM_status))
                 {
                     result.Success = false;
                     result.ErrorMessage = "Something went wrong while saving the Status of \"OrdreMission\" in the StatusHistory table";
@@ -348,7 +348,7 @@ namespace OTAS.Services
                     if (ordreMission.ActualRequester == null) 
                     {
                         result.Success = false;
-                        result.ErrorMessage = "You must fill actual requester\"s information";
+                        result.ErrorMessage = "You must fill actual requester's information";
                         return result;
                     }
 

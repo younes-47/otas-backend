@@ -21,9 +21,7 @@ public partial class AvanceVoyage
 
     public int LatestStatus { get; set; }
 
-    public DateTime? CreateDate { get; set; }
-
-    public DateTime? UpdateDate { get; set; }
+    public DateTime CreateDate { get; set; }
 
     public virtual ICollection<Expense> Expenses { get; set; } = new List<Expense>();
 

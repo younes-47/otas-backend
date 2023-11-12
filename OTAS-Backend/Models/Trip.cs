@@ -27,8 +27,10 @@ public partial class Trip
 
     public decimal? ActualFee { get; set; }
 
-    public DateTime? CreateDate { get; set; }
+    public DateTime CreateDate { get; set; }
 
+    /* We need update time here because Trip & Expense don't get tracked in StatusHistory 
+     * and we want to know when the user has provided the ActualFee */
     public DateTime? UpdateDate { get; set; }
 
     public virtual AvanceVoyage AvanceVoyage { get; set; } = null!;

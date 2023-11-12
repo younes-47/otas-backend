@@ -58,12 +58,16 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.FirstName).HasMaxLength(50);
             entity.Property(e => e.HiringDate).HasColumnType("date");
             entity.Property(e => e.JobTitle)
-                .HasMaxLength(1)
+                .HasMaxLength(120)
                 .IsUnicode(false);
             entity.Property(e => e.LastName).HasMaxLength(50);
             entity.Property(e => e.Manager)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.CreateDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
 
             entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.ActualRequesters)
                 .HasForeignKey(d => d.AvanceCaisseId)
@@ -98,7 +102,6 @@ public partial class OtasContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
-            entity.Property(e => e.UpdateDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.User).WithMany(p => p.AvanceCaisses)
                 .HasForeignKey(d => d.UserId)
@@ -120,7 +123,6 @@ public partial class OtasContext : DbContext
                 .HasMaxLength(5)
                 .IsUnicode(false);
             entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
-            entity.Property(e => e.UpdateDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.OrdreMission).WithMany(p => p.AvanceVoyages)
                 .HasForeignKey(d => d.OrdreMissionId)
@@ -141,6 +143,9 @@ public partial class OtasContext : DbContext
 
             entity.Property(e => e.EndDate).HasColumnType("datetime");
             entity.Property(e => e.StartDate).HasColumnType("datetime");
+            entity.Property(e => e.CreateDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
 
             entity.HasOne(d => d.DeciderUser).WithMany(p => p.DelegationDeciderUsers)
                 .HasForeignKey(d => d.DeciderUserId)
@@ -170,7 +175,6 @@ public partial class OtasContext : DbContext
                 .HasMaxLength(500)
                 .IsUnicode(false);
             entity.Property(e => e.Total).HasColumnType("decimal(10, 2)");
-            entity.Property(e => e.UpdateDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.User).WithMany(p => p.DepenseCaisses)
                 .HasForeignKey(d => d.UserId)
@@ -225,7 +229,6 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.ReceiptsFilePath)
                 .HasMaxLength(500)
                 .IsUnicode(false);
-            entity.Property(e => e.UpdateDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.Liquidations)
                 .HasForeignKey(d => d.AvanceCaisseId)
@@ -252,7 +255,6 @@ public partial class OtasContext : DbContext
                 .HasColumnType("datetime");
             entity.Property(e => e.DepartureDate).HasColumnType("datetime");
             entity.Property(e => e.ReturnDate).HasColumnType("datetime");
-            entity.Property(e => e.UpdateDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.User).WithMany(p => p.OrdreMissions)
                 .HasForeignKey(d => d.UserId)
@@ -287,7 +289,6 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.DeciderUsername)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            entity.Property(e => e.UpdateDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.StatusHistories)
                 .HasForeignKey(d => d.AvanceCaisseId)
@@ -325,6 +326,7 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.UpdateDate).HasColumnType("datetime");
             entity.Property(e => e.DepartureDate).HasColumnType("datetime");
             entity.Property(e => e.DeparturePlace)
                 .HasMaxLength(50)
@@ -342,7 +344,6 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.Unit)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            entity.Property(e => e.UpdateDate).HasColumnType("datetime");
             entity.Property(e => e.Value).HasColumnType("decimal(10, 2)");
 
             entity.HasOne(d => d.AvanceVoyage).WithMany(p => p.Trips)

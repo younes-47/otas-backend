@@ -17,6 +17,8 @@ public partial class Delegation
 
     public DateTime EndDate { get; set; }
 
+    public DateTime CreateDate { get; set; }
+
     public virtual User DeciderUser { get; set; } = null!;
 
     public virtual User DelegateUser { get; set; } = null!;

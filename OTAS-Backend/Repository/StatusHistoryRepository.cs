@@ -41,15 +41,15 @@ namespace OTAS.Repository
 
 
         //
-        public bool AddStatus(StatusHistory status)
+        public async Task<bool> AddStatusAsync(StatusHistory status)
         {
-            _context.Add(status);
-            return Save();
+            await _context.AddAsync(status);
+            return await SaveAsync();
         }
 
-        public bool Save()
+        public async Task<bool> SaveAsync()
         {
-            int saved = _context.SaveChanges();
+            int saved = await _context.SaveChangesAsync();
             return saved > 0;
         }
     }

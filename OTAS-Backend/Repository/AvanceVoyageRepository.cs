@@ -35,13 +35,13 @@ namespace OTAS.Repository
             throw new NotImplementedException();
         }
 
-        public async Task<bool> AddAvanceVoyage(AvanceVoyage voyage)
+        public async Task<bool> AddAvanceVoyageAsync(AvanceVoyage voyage)
         {
             await _Context.AddAsync(voyage);
-            return await Save();
+            return await SaveAsync();
         }
 
-        public async Task<bool> Save()
+        public async Task<bool> SaveAsync()
         {
             var saved = await _Context.SaveChangesAsync();
             return saved > 0;

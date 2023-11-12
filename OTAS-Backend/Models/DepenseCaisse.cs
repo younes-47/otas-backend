@@ -23,9 +23,7 @@ public partial class DepenseCaisse
 
     public int LatestStatus { get; set; }
 
-    public DateTime? CreateDate { get; set; }
-
-    public DateTime? UpdateDate { get; set; }
+    public DateTime CreateDate { get; set; }
 
     public virtual ICollection<ActualRequester> ActualRequesters { get; set; } = new List<ActualRequester>();
 
