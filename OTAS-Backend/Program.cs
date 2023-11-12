@@ -5,6 +5,8 @@ using System.Text.Json.Serialization;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +44,9 @@ builder.Services.AddDbContext<OtasContext>(options =>
 builder.Services.AddAuthentication(Microsoft.AspNetCore.Server.IISIntegration.IISDefaults.AuthenticationScheme);
 builder.Services.AddAuthorization();
 
+// MS Identity is already looking at "AzureAD" at appSettings file by injecting the configuration
+//builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
+
 // Add Roles
 builder.Services.AddAuthorization(options =>
 {
@@ -60,8 +65,7 @@ builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 
 /* Avoid Infinite loop when you bring nested json response (inculde method in EF)*/
-builder.Services.AddControllers().AddJsonOptions(x =>
-                x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
+builder.Services.AddControllers().AddJsonOptions(x => x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
 
 /***************************************************************/
@@ -77,7 +81,18 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
+//app.UseAuthorization();
+
+app.UseAuthentication();
+//app.Use(async (context, next) =>
+//{
+//    if (!context.User.Identity?.IsAuthenticated ?? false)
+//    {
+//        context.Response.StatusCode = 401;
+//        await context.Response.WriteAsync("Not Authenticated");
+//    }
+//    else await next();
+//});
 
 app.MapControllers();
 
