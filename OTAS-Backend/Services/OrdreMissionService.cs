@@ -6,6 +6,7 @@ using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
+using System.Collections.Generic;
 
 namespace OTAS.Services
 {
@@ -19,6 +20,7 @@ namespace OTAS.Services
         private readonly IStatusHistoryRepository _statusHistoryRepository;
         private readonly OtasContext _context;
         private readonly IMapper _mapper;
+        //private readonly ILogger _logger;
 
         public OrdreMissionService
             (
@@ -30,6 +32,7 @@ namespace OTAS.Services
                 IStatusHistoryRepository statusHistoryRepository,
                 OtasContext context,
                 IMapper mapper
+                //ILogger logger
             ) 
         {
             _actualRequesterService = actualRequester;
@@ -40,11 +43,13 @@ namespace OTAS.Services
             _statusHistoryRepository = statusHistoryRepository;
             _context = context;
             _mapper = mapper;
+            //_logger = logger;
         }
-
 
         public async Task<ServiceResult> CreateAvanceVoyageForEachCurrency(OrdreMission mappedOM, List<TripPostDTO> mixedTrips, List<ExpensePostDTO> mixedExpenses)
         {
+            ServiceResult result = new();
+
             // Sort Trips
             List<TripPostDTO> trips_in_mad = new();
             List<TripPostDTO> trips_in_eur = new();
@@ -61,7 +66,6 @@ namespace OTAS.Services
                 }
             }
 
-
             // Sort Expenses
             List<ExpensePostDTO> expenses_in_mad = new();
             List<ExpensePostDTO> expenses_in_eur = new();
@@ -77,9 +81,6 @@ namespace OTAS.Services
                     expenses_in_eur.Add(expense);
                 }
             }
-
-
-
 
             // trips & expenses li bel MAD ghadi ykono related l' Avance de Voyage bo7dha
             if (trips_in_mad.Count > 0 || expenses_in_mad.Count > 0)
@@ -129,16 +130,11 @@ namespace OTAS.Services
                 {
                     AvanceVoyage = avanceVoyage_in_mad,
                 };
-
                 if (!await _statusHistoryRepository.AddStatusAsync(AV_status))
                 {
-                    ServiceResult serviceResult = new()
-                    {
-                        Success = false,
-                        ErrorMessage = "Something went wrong while saving the Status of Mission Order in the status history table."
-                    };
-
-                    return serviceResult;
+                    result.Success = false;
+                    result.ErrorMessage = "Something went wrong while saving the Status of Mission Order in the status history table.";
+                    return result;
                 }
 
 
@@ -153,14 +149,9 @@ namespace OTAS.Services
                     }
                     if (!_tripRepository.AddTrips(mappedTrips))
                     {
-                        ServiceResult serviceResult = new()
-                        {
-                            Success = false,
-                            ErrorMessage = "Something went wrong while saving the trips in MAD."
-                        };
-
-                        return serviceResult;
-
+                        result.Success = false;
+                        result.ErrorMessage = "Something went wrong while saving the trips in MAD.";
+                        return result;
                     }
                 }
 
@@ -177,15 +168,9 @@ namespace OTAS.Services
                     }
                     if (!_expenseRepository.AddExpenses(mappedExpenses))
                     {
-
-                        ServiceResult serviceResult = new()
-                        {
-                            Success = false,
-                            ErrorMessage = "Something went wrong while saving the expenses in MAD."
-                        };
-
-                        return serviceResult;
-
+                        result.Success = false;
+                        result.ErrorMessage = "Something went wrong while saving the expenses in MAD.";
+                        return result;
                     }
                 }
 
@@ -228,15 +213,10 @@ namespace OTAS.Services
 
                 if (!await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_eur))
                 {
-                    ServiceResult serviceResult = new()
-                    {
-                        Success = false,
-                        ErrorMessage = "Something went wrong while saving the AV in EUR."
-                    };
-
-                    return serviceResult;
+                    result.Success = false;
+                    result.ErrorMessage = "Something went wrong while saving the AV in EUR.";
+                    return result;
                 }
-
 
                 // Inserting the initial status of the "AvanceVoyage" in EUR in StatusHistory
                 StatusHistory AV_status = new()
@@ -245,16 +225,11 @@ namespace OTAS.Services
                 };
                 if (! await _statusHistoryRepository.AddStatusAsync(AV_status))
                 {
-                    ServiceResult serviceResult = new()
-                    {
-                        Success = false,
-                        ErrorMessage = "Something went wrong while saving the Status of Mission Order in the status history table."
-                    };
-
-                    return serviceResult;
+                    result.Success = false;
+                    result.ErrorMessage = "Something went wrong while saving the Status of Mission Order in the status history table.";
+                    return result;
 
                 }
-
 
                 // There might be a case where an "OrdreMission" has no trip in EUR
                 if(trips_in_eur.Count > 0)
@@ -270,16 +245,11 @@ namespace OTAS.Services
                     }
                     if (!_tripRepository.AddTrips(mappedTrips))
                     {
-                        ServiceResult serviceResult = new()
-                        {
-                            Success = false,
-                            ErrorMessage = "Something went wrong while saving the trips in EUR."
-                        };
-
-                        return serviceResult;
+                        result.Success = false;
+                        result.ErrorMessage = "Something went wrong while saving the trips in EUR.";
+                        return result;
                     }
                 }
-
 
                 //There might be a case where an "OrdreMission" has no other expenses in EUR
                 if (expenses_in_eur.Count > 0)
@@ -292,39 +262,27 @@ namespace OTAS.Services
                     }
                     if (!_expenseRepository.AddExpenses(mappedExpenses))
                     {
-                        ServiceResult serviceResult = new()
-                        {
-                            Success = false,
-                            ErrorMessage = "Something went wrong while saving the expenses in EUR."
-                        };
-
-                        return serviceResult;
+                        result.Success = false;
+                        result.ErrorMessage = "Something went wrong while saving the expenses in EUR.";
+                        return result;
 
                     }
-
                 }
-
-
             }
-
-
-            ServiceResult finalserviceResult = new()
-            {
-                Success = true,
-                SuccessMessage = "Avance de voyage has been submitted successfully"
-            };
-            return finalserviceResult;
+            result.Success = true;
+            result.SuccessMessage = "Avance de voyage has been submitted successfully";
+            return result;
         }
 
-        public async Task<ServiceResult> CreateOrdreMissionWithAvanceVoyage(OrdreMissionPostDTO ordreMission)
+        public async Task<ServiceResult> CreateOrdreMissionWithAvanceVoyageAsDraft(OrdreMissionPostDTO ordreMission)
         {
             using var transaction = _context.Database.BeginTransaction();
             ServiceResult result = new();
             try
             {
                 var mappedOM = _mapper.Map<OrdreMission>(ordreMission);
-             
-                if (!_ordreMissionRepository.AddOrdreMission(mappedOM))
+                
+                if (! await _ordreMissionRepository.AddOrdreMissionAsync(mappedOM))
                 {
                     result.Success = false;
                     result.ErrorMessage = "Something went wrong while saving \"OrdreMission\"";
@@ -367,7 +325,8 @@ namespace OTAS.Services
 
                 await transaction.CommitAsync();
 
-                result.SuccessMessage = "Submitted successfuly";
+                result.Success = true;
+                result.SuccessMessage = "Created successfuly";
                 return result;
 
             }
@@ -381,8 +340,68 @@ namespace OTAS.Services
                 return result;
 
             }
+        }
 
+        public async Task<ServiceResult> SubmitOrdreMissionWithAvanceVoyage(int ordreMissionId)
+        {
+            ServiceResult result = new();
+            var transaction = _context.Database.BeginTransaction();
 
+            try
+            {
+                await _ordreMissionRepository.UpdateOrdreMissionStatusAsync(ordreMissionId, 0);
+
+                StatusHistory newOM_Status = new()
+                {
+                    OrdreMissionId = ordreMissionId,
+                    Status = 1,
+                };
+                //_logger.LogInformation($"newOM_Status details: {newOM_Status}");
+
+                if (!await _statusHistoryRepository.AddStatusAsync(newOM_Status))
+                {
+                    result.Success = false;
+                    result.ErrorMessage = "Something went wrong while saving StatusHistory for the newly updated \"OrdreMission\"!";
+                    return result;
+                }
+
+                List<AvanceVoyage> avacesVoyage = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
+                foreach(AvanceVoyage av in  avacesVoyage)
+                {
+                    result = await _avanceVoyageRepository.UpdateAvanceVoyageStatusAsync(av.Id, 0);
+                    if (!result.Success)
+                    {
+                        result.ErrorMessage = "Something went wrong while submitting \"AvanceVoyages\"";
+                        return result;
+                    };
+
+                    StatusHistory newAV_Status = new()
+                    {
+                        AvanceVoyageId = av.Id,
+                        Status = 1,
+                    };
+                    System.Diagnostics.Debug.WriteLine(newAV_Status.Status);
+                    //_logger.LogInformation($"newAV_Status details: {newAV_Status}");
+                    if (!await _statusHistoryRepository.AddStatusAsync(newAV_Status))
+                    {
+                        result.Success = false;
+                        result.ErrorMessage = "Something went wrong while saving StatusHistory for \"AvanceVoyage\"!";
+                        return result;
+                    }
+                }
+
+                await transaction.CommitAsync();
+            }
+            catch (Exception exception)
+            {
+                result.Success = false;
+                result.ErrorMessage = exception.Message;
+                return result;
+            }
+
+            result.Success = true;
+            result.SuccessMessage = "\"OrdreMission\" and its corresponding \"Avance(s)Voyae\" are Submitted successfuly";
+            return result;
 
         }
     }

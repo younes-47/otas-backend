@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using OTAS.Models;
 
 namespace OTAS.Data;
@@ -103,10 +101,19 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
 
+            entity.Property(e => e.LatestStatus)
+                   .HasDefaultValue(99);
+
             entity.HasOne(d => d.User).WithMany(p => p.AvanceCaisses)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AC_Requester");
+
+            entity.HasOne(d => d.StatusNavigation).WithMany(p => p.AvanceCaisses)
+                .HasForeignKey(d => d.LatestStatus)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AC_StatusCode");
+
         });
 
         modelBuilder.Entity<AvanceVoyage>(entity =>
@@ -124,6 +131,9 @@ public partial class OtasContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
 
+            entity.Property(e => e.LatestStatus)
+                  .HasDefaultValue(99);
+
             entity.HasOne(d => d.OrdreMission).WithMany(p => p.AvanceVoyages)
                 .HasForeignKey(d => d.OrdreMissionId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -133,6 +143,12 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AV_Requester");
+
+            entity.HasOne(d => d.StatusNavigation).WithMany(p => p.AvanceVoyages)
+                .HasForeignKey(d => d.LatestStatus)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AV_StatusCode");
+
         });
 
         modelBuilder.Entity<Delegation>(entity =>
@@ -176,10 +192,19 @@ public partial class OtasContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.Total).HasColumnType("decimal(10, 2)");
 
+            entity.Property(e => e.LatestStatus)
+                .HasDefaultValue(99);
+
             entity.HasOne(d => d.User).WithMany(p => p.DepenseCaisses)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_DC_Requester");
+
+            entity.HasOne(d => d.StatusNavigation).WithMany(p => p.DepenseCaisses)
+                .HasForeignKey(d => d.LatestStatus)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DC_StatusCode");
+
         });
 
         modelBuilder.Entity<Expense>(entity =>
@@ -230,6 +255,10 @@ public partial class OtasContext : DbContext
                 .HasMaxLength(500)
                 .IsUnicode(false);
 
+            entity.Property(e => e.LatestStatus)
+                 .HasDefaultValue(99);
+
+
             entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.Liquidations)
                 .HasForeignKey(d => d.AvanceCaisseId)
                 .HasConstraintName("FK_AC_Liquidation");
@@ -242,6 +271,12 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Liquidation_Requester");
+
+            entity.HasOne(d => d.StatusNavigation).WithMany(p => p.Liquidations)
+                .HasForeignKey(d => d.LatestStatus)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LQ_StatusCode");
+
         });
 
         modelBuilder.Entity<OrdreMission>(entity =>
@@ -256,10 +291,19 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.DepartureDate).HasColumnType("datetime");
             entity.Property(e => e.ReturnDate).HasColumnType("datetime");
 
+            entity.Property(e => e.LatestStatus)
+                .HasDefaultValue(99);
+
             entity.HasOne(d => d.User).WithMany(p => p.OrdreMissions)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OM_Requester");
+
+            entity.HasOne(d => d.StatusNavigation).WithMany(p => p.OrdreMissions)
+                .HasForeignKey(d => d.LatestStatus)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OM_StatusCode");
+
         });
 
         modelBuilder.Entity<StatusCode>(entity =>
@@ -289,6 +333,9 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.DeciderUsername)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+
+            entity.Property(e => e.Status)
+                .HasDefaultValue(99);
 
             entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.StatusHistories)
                 .HasForeignKey(d => d.AvanceCaisseId)

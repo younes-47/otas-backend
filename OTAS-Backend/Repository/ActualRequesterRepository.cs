@@ -18,10 +18,10 @@ namespace OTAS.Repository
         public async Task<bool> AddActualRequesterInfo(ActualRequester actualRequester)
         {
             await _context.ActualRequesters.AddAsync(actualRequester);
-            return await Save();
+            return await SaveAsync();
         }
 
-        public async Task<bool> Save()
+        public async Task<bool> SaveAsync()
         {
             int saved = await _context.SaveChangesAsync();
             return saved > 0;

@@ -16,10 +16,12 @@ namespace OTAS.Controllers
     public class OrdreMissionController : ControllerBase
     {
         private readonly IOrdreMissionService _ordreMissionService;
+        private readonly IOrdreMissionRepository _ordreMissionRepository;
 
-        public OrdreMissionController(IOrdreMissionService ordreMissionService)
+        public OrdreMissionController(IOrdreMissionService ordreMissionService, IOrdreMissionRepository ordreMissionRepository)
         {
             _ordreMissionService = ordreMissionService;
+            _ordreMissionRepository = ordreMissionRepository;
         }
 
         /* This get /Table endpoint is within the Request section and it is shown for all the roles
@@ -41,20 +43,26 @@ namespace OTAS.Controllers
         /* This post /Request endpoint is within the Request section and it is shown for all the roles
          * since everyone can perform a request */
         [HttpPost("Request")]
-        public async Task<IActionResult> RequestOrdreMission([FromBody] OrdreMissionPostDTO ordreMissionRequest)
+        public async Task<IActionResult> AddOrdreMission([FromBody] OrdreMissionPostDTO ordreMissionRequest)
         {  
             if(!ModelState.IsValid) return BadRequest(ModelState);
 
-            ServiceResult omResult = await _ordreMissionService.CreateOrdreMissionWithAvanceVoyage(ordreMissionRequest);
+            ServiceResult omResult = await _ordreMissionService.CreateOrdreMissionWithAvanceVoyageAsDraft(ordreMissionRequest);
 
             if (!omResult.Success) return Ok(omResult.ErrorMessage);
 
             return Ok(omResult.SuccessMessage); 
         }
 
+        [HttpPut("Confirm")]
+        public async Task<IActionResult> SubmitOrdreMission(int ordreMissionId)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(ordreMissionId) == null) return NotFound("OrdreMission Not found!");
 
-
-
-
+            ServiceResult omResult = await _ordreMissionService.SubmitOrdreMissionWithAvanceVoyage(ordreMissionId);
+            if (!omResult.Success) return Ok(omResult.ErrorMessage);
+            return Ok(omResult.SuccessMessage);
+        }
     }
 }

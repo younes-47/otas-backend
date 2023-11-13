@@ -7,6 +7,8 @@ namespace OTAS.Interfaces.IService
     public interface IOrdreMissionService
     {
         Task<ServiceResult> CreateAvanceVoyageForEachCurrency(OrdreMission mappedOM, List<TripPostDTO> mixedTrips, List<ExpensePostDTO> mixedExpenses);
-        Task<ServiceResult> CreateOrdreMissionWithAvanceVoyage(OrdreMissionPostDTO ordreMissionPostDTO);
+        Task<ServiceResult> CreateOrdreMissionWithAvanceVoyageAsDraft(OrdreMissionPostDTO ordreMissionPostDTO);
+        Task<ServiceResult> SubmitOrdreMissionWithAvanceVoyage(int ordreMissionId);
+
     }
 }

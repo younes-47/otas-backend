@@ -19,7 +19,7 @@ namespace OTAS.Controllers
         [HttpGet("{AvanceVoyageId}")]
         public async Task<IActionResult> GetAvanceVoyageById(int id)
         {
-            var AV = await _avanceVoyageRepository.GetAvanceVoyageById(id);
+            var AV = await _avanceVoyageRepository.GetAvanceVoyageByIdAsync(id);
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -30,7 +30,7 @@ namespace OTAS.Controllers
         [HttpGet("Table")]
         public async Task<IActionResult> GetAvancesVoyageByStatus(int status)
         {
-            var AVs = await _avanceVoyageRepository.GetAvancesVoyageByStatus(status);
+            var AVs = await _avanceVoyageRepository.GetAvancesVoyageByStatusAsync(status);
 
             if(AVs.Count <= 0)
                 return NoContent();
@@ -44,7 +44,7 @@ namespace OTAS.Controllers
         [HttpGet("OrdreMission-{ordreMissionId}")]
         public async Task<IActionResult> GetAvancesVoyageByOrdreMissionId(int ordreMissionId)
         {
-            var AVs = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionId(ordreMissionId);
+            var AVs = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
 
             if (AVs.Count <= 0)
                 return NoContent();

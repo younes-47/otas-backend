@@ -38,4 +38,5 @@ public partial class ActualRequester
     public virtual User OrderingUser { get; set; } = null!;
 
     public virtual OrdreMission? OrdreMission { get; set; }
+
 }

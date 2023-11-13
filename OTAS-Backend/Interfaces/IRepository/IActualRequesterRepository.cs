@@ -6,7 +6,7 @@ namespace OTAS.Interfaces.IRepository
     {
         Task<bool> AddActualRequesterInfo(ActualRequester actualRequester);
 
-        Task<bool> Save();
+        Task<bool> SaveAsync();
 
     }
 }

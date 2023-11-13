@@ -1,17 +1,22 @@
 ﻿using OTAS.Models;
+using OTAS.Services;
 
 namespace OTAS.Interfaces.IRepository
 {
     public interface IAvanceVoyageRepository
     {
         //Get Methods
-        Task<AvanceVoyage> GetAvanceVoyageById(int id);
-        Task<List<AvanceVoyage>> GetAvancesVoyageByRequesterUserId(int requesterUserId);
-        Task<List<AvanceVoyage>> GetAvancesVoyageByStatus(int status);
-        Task<List<AvanceVoyage>> GetAvancesVoyageByOrdreMissionId(int ordreMissionId);
+        Task<AvanceVoyage> GetAvanceVoyageByIdAsync(int id);
+        Task<AvanceVoyage?> FindAvanceVoyageByIdAsync(int avanceVoyageId);
+        Task<List<AvanceVoyage>> GetAvancesVoyageByRequesterUserIdAsync(int requesterUserId);
+        Task<List<AvanceVoyage>> GetAvancesVoyageByStatusAsync(int status);
+        Task<List<AvanceVoyage>> GetAvancesVoyageByOrdreMissionIdAsync(int ordreMissionId);
 
         //Post Methods
         Task<bool> AddAvanceVoyageAsync(AvanceVoyage voyage);
         Task<bool> SaveAsync();
+
+        //Put Methods
+        Task<ServiceResult> UpdateAvanceVoyageStatusAsync(int avanceVoyageId, int status);
     }
 }

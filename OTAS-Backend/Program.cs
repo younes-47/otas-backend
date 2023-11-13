@@ -17,7 +17,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-/* Dependency Injection - This enables Constructor Injection for controllers/services */
+/* Dependency Injection - This enables Constructor Injection for controllers, services... */
+
 //Repositories
 builder.Services.AddScoped<IAvanceCaisseRepository, AvanceCaisseRepository>();
 builder.Services.AddScoped<IAvanceVoyageRepository, AvanceVoyageRepository>();
@@ -63,6 +64,11 @@ builder.Services.AddAuthorization(options =>
 /* Inject Automapper */
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
+/* Inject Logger to display logs in the console during runtime for debugging*/
+builder.Services.AddLogging(builder =>
+{
+    builder.AddConsole();
+});
 
 /* Avoid Infinite loop when you bring nested json response (inculde method in EF)*/
 builder.Services.AddControllers().AddJsonOptions(x => x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);

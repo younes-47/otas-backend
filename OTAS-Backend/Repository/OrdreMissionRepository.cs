@@ -2,12 +2,14 @@
 using OTAS.Data;
 using OTAS.Interfaces.IRepository;
 using OTAS.Models;
+using OTAS.Services;
 
 namespace OTAS.Repository
 {
     public class OrdreMissionRepository : IOrdreMissionRepository
     {
         private readonly OtasContext _context;
+
         public OrdreMissionRepository(OtasContext context)
         {
             _context = context;
@@ -15,36 +17,65 @@ namespace OTAS.Repository
 
 
         
-        public ICollection<OrdreMission> GetOrdresMissionByUserId(int userid)
+        public async  Task<List<OrdreMission>> GetOrdresMissionByUserIdAsync(int userid)
         {
-            return _context.OrdreMissions.Where(om => om.UserId == userid).ToList();
+            return await _context.OrdreMissions.Where(om => om.UserId == userid).ToListAsync();
         }
 
-        public OrdreMission GetOrdreMissionById(int Id)
+        public async Task<OrdreMission> GetOrdreMissionByIdAsync(int ordreMissionId)
         {
-            return _context.OrdreMissions.Where(om => om.Id == Id).FirstOrDefault();
+            return await _context.OrdreMissions.Where(om => om.Id == ordreMissionId).FirstAsync();
         }
 
-        public ICollection<OrdreMission> GetOrdresMissionByStatus(int status)
+        public async Task<OrdreMission?> FindOrdreMissionByIdAsync(int ordreMissionId)
         {
-            return _context.OrdreMissions.Where(om => om.LatestStatus == status).ToList();
+            return await _context.OrdreMissions.FindAsync(ordreMissionId);
         }
 
-        public string DecodeStatus(int statusCode)
+        public async Task<List<OrdreMission>> GetOrdresMissionByStatusAsync(int status)
         {
-            return _context.StatusCodes.Where(sc => sc.StatusInt == statusCode).FirstOrDefault().StatusString;
+            return await _context.OrdreMissions.Where(om => om.LatestStatus == status).ToListAsync();
         }
 
-        public bool AddOrdreMission(OrdreMission ordreMission)
+        public async Task<string?> DecodeStatusAsync(int statusCode)
         {
-            _context.OrdreMissions.Add(ordreMission);
-            return Save();
+            var statusCodeEntity =  await _context.StatusCodes.Where(sc => sc.StatusInt == statusCode).FirstOrDefaultAsync();
+
+            return statusCodeEntity?.StatusString;
         }
 
-        public bool Save()
+        public async Task<bool> AddOrdreMissionAsync(OrdreMission ordreMission)
         {
-            var saved = _context.SaveChanges();
-            return saved > 0 ? true : false;
+            await _context.OrdreMissions.AddAsync(ordreMission);
+            return await SaveAsync();
+        }
+
+        public async Task<ServiceResult> UpdateOrdreMissionStatusAsync(int ordreMissionId, int status)
+        {
+                ServiceResult result = new();
+               
+                OrdreMission updatedOrdreMission = await GetOrdreMissionByIdAsync(ordreMissionId);
+                updatedOrdreMission.LatestStatus = status;
+                _context.OrdreMissions.Update(updatedOrdreMission);
+
+                result.Success = await SaveAsync();
+                if(result.Success)
+                {
+                    result.SuccessMessage = "Updated Successfully";
+                }
+                else
+                {
+                    result.ErrorMessage = "Something went wrong while updating";
+                }
+            
+
+            return result;
+        }
+
+        public async Task<bool> SaveAsync()
+        {
+            var saved = await _context.SaveChangesAsync();
+            return saved > 0;
         }
     }
 }

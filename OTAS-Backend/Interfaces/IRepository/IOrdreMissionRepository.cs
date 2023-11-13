@@ -1,15 +1,17 @@
 ﻿using OTAS.Models;
-
+using OTAS.Services;
 
 namespace OTAS.Interfaces.IRepository
 {
     public interface IOrdreMissionRepository
     {
-        OrdreMission GetOrdreMissionById(int id);
-        ICollection<OrdreMission> GetOrdresMissionByUserId(int userid);
-        ICollection<OrdreMission> GetOrdresMissionByStatus(int status);
-        string DecodeStatus(int statusCode);
-        bool AddOrdreMission(OrdreMission ordreMission);
-        bool Save();
+        Task<OrdreMission> GetOrdreMissionByIdAsync(int id);
+        Task<OrdreMission?> FindOrdreMissionByIdAsync(int ordreMissionId);
+        Task<List<OrdreMission>> GetOrdresMissionByUserIdAsync(int userid);
+        Task<List<OrdreMission>> GetOrdresMissionByStatusAsync(int status);
+        Task<string?> DecodeStatusAsync(int statusCode);
+        Task<bool> AddOrdreMissionAsync(OrdreMission ordreMission);
+        Task<ServiceResult> UpdateOrdreMissionStatusAsync(int ordreMissionId, int status);
+        Task<bool> SaveAsync();
     }
 }

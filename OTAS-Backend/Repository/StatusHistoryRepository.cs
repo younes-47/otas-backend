@@ -39,7 +39,6 @@ namespace OTAS.Repository
         }
 
 
-
         //
         public async Task<bool> AddStatusAsync(StatusHistory status)
         {
