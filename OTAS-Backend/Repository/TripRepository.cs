@@ -2,6 +2,7 @@
 using OTAS.Models;
 using Microsoft.EntityFrameworkCore;
 using OTAS.Interfaces.IRepository;
+using OTAS.Services;
 
 namespace OTAS.Repository
 {
@@ -55,15 +56,18 @@ namespace OTAS.Repository
             return _context.Trips.Where(trip => trip.AvanceVoyageId == avId).ToList();
         }
 
-        public bool AddTrips(ICollection<Trip> trips)
+        public async Task<ServiceResult> AddTripsAsync(ICollection<Trip> trips)
         {
-            _context.AddRange(trips);
-            return Save();
+            ServiceResult result = new();
+            await _context.AddRangeAsync(trips);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "Trips added successfully" : "Something went wrong while saving the trips.";
+            return result;
         }
 
-        public bool Save()
+        public async Task<bool> SaveAsync()
         {
-            var saved = _context.SaveChanges();
+            var saved = await _context.SaveChangesAsync();
             return saved > 0 ? true : false;
         }
     }

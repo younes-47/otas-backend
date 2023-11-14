@@ -21,6 +21,10 @@ public partial class AvanceVoyage
 
     public int LatestStatus { get; set; }
 
+    public int? DeciderUserId { get; set; }
+
+    public string? DeciderComment { get; set; }
+
     public DateTime CreateDate { get; set; }
 
     public virtual ICollection<Expense> Expenses { get; set; } = new List<Expense>();
@@ -34,6 +38,7 @@ public partial class AvanceVoyage
     public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
 
     public virtual User User { get; set; } = null!;
+
     public virtual StatusCode StatusNavigation { get; set; } = null!;
 
 }

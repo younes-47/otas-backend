@@ -20,7 +20,11 @@
 
         public int LatestStatus { get; set; }
 
-        public DateTime? CreateDate { get; set; }
+        public int? DeciderUserId { get; set; }
+
+        public string? DeciderComment { get; set; }
+
+        public DateTime CreateDate { get; set; }
 
     }
 }

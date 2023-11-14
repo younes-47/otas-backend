@@ -24,7 +24,13 @@ namespace OTAS.DTO.Get
 
         public decimal EstimatedFee { get; set; }
 
-        public decimal ActualFee { get; set; }
+        public decimal? ActualFee { get; set; }
+
+        public DateTime CreateDate { get; set; }
+
+        /* We need update time here because Trip & Expense don't get tracked in StatusHistory 
+         * and we want to know when the user has provided the ActualFee */
+        public DateTime? UpdateDate { get; set; }
 
     }
 }

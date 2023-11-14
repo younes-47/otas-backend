@@ -59,23 +59,27 @@ namespace OTAS.Repository
                 _context.OrdreMissions.Update(updatedOrdreMission);
 
                 result.Success = await SaveAsync();
-                if(result.Success)
-                {
-                    result.SuccessMessage = "Updated Successfully";
-                }
-                else
-                {
-                    result.ErrorMessage = "Something went wrong while updating";
-                }
-            
+                result.Message = result.Success == true ? "OrdreMission Status Updated Successfully" : "Something went wrong while updating OrdreMission Status";            
 
             return result;
         }
+
+        public async Task<ServiceResult> UpdateOrdreMission(OrdreMission ordreMission)
+        {
+            ServiceResult result = new();
+            _context.OrdreMissions.Update(ordreMission);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "OrdreMission Updated Successfully" : "Something went wrong while updating OrdreMission";
+
+            return result;
+        }
+
 
         public async Task<bool> SaveAsync()
         {
             var saved = await _context.SaveChangesAsync();
             return saved > 0;
         }
+
     }
 }

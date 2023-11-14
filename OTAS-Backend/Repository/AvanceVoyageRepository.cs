@@ -41,29 +41,34 @@ namespace OTAS.Repository
             throw new NotImplementedException();
         }
 
-        public async Task<bool> AddAvanceVoyageAsync(AvanceVoyage voyage)
+        public async Task<ServiceResult> AddAvanceVoyageAsync(AvanceVoyage avanceVoyage)
         {
-            await _context.AddAsync(voyage);
-            return await SaveAsync();
+            ServiceResult result = new();
+            await _context.AddAsync(avanceVoyage);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "AvanceVoyage added Successfully" : "Something went wrong while adding AvanceVoyage";
+            return result;
+        }
+
+        public async Task<ServiceResult> UpdateAvanceVoyageAsync(AvanceVoyage avanceVoyage)
+        {
+            ServiceResult result = new();
+            _context.Update(avanceVoyage);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "AvanceVoyage updated successfully" : "Something went wrong while updating AvanceVoyage";
+            return result;
         }
 
         public async Task <ServiceResult> UpdateAvanceVoyageStatusAsync(int avanceVoyageId, int status)
         {
-                ServiceResult result = new();
+            ServiceResult result = new();
 
-                AvanceVoyage updatedAvanceVoyage  = await GetAvanceVoyageByIdAsync(avanceVoyageId);
-                updatedAvanceVoyage.LatestStatus = status;
-                _context.AvanceVoyages.Update(updatedAvanceVoyage);
+            AvanceVoyage updatedAvanceVoyage  = await GetAvanceVoyageByIdAsync(avanceVoyageId);
+            updatedAvanceVoyage.LatestStatus = status;
+            _context.AvanceVoyages.Update(updatedAvanceVoyage);
 
-                result.Success = await SaveAsync();
-                if (result.Success)
-                {
-                    result.SuccessMessage = "Updated Successfully";
-                }
-                else
-                {
-                    result.ErrorMessage = "Something went wrong while updating";
-                }
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "AvanceVoyage Status Updated Successfully" : "Something went wrong while updating AvanceVoyage Status";
 
            return result;
 

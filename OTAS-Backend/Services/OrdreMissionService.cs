@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OTAS.Data;
 using OTAS.DTO.Post;
@@ -7,6 +8,7 @@ using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
 using System.Collections.Generic;
+using System.Reflection.Metadata.Ecma335;
 
 namespace OTAS.Services
 {
@@ -20,7 +22,6 @@ namespace OTAS.Services
         private readonly IStatusHistoryRepository _statusHistoryRepository;
         private readonly OtasContext _context;
         private readonly IMapper _mapper;
-        //private readonly ILogger _logger;
 
         public OrdreMissionService
             (
@@ -32,7 +33,6 @@ namespace OTAS.Services
                 IStatusHistoryRepository statusHistoryRepository,
                 OtasContext context,
                 IMapper mapper
-                //ILogger logger
             ) 
         {
             _actualRequesterService = actualRequester;
@@ -43,7 +43,6 @@ namespace OTAS.Services
             _statusHistoryRepository = statusHistoryRepository;
             _context = context;
             _mapper = mapper;
-            //_logger = logger;
         }
 
         public async Task<ServiceResult> CreateAvanceVoyageForEachCurrency(OrdreMission mappedOM, List<TripPostDTO> mixedTrips, List<ExpensePostDTO> mixedExpenses)
@@ -113,16 +112,11 @@ namespace OTAS.Services
                     EstimatedTotal = estm_total_mad,
                     Currency = "MAD",
                 };
-
-                if (! await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_mad))
+                result = await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_mad);
+                if(!result.Success)
                 {
-                    ServiceResult serviceResult = new()
-                    {
-                        Success = false,
-                        ErrorMessage = "Something went wrong while saving the AV in MAD"
-                    };
-
-                    return serviceResult;
+                    result.Message += " (MAD)";
+                    return result;
                 }
 
                 // Inserting the initial status of the "AvanceVoyage" in MAD in StatusHistory
@@ -130,10 +124,10 @@ namespace OTAS.Services
                 {
                     AvanceVoyage = avanceVoyage_in_mad,
                 };
-                if (!await _statusHistoryRepository.AddStatusAsync(AV_status))
+                result = await _statusHistoryRepository.AddStatusAsync(AV_status);
+                if (!result.Success)
                 {
-                    result.Success = false;
-                    result.ErrorMessage = "Something went wrong while saving the Status of Mission Order in the status history table.";
+                    result.Message += " (Avancevoyage in mad)";
                     return result;
                 }
 
@@ -147,10 +141,10 @@ namespace OTAS.Services
                     {
                         mappedTrip.AvanceVoyageId = avanceVoyage_in_mad.Id;
                     }
-                    if (!_tripRepository.AddTrips(mappedTrips))
+                    result = await _tripRepository.AddTripsAsync(mappedTrips);
+                    if (!result.Success)
                     {
-                        result.Success = false;
-                        result.ErrorMessage = "Something went wrong while saving the trips in MAD.";
+                        result.Message = "(MAD).";
                         return result;
                     }
                 }
@@ -169,7 +163,7 @@ namespace OTAS.Services
                     if (!_expenseRepository.AddExpenses(mappedExpenses))
                     {
                         result.Success = false;
-                        result.ErrorMessage = "Something went wrong while saving the expenses in MAD.";
+                        result.Message = "Something went wrong while saving the expenses in MAD.";
                         return result;
                     }
                 }
@@ -210,11 +204,10 @@ namespace OTAS.Services
                     EstimatedTotal = estm_total_eur,
                     Currency = "EUR",
                 };
-
-                if (!await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_eur))
+                result = await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_eur);
+                if (!result.Success)
                 {
-                    result.Success = false;
-                    result.ErrorMessage = "Something went wrong while saving the AV in EUR.";
+                    result.Message += " (AvanceVoyage in EUR)";
                     return result;
                 }
 
@@ -223,16 +216,15 @@ namespace OTAS.Services
                 {
                     AvanceVoyage = avanceVoyage_in_eur,
                 };
-                if (! await _statusHistoryRepository.AddStatusAsync(AV_status))
+                result = await _statusHistoryRepository.AddStatusAsync(AV_status);
+                if (!result.Success)
                 {
-                    result.Success = false;
-                    result.ErrorMessage = "Something went wrong while saving the Status of Mission Order in the status history table.";
+                    result.Message += " (Avancevoyage in eur)";
                     return result;
-
                 }
 
                 // There might be a case where an "OrdreMission" has no trip in EUR
-                if(trips_in_eur.Count > 0)
+                if (trips_in_eur.Count > 0)
                 {
                     // Inserting the trips related to the "AvanceVoyage" in EUR
                     var mappedTrips = _mapper.Map<List<Trip>>(trips_in_eur);
@@ -243,10 +235,10 @@ namespace OTAS.Services
                             mappedTrip.AvanceVoyageId = avanceVoyage_in_eur.Id;
                         }
                     }
-                    if (!_tripRepository.AddTrips(mappedTrips))
+                    result = await _tripRepository.AddTripsAsync(mappedTrips);
+                    if (!result.Success)
                     {
-                        result.Success = false;
-                        result.ErrorMessage = "Something went wrong while saving the trips in EUR.";
+                        result.Message += " (EUR).";
                         return result;
                     }
                 }
@@ -263,14 +255,14 @@ namespace OTAS.Services
                     if (!_expenseRepository.AddExpenses(mappedExpenses))
                     {
                         result.Success = false;
-                        result.ErrorMessage = "Something went wrong while saving the expenses in EUR.";
+                        result.Message = "Something went wrong while saving the expenses in EUR.";
                         return result;
 
                     }
                 }
             }
             result.Success = true;
-            result.SuccessMessage = "Avance de voyage has been submitted successfully";
+            result.Message = "Avance de voyage has been submitted successfully";
             return result;
         }
 
@@ -285,7 +277,7 @@ namespace OTAS.Services
                 if (! await _ordreMissionRepository.AddOrdreMissionAsync(mappedOM))
                 {
                     result.Success = false;
-                    result.ErrorMessage = "Something went wrong while saving \"OrdreMission\"";
+                    result.Message = "Something went wrong while saving \"OrdreMission\"";
                     return result;
                 }
 
@@ -293,10 +285,10 @@ namespace OTAS.Services
                 {
                     OrdreMissionId = mappedOM.Id,
                 };
-                if (!await _statusHistoryRepository.AddStatusAsync(OM_status))
+                result = await _statusHistoryRepository.AddStatusAsync(OM_status);
+                if (!result.Success)
                 {
-                    result.Success = false;
-                    result.ErrorMessage = "Something went wrong while saving the Status of \"OrdreMission\" in the StatusHistory table";
+                    result.Message += " (OrdreMission)";
                     return result;
                 }
 
@@ -306,14 +298,14 @@ namespace OTAS.Services
                     if (ordreMission.ActualRequester == null) 
                     {
                         result.Success = false;
-                        result.ErrorMessage = "You must fill actual requester's information";
+                        result.Message = "You must fill actual requester's information";
                         return result;
                     }
 
                     ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(ordreMission.ActualRequester);
                     mappedActualRequester.OrdreMissionId = mappedOM.Id;
                     mappedActualRequester.OrderingUserId = mappedOM.UserId;
-                    result = await _actualRequesterService.AddActualRequesterInfo(mappedActualRequester);
+                    result = await _actualRequesterService.AddActualRequesterInfoAsync(mappedActualRequester);
 
                 }
 
@@ -326,7 +318,7 @@ namespace OTAS.Services
                 await transaction.CommitAsync();
 
                 result.Success = true;
-                result.SuccessMessage = "Created successfuly";
+                result.Message = "Created successfuly";
                 return result;
 
             }
@@ -335,7 +327,7 @@ namespace OTAS.Services
                 transaction.Rollback();
 
                 result.Success = false;
-                result.ErrorMessage = exception.Message;
+                result.Message = exception.Message;
 
                 return result;
 
@@ -349,29 +341,28 @@ namespace OTAS.Services
 
             try
             {
-                await _ordreMissionRepository.UpdateOrdreMissionStatusAsync(ordreMissionId, 0);
+                result = await _ordreMissionRepository.UpdateOrdreMissionStatusAsync(ordreMissionId, 1);
+                if (!result.Success) return result;
 
                 StatusHistory newOM_Status = new()
                 {
                     OrdreMissionId = ordreMissionId,
                     Status = 1,
                 };
-                //_logger.LogInformation($"newOM_Status details: {newOM_Status}");
-
-                if (!await _statusHistoryRepository.AddStatusAsync(newOM_Status))
+                result = await _statusHistoryRepository.AddStatusAsync(newOM_Status);
+                if (!result.Success)
                 {
-                    result.Success = false;
-                    result.ErrorMessage = "Something went wrong while saving StatusHistory for the newly updated \"OrdreMission\"!";
+                    result.Message += " for the newly updated \"OrdreMission\"";
                     return result;
                 }
 
                 List<AvanceVoyage> avacesVoyage = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
                 foreach(AvanceVoyage av in  avacesVoyage)
                 {
-                    result = await _avanceVoyageRepository.UpdateAvanceVoyageStatusAsync(av.Id, 0);
+                    result = await _avanceVoyageRepository.UpdateAvanceVoyageStatusAsync(av.Id, 1);
                     if (!result.Success)
                     {
-                        result.ErrorMessage = "Something went wrong while submitting \"AvanceVoyages\"";
+                        result.Message = "Something went wrong while submitting \"AvanceVoyages\"";
                         return result;
                     };
 
@@ -380,14 +371,14 @@ namespace OTAS.Services
                         AvanceVoyageId = av.Id,
                         Status = 1,
                     };
-                    System.Diagnostics.Debug.WriteLine(newAV_Status.Status);
-                    //_logger.LogInformation($"newAV_Status details: {newAV_Status}");
-                    if (!await _statusHistoryRepository.AddStatusAsync(newAV_Status))
+
+                    result = await _statusHistoryRepository.AddStatusAsync(newAV_Status);
+                    if (!result.Success)
                     {
-                        result.Success = false;
-                        result.ErrorMessage = "Something went wrong while saving StatusHistory for \"AvanceVoyage\"!";
+                        result.Message += " (Avancevoyage)";
                         return result;
                     }
+
                 }
 
                 await transaction.CommitAsync();
@@ -395,14 +386,89 @@ namespace OTAS.Services
             catch (Exception exception)
             {
                 result.Success = false;
-                result.ErrorMessage = exception.Message;
+                result.Message = exception.Message;
                 return result;
             }
 
             result.Success = true;
-            result.SuccessMessage = "\"OrdreMission\" and its corresponding \"Avance(s)Voyae\" are Submitted successfuly";
+            result.Message = "OrdreMission & AvanceVoyage(s) are Submitted successfully";
             return result;
 
+        }
+
+        public async Task<ServiceResult> DecideOnOrdreMissionWithAvanceVoyage
+            (int ordreMissionId,
+             int deciderUserId,
+             string? deciderComment,
+             int decision)
+        {
+            ServiceResult result = new();
+
+            // CASE: REJECTION
+            if (decision == 97)
+            {
+                var transaction = _context.Database.BeginTransaction();
+                try
+                {
+                    var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMissionId);
+                    decidedOrdreMission.DeciderComment = deciderComment;
+                    decidedOrdreMission.DeciderUserId = deciderUserId;
+                    decidedOrdreMission.LatestStatus = decision;
+                    result = await _ordreMissionRepository.UpdateOrdreMission(decidedOrdreMission);
+                    if(!result.Success) return result;
+
+                    StatusHistory decidedOrdreMission_SH = new()
+                    {
+                        OrdreMissionId = ordreMissionId,
+                        DeciderUserId = deciderUserId,
+                        DeciderComment = deciderComment,
+                        Status = decision,
+                    };
+                    result = await _statusHistoryRepository.AddStatusAsync(decidedOrdreMission_SH);
+                    if (!result.Success) return result;
+                    
+                    var decidedAvanceVoyage = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
+                    foreach(AvanceVoyage av in  decidedAvanceVoyage)
+                    {
+                        av.LatestStatus = decision;
+                        av.DeciderComment = deciderComment;
+                        av.DeciderUserId = deciderUserId;
+                        result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(av);
+                        if (!result.Success) return result;
+                        StatusHistory decidedAvanceVoyage_SH = new()
+                        {
+                            AvanceVoyageId = av.Id,
+                            DeciderUserId = deciderUserId,
+                            DeciderComment = deciderComment,
+                            Status = decision,
+                        };
+                        result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceVoyage_SH);
+                        if (!result.Success) return result;
+                    }
+
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception exception)
+                {
+                    result.Success = false;
+                    result.Message = exception.Message;
+                    return result;
+                }
+            }
+            // CASE: Return
+            else if (decision == 98)
+            {
+                
+            }
+            // CASE: Approve
+            else
+            {
+                
+            }
+            result.Success = true;
+            result.Message = "OrdreMission & AvanceVoyage(s) are decided upon successfully";
+            return result;
         }
     }
 }

@@ -31,6 +31,8 @@ builder.Services.AddScoped<IStatusHistoryRepository, StatusHistoryRepository>();
 builder.Services.AddScoped<ITripRepository, TripRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IActualRequesterRepository, ActualRequesterRepository>();
+
+builder.Services.AddScoped<ITestingRepository, TestingRepository>();
 //Services
 builder.Services.AddScoped<IOrdreMissionService, OrdreMissionService>();
 builder.Services.AddScoped<IActualRequesterService, ActualRequesterService>();
@@ -49,15 +51,15 @@ builder.Services.AddAuthorization();
 //builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
 
 // Add Roles
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("RequireHRRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
-    options.AddPolicy("RequireMDRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
-    options.AddPolicy("RequireFDRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
-    options.AddPolicy("RequireGDRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
-    options.AddPolicy("RequireTRRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
+//builder.Services.AddAuthorization(options =>
+//{
+//    options.AddPolicy("RequireHRRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
+//    options.AddPolicy("RequireMDRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
+//    options.AddPolicy("RequireFDRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
+//    options.AddPolicy("RequireGDRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
+//    options.AddPolicy("RequireTRRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
 
-});
+//});
 /* decorate your controller Method with this -> [Authorize(Policy = "RequireDeciderRole")] */
 
 

@@ -30,4 +30,7 @@ public partial class User
     public virtual ICollection<Liquidation> Liquidations { get; set; } = new List<Liquidation>();
 
     public virtual ICollection<OrdreMission> OrdreMissions { get; set; } = new List<OrdreMission>();
+
+    public virtual ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
+
 }

@@ -42,27 +42,39 @@ namespace OTAS.Controllers
 
         /* This post /Request endpoint is within the Request section and it is shown for all the roles
          * since everyone can perform a request */
-        [HttpPost("Request")]
+        [HttpPost("Create")]
         public async Task<IActionResult> AddOrdreMission([FromBody] OrdreMissionPostDTO ordreMissionRequest)
         {  
             if(!ModelState.IsValid) return BadRequest(ModelState);
 
             ServiceResult omResult = await _ordreMissionService.CreateOrdreMissionWithAvanceVoyageAsDraft(ordreMissionRequest);
 
-            if (!omResult.Success) return Ok(omResult.ErrorMessage);
+            if (!omResult.Success) return Ok(omResult.Message);
 
-            return Ok(omResult.SuccessMessage); 
+            return Ok(omResult.Message); 
         }
 
-        [HttpPut("Confirm")]
+        [HttpPut("Submit")]
         public async Task<IActionResult> SubmitOrdreMission(int ordreMissionId)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(ordreMissionId) == null) return NotFound("OrdreMission Not found!");
+            if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(ordreMissionId) == null) return NotFound("OrdreMission is not found!");
 
-            ServiceResult omResult = await _ordreMissionService.SubmitOrdreMissionWithAvanceVoyage(ordreMissionId);
-            if (!omResult.Success) return Ok(omResult.ErrorMessage);
-            return Ok(omResult.SuccessMessage);
+            ServiceResult result = await _ordreMissionService.SubmitOrdreMissionWithAvanceVoyage(ordreMissionId);
+            if (!result.Success) return Ok(result.Message);
+            return Ok(result.Message); 
         }
+
+        [HttpPut("Decide")]
+        public async Task<IActionResult> DecideOnOrdreMission(DecisionOnRequestPostDTO decision)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(decision.RequestId) == null) return NotFound("OrdreMission is not found!");
+
+            ServiceResult result = await _ordreMissionService.DecideOnOrdreMissionWithAvanceVoyage(decision.RequestId, decision.DeciderUserId, decision.DeciderComment, decision.Decision);
+            if (!result.Success) return Ok(result.Message);
+            return Ok(result.Message);
+        }
+
     }
 }

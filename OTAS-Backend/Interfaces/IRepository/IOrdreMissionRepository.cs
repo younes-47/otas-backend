@@ -12,6 +12,7 @@ namespace OTAS.Interfaces.IRepository
         Task<string?> DecodeStatusAsync(int statusCode);
         Task<bool> AddOrdreMissionAsync(OrdreMission ordreMission);
         Task<ServiceResult> UpdateOrdreMissionStatusAsync(int ordreMissionId, int status);
+        Task<ServiceResult> UpdateOrdreMission(OrdreMission ordreMission);
         Task<bool> SaveAsync();
     }
 }

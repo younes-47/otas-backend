@@ -21,12 +21,13 @@ namespace OTAS.Helper
             CreateMap<Delegation, DelegationDTO>().ReverseMap();
             CreateMap<User, UserDTO>().ReverseMap();
 
+            CreateMap<ActualRequester, ActualRequesterDTO>().ReverseMap();
+
             // When we handle post methods
             CreateMap<OrdreMissionPostDTO, OrdreMission>().ReverseMap();
             CreateMap<ExpensePostDTO, Expense>().ReverseMap();
             CreateMap<TripPostDTO, Trip>().ReverseMap();
             CreateMap<ActualRequesterPostDTO, ActualRequester>().ReverseMap();
-
         }
     }
 }

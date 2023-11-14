@@ -13,10 +13,11 @@ namespace OTAS.Interfaces.IRepository
         Task<List<AvanceVoyage>> GetAvancesVoyageByOrdreMissionIdAsync(int ordreMissionId);
 
         //Post Methods
-        Task<bool> AddAvanceVoyageAsync(AvanceVoyage voyage);
+        Task<ServiceResult> AddAvanceVoyageAsync(AvanceVoyage voyage);
         Task<bool> SaveAsync();
 
         //Put Methods
         Task<ServiceResult> UpdateAvanceVoyageStatusAsync(int avanceVoyageId, int status);
+        Task<ServiceResult> UpdateAvanceVoyageAsync(AvanceVoyage avanceVoyage);
     }
 }

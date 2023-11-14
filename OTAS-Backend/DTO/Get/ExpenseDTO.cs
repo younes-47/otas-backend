@@ -10,7 +10,7 @@
 
         public int? DepenseCaisseId { get; set; }
 
-        public int? LiquidationId { get; set; }
+        public string Currency { get; set; } = null!;
 
         public decimal EstimatedFee { get; set; }
 
@@ -20,7 +20,11 @@
 
         public DateTime ExpenseDate { get; set; }
 
-        public string Currency { get; set; } = null!;
+        public DateTime CreateDate { get; set; }
+
+        /* We need update time here because Trip & Expense don't get tracked in StatusHistory 
+         * and we want to know when the user has provided the ActualFee */
+        public DateTime? UpdateDate { get; set; }
 
     }
 }

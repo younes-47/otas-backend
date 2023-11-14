@@ -1,4 +1,5 @@
 ﻿using OTAS.Models;
+using OTAS.Services;
 
 namespace OTAS.Interfaces.IRepository
 {
@@ -10,7 +11,7 @@ namespace OTAS.Interfaces.IRepository
         ICollection<StatusHistory> GetDepenseCaisseStatusHistory(int dcId);
         ICollection<StatusHistory> GetLiquidationStatusHistory(int lqId);
 
-        Task<bool> AddStatusAsync(StatusHistory status);
+        Task<ServiceResult> AddStatusAsync(StatusHistory status);
         Task<bool> SaveAsync();
 
     }

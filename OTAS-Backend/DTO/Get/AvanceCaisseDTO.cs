@@ -1,10 +1,12 @@
-﻿namespace OTAS.DTO.Get
+﻿using OTAS.Models;
+
+namespace OTAS.DTO.Get
 {
     public class AvanceCaisseDTO
     {
         public int Id { get; set; }
 
-        public string RequesterUsername { get; set; } = null!;
+        public int UserId { get; set; }
 
         public string Description { get; set; } = null!;
 
@@ -18,6 +20,11 @@
 
         public int LatestStatus { get; set; }
 
-        public DateTime? CreateDate { get; set; }
+        public int? DeciderUserId { get; set; }
+
+        public string? DeciderComment { get; set; }
+
+        public DateTime CreateDate { get; set; }
+
     }
 }

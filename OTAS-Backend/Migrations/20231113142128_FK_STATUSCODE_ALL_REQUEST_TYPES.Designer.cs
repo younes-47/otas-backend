@@ -12,8 +12,8 @@ using OTAS.Data;
 namespace OTAS.Migrations
 {
     [DbContext(typeof(OtasContext))]
-    [Migration("20231112113214_Remove_Unnecessary_UPDATETIME")]
-    partial class Remove_Unnecessary_UPDATETIME
+    [Migration("20231113142128_FK_STATUSCODE_ALL_REQUEST_TYPES")]
+    partial class FK_STATUSCODE_ALL_REQUEST_TYPES
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -132,13 +132,17 @@ namespace OTAS.Migrations
                         .HasColumnType("decimal(10, 2)");
 
                     b.Property<int>("LatestStatus")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(99);
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id")
                         .HasName("PK__AvanceCa__3214EC07F25631E8");
+
+                    b.HasIndex("LatestStatus");
 
                     b.HasIndex("UserId");
 
@@ -174,7 +178,9 @@ namespace OTAS.Migrations
                         .HasColumnType("decimal(10, 2)");
 
                     b.Property<int>("LatestStatus")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(99);
 
                     b.Property<int>("OrdreMissionId")
                         .HasColumnType("int");
@@ -184,6 +190,8 @@ namespace OTAS.Migrations
 
                     b.HasKey("Id")
                         .HasName("PK__AvanceVo__3214EC07711625B2");
+
+                    b.HasIndex("LatestStatus");
 
                     b.HasIndex("OrdreMissionId");
 
@@ -258,7 +266,9 @@ namespace OTAS.Migrations
                         .HasColumnType("nvarchar(2000)");
 
                     b.Property<int>("LatestStatus")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(99);
 
                     b.Property<int>("OnBehalf")
                         .HasColumnType("int");
@@ -277,6 +287,8 @@ namespace OTAS.Migrations
 
                     b.HasKey("Id")
                         .HasName("PK__DepenseC__3214EC076F493C39");
+
+                    b.HasIndex("LatestStatus");
 
                     b.HasIndex("UserId");
 
@@ -363,7 +375,9 @@ namespace OTAS.Migrations
                         .HasDefaultValueSql("(getdate())");
 
                     b.Property<int>("LatestStatus")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(99);
 
                     b.Property<string>("LiquidationOption")
                         .HasMaxLength(50)
@@ -387,6 +401,8 @@ namespace OTAS.Migrations
                     b.HasIndex("AvanceCaisseId");
 
                     b.HasIndex("AvanceVoyageId");
+
+                    b.HasIndex("LatestStatus");
 
                     b.HasIndex("UserId");
 
@@ -414,7 +430,9 @@ namespace OTAS.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("LatestStatus")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(99);
 
                     b.Property<int>("OnBehalf")
                         .HasColumnType("int");
@@ -430,6 +448,8 @@ namespace OTAS.Migrations
 
                     b.HasKey("Id")
                         .HasName("PK__OrdreMis__3214EC07E98E377F");
+
+                    b.HasIndex("LatestStatus");
 
                     b.HasIndex("UserId");
 
@@ -491,7 +511,9 @@ namespace OTAS.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(99);
 
                     b.HasKey("Id")
                         .HasName("PK__StatusHi__3214EC0734700B76");
@@ -646,17 +668,31 @@ namespace OTAS.Migrations
 
             modelBuilder.Entity("OTAS.Models.AvanceCaisse", b =>
                 {
+                    b.HasOne("OTAS.Models.StatusCode", "StatusNavigation")
+                        .WithMany("AvanceCaisses")
+                        .HasForeignKey("LatestStatus")
+                        .IsRequired()
+                        .HasConstraintName("FK_AC_StatusCode");
+
                     b.HasOne("OTAS.Models.User", "User")
                         .WithMany("AvanceCaisses")
                         .HasForeignKey("UserId")
                         .IsRequired()
                         .HasConstraintName("FK_AC_Requester");
 
+                    b.Navigation("StatusNavigation");
+
                     b.Navigation("User");
                 });
 
             modelBuilder.Entity("OTAS.Models.AvanceVoyage", b =>
                 {
+                    b.HasOne("OTAS.Models.StatusCode", "StatusNavigation")
+                        .WithMany("AvanceVoyages")
+                        .HasForeignKey("LatestStatus")
+                        .IsRequired()
+                        .HasConstraintName("FK_AV_StatusCode");
+
                     b.HasOne("OTAS.Models.OrdreMission", "OrdreMission")
                         .WithMany("AvanceVoyages")
                         .HasForeignKey("OrdreMissionId")
@@ -670,6 +706,8 @@ namespace OTAS.Migrations
                         .HasConstraintName("FK_AV_Requester");
 
                     b.Navigation("OrdreMission");
+
+                    b.Navigation("StatusNavigation");
 
                     b.Navigation("User");
                 });
@@ -695,11 +733,19 @@ namespace OTAS.Migrations
 
             modelBuilder.Entity("OTAS.Models.DepenseCaisse", b =>
                 {
+                    b.HasOne("OTAS.Models.StatusCode", "StatusNavigation")
+                        .WithMany("DepenseCaisses")
+                        .HasForeignKey("LatestStatus")
+                        .IsRequired()
+                        .HasConstraintName("FK_DC_StatusCode");
+
                     b.HasOne("OTAS.Models.User", "User")
                         .WithMany("DepenseCaisses")
                         .HasForeignKey("UserId")
                         .IsRequired()
                         .HasConstraintName("FK_DC_Requester");
+
+                    b.Navigation("StatusNavigation");
 
                     b.Navigation("User");
                 });
@@ -740,6 +786,12 @@ namespace OTAS.Migrations
                         .HasForeignKey("AvanceVoyageId")
                         .HasConstraintName("FK_AV_Liquidation");
 
+                    b.HasOne("OTAS.Models.StatusCode", "StatusNavigation")
+                        .WithMany("Liquidations")
+                        .HasForeignKey("LatestStatus")
+                        .IsRequired()
+                        .HasConstraintName("FK_AC_StatusCode");
+
                     b.HasOne("OTAS.Models.User", "User")
                         .WithMany("Liquidations")
                         .HasForeignKey("UserId")
@@ -750,16 +802,26 @@ namespace OTAS.Migrations
 
                     b.Navigation("AvanceVoyage");
 
+                    b.Navigation("StatusNavigation");
+
                     b.Navigation("User");
                 });
 
             modelBuilder.Entity("OTAS.Models.OrdreMission", b =>
                 {
+                    b.HasOne("OTAS.Models.StatusCode", "StatusNavigation")
+                        .WithMany("OrdreMissions")
+                        .HasForeignKey("LatestStatus")
+                        .IsRequired()
+                        .HasConstraintName("FK_OM_StatusCode");
+
                     b.HasOne("OTAS.Models.User", "User")
                         .WithMany("OrdreMissions")
                         .HasForeignKey("UserId")
                         .IsRequired()
                         .HasConstraintName("FK_OM_Requester");
+
+                    b.Navigation("StatusNavigation");
 
                     b.Navigation("User");
                 });
@@ -868,6 +930,16 @@ namespace OTAS.Migrations
 
             modelBuilder.Entity("OTAS.Models.StatusCode", b =>
                 {
+                    b.Navigation("AvanceCaisses");
+
+                    b.Navigation("AvanceVoyages");
+
+                    b.Navigation("DepenseCaisses");
+
+                    b.Navigation("Liquidations");
+
+                    b.Navigation("OrdreMissions");
+
                     b.Navigation("StatusHistories");
                 });
 

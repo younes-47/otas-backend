@@ -363,3 +363,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/OTAS-Backend/Migrations/20231111165501_Increase_JobTitle_VARCHAR_LENGTH.cs
+/OTAS-Backend/Migrations/20231110155419_Init.cs
+/OTAS-Backend/Migrations/20231112113214_Remove_Unnecessary_UPDATETIME.cs
+/OTAS-Backend/Migrations/OtasContextModelSnapshot.cs
+/OTAS-Backend/Migrations/20231113142128_FK_STATUSCODE_ALL_REQUEST_TYPES.cs
+/OTAS-Backend/Migrations/20231111165501_Increase_JobTitle_VARCHAR_LENGTH.cs

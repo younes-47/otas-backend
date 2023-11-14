@@ -1,6 +1,7 @@
 ﻿using OTAS.Data;
 using OTAS.Models;
 using OTAS.Interfaces.IRepository;
+using OTAS.Services;
 
 namespace OTAS.Repository
 {
@@ -40,10 +41,14 @@ namespace OTAS.Repository
 
 
         //
-        public async Task<bool> AddStatusAsync(StatusHistory status)
+        public async Task<ServiceResult> AddStatusAsync(StatusHistory status)
         {
+            ServiceResult result = new();
             await _context.AddAsync(status);
-            return await SaveAsync();
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "StatusHistory Added Successfully" : "Something went wrong while registring StatusHistory";
+
+            return result;
         }
 
         public async Task<bool> SaveAsync()

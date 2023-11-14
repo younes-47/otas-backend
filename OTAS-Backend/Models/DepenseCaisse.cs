@@ -23,6 +23,10 @@ public partial class DepenseCaisse
 
     public int LatestStatus { get; set; }
 
+    public int? DeciderUserId { get; set; }
+
+    public string? DeciderComment { get; set; }
+
     public DateTime CreateDate { get; set; }
 
     public virtual ICollection<ActualRequester> ActualRequesters { get; set; } = new List<ActualRequester>();
@@ -32,6 +36,7 @@ public partial class DepenseCaisse
     public virtual ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
 
     public virtual User User { get; set; } = null!;
+
     public virtual StatusCode StatusNavigation { get; set; } = null!;
 
 }

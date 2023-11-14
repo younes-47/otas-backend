@@ -19,7 +19,7 @@ public partial class StatusHistory
 
     public int Status { get; set; }
 
-    public string? DeciderUsername { get; set; }
+    public int? DeciderUserId { get; set; }
 
     public string? DeciderComment { get; set; }
 
@@ -36,4 +36,6 @@ public partial class StatusHistory
     public virtual OrdreMission? OrdreMission { get; set; }
 
     public virtual StatusCode StatusNavigation { get; set; } = null!;
+
+    public virtual User? Decider { get; set; }
 }

@@ -6,6 +6,6 @@ namespace OTAS.Interfaces.IService
 {
     public interface IActualRequesterService
     {
-        Task<ServiceResult> AddActualRequesterInfo(ActualRequester actualRequester);
+        Task<ServiceResult> AddActualRequesterInfoAsync(ActualRequester actualRequester);
     }
 }

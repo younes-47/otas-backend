@@ -4,14 +4,16 @@
     {
         public int Id { get; set; }
 
-        public string DeciderUsername { get; set; } = null!;
+        public int DeciderUserId { get; set; }
 
-        public string DelegateUsername { get; set; } = null!;
+        public int DelegateUserId { get; set; }
 
         public int IsCancelled { get; set; }
 
         public DateTime StartDate { get; set; }
 
         public DateTime EndDate { get; set; }
+
+        public DateTime CreateDate { get; set; }
     }
 }

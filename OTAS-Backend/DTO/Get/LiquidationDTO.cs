@@ -4,7 +4,7 @@
     {
         public int Id { get; set; }
 
-        public string RequesterUsername { get; set; } = null!;
+        public int UserId { get; set; }
 
         public int? AvanceVoyageId { get; set; }
 
@@ -20,7 +20,11 @@
 
         public int LatestStatus { get; set; }
 
-        public DateTime? CreateDate { get; set; }
+        public int? DeciderUserId { get; set; }
+
+        public string? DeciderComment { get; set; }
+
+        public DateTime CreateDate { get; set; }
 
 
     }

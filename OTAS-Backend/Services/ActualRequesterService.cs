@@ -19,7 +19,7 @@ namespace OTAS.Services
         }
 
 
-        public async Task<ServiceResult> AddActualRequesterInfo(ActualRequester actualRequester)
+        public async Task<ServiceResult> AddActualRequesterInfoAsync(ActualRequester actualRequester)
         {
             var mappedActualRequester =  _mapper.Map<ActualRequester>(actualRequester);
             ServiceResult result = new()
@@ -27,7 +27,7 @@ namespace OTAS.Services
                 Success = await _actualRequesterRepository.AddActualRequesterInfo(mappedActualRequester)
             };
 
-            if (!result.Success) result.ErrorMessage = "Something went wrong while Saving actual requester info";
+            if (!result.Success) result.Message = "Something went wrong while Saving actual requester info";
 
             return result;
         }

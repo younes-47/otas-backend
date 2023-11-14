@@ -114,6 +114,14 @@ public partial class OtasContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AC_StatusCode");
 
+            entity.HasOne(d => d.User).WithMany(p => p.AvanceCaisses)
+                .HasForeignKey(d => d.DeciderUserId)
+                .HasConstraintName("FK_AC_Decider");
+
+            entity.Property(e => e.DeciderComment)
+                .HasMaxLength(350)
+                .IsUnicode(false);
+
         });
 
         modelBuilder.Entity<AvanceVoyage>(entity =>
@@ -148,6 +156,14 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.LatestStatus)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AV_StatusCode");
+
+            entity.HasOne(d => d.User).WithMany(p => p.AvanceVoyages)
+                .HasForeignKey(d => d.DeciderUserId)
+                .HasConstraintName("FK_AV_Decider");
+
+            entity.Property(e => e.DeciderComment)
+                .HasMaxLength(350)
+                .IsUnicode(false);
 
         });
 
@@ -204,6 +220,14 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.LatestStatus)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_DC_StatusCode");
+
+            entity.HasOne(d => d.User).WithMany(p => p.DepenseCaisses)
+                .HasForeignKey(d => d.DeciderUserId)
+                .HasConstraintName("FK_DC_Decider");
+
+            entity.Property(e => e.DeciderComment)
+                .HasMaxLength(350)
+                .IsUnicode(false);
 
         });
 
@@ -277,6 +301,14 @@ public partial class OtasContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_LQ_StatusCode");
 
+            entity.HasOne(d => d.User).WithMany(p => p.Liquidations)
+                .HasForeignKey(d => d.DeciderUserId)
+                .HasConstraintName("FK_LS_Decider");
+
+            entity.Property(e => e.DeciderComment)
+                .HasMaxLength(350)
+                .IsUnicode(false);
+
         });
 
         modelBuilder.Entity<OrdreMission>(entity =>
@@ -304,6 +336,14 @@ public partial class OtasContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OM_StatusCode");
 
+            entity.HasOne(d => d.User).WithMany(p => p.OrdreMissions)
+                .HasForeignKey(d => d.DeciderUserId)
+                .HasConstraintName("FK_OM_Decider");
+
+            entity.Property(e => e.DeciderComment)
+                .HasMaxLength(350)
+                .IsUnicode(false);
+
         });
 
         modelBuilder.Entity<StatusCode>(entity =>
@@ -328,10 +368,7 @@ public partial class OtasContext : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.DeciderComment)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.DeciderUsername)
-                .HasMaxLength(50)
+                .HasMaxLength(350)
                 .IsUnicode(false);
 
             entity.Property(e => e.Status)
@@ -361,6 +398,11 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.Status)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_SH_StatusCode");
+
+            entity.HasOne(d => d.Decider).WithMany(p => p.StatusHistories)
+                .HasForeignKey(d => d.DeciderUserId)
+                .HasConstraintName("FK_SH_Decider");
+
         });
 
         modelBuilder.Entity<Trip>(entity =>
