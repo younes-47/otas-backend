@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.Interfaces.IRepository;
 using OTAS.Models;
+using OTAS.Repository;
+using OTAS.Services;
 
 namespace OTAS.Controllers
 {
@@ -20,29 +22,23 @@ namespace OTAS.Controllers
         }
 
         [HttpPost("Add")]
-        public IActionResult AddUser([FromBody] UserDTO user)
+        public async Task<IActionResult> AddUserAsync([FromBody] UserDTO user)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var mappedUser = _mapper.Map<User>(user);
+            ServiceResult result = await _userRepository.AddUserAsync(mappedUser);
 
-            if (!_userRepository.AddUser(mappedUser))
-            {
-                ModelState.AddModelError("", "Something went wrong while adding the user");
-                return BadRequest(ModelState);
-            }
-
-            return Ok("User added successfully");
+            return Ok(result.Message);
         }
 
 
         [HttpGet("All")]
         public IActionResult GetAllUsers()
         {
-
-            ICollection<UserDTO> users = _mapper.Map<List<UserDTO>>(_userRepository.GetAllUsers());
-
             if (!ModelState.IsValid) return BadRequest(ModelState);
+            ICollection<UserDTO> users = _mapper.Map<List<UserDTO>>(_userRepository.GetAllUsersAsync());
+
             if (users.Count <= 0) return NotFound("No User found");
             
             return Ok(users);

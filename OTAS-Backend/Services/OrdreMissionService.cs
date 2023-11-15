@@ -402,10 +402,13 @@ namespace OTAS.Services
              string? deciderComment,
              int decision)
         {
+
             ServiceResult result = new();
+            const int REJECTION_STATUS = 97;
+            const int RETURN_STATUS = 98;
 
             // CASE: REJECTION
-            if (decision == 97)
+            if (decision == REJECTION_STATUS)
             {
                 var transaction = _context.Database.BeginTransaction();
                 try
@@ -413,24 +416,24 @@ namespace OTAS.Services
                     var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMissionId);
                     decidedOrdreMission.DeciderComment = deciderComment;
                     decidedOrdreMission.DeciderUserId = deciderUserId;
-                    decidedOrdreMission.LatestStatus = decision;
+                    decidedOrdreMission.LatestStatus = REJECTION_STATUS;
                     result = await _ordreMissionRepository.UpdateOrdreMission(decidedOrdreMission);
-                    if(!result.Success) return result;
+                    if (!result.Success) return result;
 
                     StatusHistory decidedOrdreMission_SH = new()
                     {
                         OrdreMissionId = ordreMissionId,
                         DeciderUserId = deciderUserId,
                         DeciderComment = deciderComment,
-                        Status = decision,
+                        Status = REJECTION_STATUS,
                     };
                     result = await _statusHistoryRepository.AddStatusAsync(decidedOrdreMission_SH);
                     if (!result.Success) return result;
-                    
+
                     var decidedAvanceVoyage = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
-                    foreach(AvanceVoyage av in  decidedAvanceVoyage)
+                    foreach (AvanceVoyage av in decidedAvanceVoyage)
                     {
-                        av.LatestStatus = decision;
+                        av.LatestStatus = REJECTION_STATUS;
                         av.DeciderComment = deciderComment;
                         av.DeciderUserId = deciderUserId;
                         result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(av);
@@ -440,7 +443,7 @@ namespace OTAS.Services
                             AvanceVoyageId = av.Id,
                             DeciderUserId = deciderUserId,
                             DeciderComment = deciderComment,
-                            Status = decision,
+                            Status = REJECTION_STATUS,
                         };
                         result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceVoyage_SH);
                         if (!result.Success) return result;
@@ -457,18 +460,112 @@ namespace OTAS.Services
                 }
             }
             // CASE: Return
-            else if (decision == 98)
+            else if (decision == RETURN_STATUS)
             {
-                
+                var transaction = _context.Database.BeginTransaction();
+                try
+                {
+                    var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMissionId);
+                    decidedOrdreMission.DeciderComment = deciderComment;
+                    decidedOrdreMission.DeciderUserId = deciderUserId;
+                    decidedOrdreMission.LatestStatus = REJECTION_STATUS; //returned status
+                    result = await _ordreMissionRepository.UpdateOrdreMission(decidedOrdreMission);
+                    if (!result.Success) return result;
+
+                    StatusHistory decidedOrdreMission_SH = new()
+                    {
+                        OrdreMissionId = ordreMissionId,
+                        DeciderUserId = deciderUserId,
+                        DeciderComment = deciderComment,
+                        Status = RETURN_STATUS,
+                    };
+                    result = await _statusHistoryRepository.AddStatusAsync(decidedOrdreMission_SH);
+                    if (!result.Success) return result;
+
+                    var decidedAvanceVoyage = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
+                    foreach (AvanceVoyage av in decidedAvanceVoyage)
+                    {
+                        av.LatestStatus = RETURN_STATUS;
+                        av.DeciderComment = deciderComment;
+                        av.DeciderUserId = deciderUserId;
+                        result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(av);
+                        if (!result.Success) return result;
+                        StatusHistory decidedAvanceVoyage_SH = new()
+                        {
+                            AvanceVoyageId = av.Id,
+                            DeciderUserId = deciderUserId,
+                            DeciderComment = deciderComment,
+                            Status = RETURN_STATUS,
+                        };
+                        result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceVoyage_SH);
+                        if (!result.Success) return result;
+                    }
+
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception exception)
+                {
+                    result.Success = false;
+                    result.Message = exception.Message;
+                    return result;
+                }
             }
             // CASE: Approve
             else
             {
-                
+                var transaction = _context.Database.BeginTransaction();
+                try
+                {
+                    var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMissionId);
+                    decidedOrdreMission.DeciderUserId = deciderUserId;
+                    decidedOrdreMission.LatestStatus++; //Incrementig the status to apppear on the next decider table.
+                    result = await _ordreMissionRepository.UpdateOrdreMission(decidedOrdreMission);
+                    if (!result.Success) return result;
+
+                    StatusHistory decidedOrdreMission_SH = new()
+                    {
+                        OrdreMissionId = ordreMissionId,
+                        DeciderUserId = deciderUserId,
+                        Status = decidedOrdreMission.LatestStatus,
+                    };
+                    result = await _statusHistoryRepository.AddStatusAsync(decidedOrdreMission_SH);
+                    if (!result.Success) return result;
+
+                    var decidedAvanceVoyage = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
+                    foreach (AvanceVoyage av in decidedAvanceVoyage)
+                    {
+                        av.LatestStatus++;
+                        av.DeciderUserId = deciderUserId;
+                        result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(av);
+                        if (!result.Success) return result;
+
+                        StatusHistory decidedAvanceVoyage_SH = new()
+                        {
+                            AvanceVoyageId = av.Id,
+                            DeciderUserId = deciderUserId,
+                            Status = av.LatestStatus,
+                        };
+                        result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceVoyage_SH);
+                        if (!result.Success) return result;
+                    }
+
+
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception exception)
+                {
+                    result.Success = false;
+                    result.Message = exception.Message;
+                    return result;
+                }
             }
+
             result.Success = true;
             result.Message = "OrdreMission & AvanceVoyage(s) are decided upon successfully";
             return result;
+
         }
     }
 }
