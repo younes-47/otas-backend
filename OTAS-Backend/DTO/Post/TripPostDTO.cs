@@ -2,6 +2,7 @@
 {
     public class TripPostDTO
     {
+        public int Id { get; set; } //Need Id when resubmitting in case of return
 
         public string DeparturePlace { get; set; } = null!;
 
@@ -15,10 +16,7 @@
 
         public decimal Value { get; set; }
 
-        public decimal? HighwayFee { get; set; }
-
-        public decimal EstimatedFee { get; set; }
-
+        public decimal HighwayFee { get; set; }
 
     }
 }

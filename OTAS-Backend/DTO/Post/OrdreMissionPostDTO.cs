@@ -5,11 +5,13 @@ namespace OTAS.DTO.Post
 {
     public class OrdreMissionPostDTO
     {
+        public int Id { get; set; } //Need Id when resubmitting in case of return
+
         public int UserId { get; set; }
 
         public string Description { get; set; } = null!;
 
-        public int Region { get; set; }
+        public bool Abroad { get; set; }
 
         public DateTime DepartureDate { get; set; }
 
@@ -17,11 +19,11 @@ namespace OTAS.DTO.Post
 
         public int LatestStatus { get; set; }
 
-        public int? OnBehalf { get; set; }
+        public bool OnBehalf { get; set; }
 
         public List<TripPostDTO> Trips { get; set; } = new List<TripPostDTO>();
 
-        public List<ExpensePostDTO>? Expenses { get; set; } = new List<ExpensePostDTO>();
+        public List<ExpensePostDTO> Expenses { get; set; } = new List<ExpensePostDTO>();
 
         public ActualRequesterPostDTO? ActualRequester { get; set; }
     }

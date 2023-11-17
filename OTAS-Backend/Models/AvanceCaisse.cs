@@ -9,6 +9,8 @@ public partial class AvanceCaisse
 
     public int UserId { get; set; }
 
+    public bool OnBehalf { get; set; }
+
     public string Description { get; set; } = null!;
 
     public string Currency { get; set; } = null!;

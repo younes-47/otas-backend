@@ -6,7 +6,7 @@
 
         public int UserId { get; set; }
 
-        public int OnBehalf { get; set; }
+        public bool OnBehalf { get; set; }
 
         public string Description { get; set; } = null!;
 

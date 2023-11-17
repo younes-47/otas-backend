@@ -27,7 +27,7 @@ public partial class AvanceVoyage
 
     public DateTime CreateDate { get; set; }
 
-    public virtual ICollection<Expense> Expenses { get; set; } = new List<Expense>();
+    public virtual ICollection<Expense>? Expenses { get; set; } = new List<Expense>();
 
     public virtual ICollection<Liquidation> Liquidations { get; set; } = new List<Liquidation>();
 

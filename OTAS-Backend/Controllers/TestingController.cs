@@ -48,7 +48,7 @@ namespace OTAS.Controllers
         public async Task<IActionResult> GetAllExpenses()
         {
             var Expenses_List = await _testingRepository.GetAllExpenses();
-            if (Expenses_List.Count <= 0) return NotFound("There is no AvanceVoyage");
+            if (Expenses_List.Count <= 0) return NotFound("There is no Expense");
             var mappedExpenses_List = _mapper.Map<List<ExpenseDTO>>(Expenses_List);
             return Ok(mappedExpenses_List);
         }
@@ -57,7 +57,7 @@ namespace OTAS.Controllers
         public async Task<IActionResult> GetAllTrips()
         {
             var Trips_List = await _testingRepository.GetAllTrips();
-            if (Trips_List.Count <= 0) return NotFound("There is no AvanceVoyage");
+            if (Trips_List.Count <= 0) return NotFound("There is no Trip");
             var mappedTrips_List = _mapper.Map<List<TripDTO>>(Trips_List);
             return Ok(mappedTrips_List);
         }
@@ -66,7 +66,7 @@ namespace OTAS.Controllers
         public async Task<IActionResult> GetAllStatusHistories()
         {
             var SH_List = await _testingRepository.GetAllStatusHistories();
-            if (SH_List.Count <= 0) return NotFound("There is no AvanceVoyage");
+            if (SH_List.Count <= 0) return NotFound("There is no StatusHitory");
             var mappedSH_List = _mapper.Map<List<StatusHistoryDTO>>(SH_List);
             return Ok(mappedSH_List);
         }

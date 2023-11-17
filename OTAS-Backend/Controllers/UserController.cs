@@ -34,14 +34,15 @@ namespace OTAS.Controllers
 
 
         [HttpGet("All")]
-        public IActionResult GetAllUsers()
+        public async Task<IActionResult> GetAllUsers()
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            ICollection<UserDTO> users = _mapper.Map<List<UserDTO>>(_userRepository.GetAllUsersAsync());
+            var users = await _userRepository.GetAllUsersAsync();
+            List<UserDTO> mappedUsers = _mapper.Map<List<UserDTO>>(users);
 
             if (users.Count <= 0) return NotFound("No User found");
             
-            return Ok(users);
+            return Ok(mappedUsers);
         }
 
     }

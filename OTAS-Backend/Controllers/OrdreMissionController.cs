@@ -40,8 +40,7 @@ namespace OTAS.Controllers
 
 
 
-        /* This post /Request endpoint is within the Request section and it is shown for all the roles
-         * since everyone can perform a request */
+        //Requester + decider
         [HttpPost("Create")]
         public async Task<IActionResult> AddOrdreMission([FromBody] OrdreMissionPostDTO ordreMissionRequest)
         {  
@@ -54,6 +53,7 @@ namespace OTAS.Controllers
             return Ok(omResult.Message); 
         }
 
+        //Requester + decider
         [HttpPut("Submit")]
         public async Task<IActionResult> SubmitOrdreMission(int ordreMissionId)
         {
@@ -65,6 +65,7 @@ namespace OTAS.Controllers
             return Ok(result.Message); 
         }
 
+        //Decider Only
         [HttpPut("Decide")]
         public async Task<IActionResult> DecideOnOrdreMission(DecisionOnRequestPostDTO decision)
         {
@@ -72,6 +73,18 @@ namespace OTAS.Controllers
             if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(decision.RequestId) == null) return NotFound("OrdreMission is not found!");
 
             ServiceResult result = await _ordreMissionService.DecideOnOrdreMissionWithAvanceVoyage(decision.RequestId, decision.DeciderUserId, decision.DeciderComment, decision.Decision);
+            if (!result.Success) return Ok(result.Message);
+            return Ok(result.Message);
+        }
+
+        //Requester
+        [HttpPut("HandleReturn")]
+        public async Task<IActionResult> HandleReturnedOrdreMission([FromBody] OrdreMissionPostDTO ordreMission)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            ServiceResult result = await _ordreMissionService.HandleReturnedOrdreMission(ordreMission);
+
             if (!result.Success) return Ok(result.Message);
             return Ok(result.Message);
         }

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace OTAS.Models;
+﻿namespace OTAS.Models;
 
 public partial class User
 {

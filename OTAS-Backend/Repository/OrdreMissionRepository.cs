@@ -44,10 +44,14 @@ namespace OTAS.Repository
             return statusCodeEntity?.StatusString;
         }
 
-        public async Task<bool> AddOrdreMissionAsync(OrdreMission ordreMission)
+        public async Task<ServiceResult> AddOrdreMissionAsync(OrdreMission ordreMission)
         {
+            ServiceResult result = new();
             await _context.OrdreMissions.AddAsync(ordreMission);
-            return await SaveAsync();
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "OrdreMission added Successfully!" : "Something went wrong while adding OrdreMission.";
+
+            return result;
         }
 
         public async Task<ServiceResult> UpdateOrdreMissionStatusAsync(int ordreMissionId, int status)
@@ -59,7 +63,7 @@ namespace OTAS.Repository
                 _context.OrdreMissions.Update(updatedOrdreMission);
 
                 result.Success = await SaveAsync();
-                result.Message = result.Success == true ? "OrdreMission Status Updated Successfully" : "Something went wrong while updating OrdreMission Status";            
+                result.Message = result.Success == true ? "OrdreMission Status Updated Successfully!" : "Something went wrong while updating OrdreMission Status";            
 
             return result;
         }
@@ -69,7 +73,7 @@ namespace OTAS.Repository
             ServiceResult result = new();
             _context.OrdreMissions.Update(ordreMission);
             result.Success = await SaveAsync();
-            result.Message = result.Success == true ? "OrdreMission Updated Successfully" : "Something went wrong while updating OrdreMission";
+            result.Message = result.Success == true ? "OrdreMission Updated Successfully!" : "Something went wrong while updating OrdreMission";
 
             return result;
         }

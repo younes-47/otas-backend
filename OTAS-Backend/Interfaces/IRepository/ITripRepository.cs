@@ -5,10 +5,14 @@ namespace OTAS.Interfaces.IRepository
 {
     public interface ITripRepository
     {
-        ICollection<Trip> GetAvanceVoyageTripsByAvId(int avId);
-        decimal GetAvanceVoyageTripsEstimatedTotalByAvId(int avId);
-        decimal GetAvanceVoyageTripsActualTotalByAvId(int avId);
-        Task<ServiceResult> AddTripsAsync(ICollection<Trip> trips);
+        Task<List<Trip>> GetAvanceVoyageTripsByAvIdAsync(int avId);
+        Task<decimal> GetAvanceVoyageTripsActualTotalByAvIdAsync(int avId);
+        Task<Trip?> FindTripAsync(int tripId);
+        Task<ServiceResult> AddTripsAsync(List<Trip> trips);
+        Task<ServiceResult> AddTripAsync(Trip trip);
+        Task<ServiceResult> UpdateTrip(Trip trip);
+        Task<ServiceResult> DeleteTrips(List<Trip> trips);
+        Task<ServiceResult> DeleteTrip(Trip trip);
         Task<bool> SaveAsync();
     }
 }

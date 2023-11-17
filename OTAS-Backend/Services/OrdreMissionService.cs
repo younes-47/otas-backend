@@ -1,14 +1,9 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using OTAS.Data;
 using OTAS.DTO.Post;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
-using OTAS.Repository;
-using System.Collections.Generic;
-using System.Reflection.Metadata.Ecma335;
 
 namespace OTAS.Services
 {
@@ -20,6 +15,7 @@ namespace OTAS.Services
         private readonly ITripRepository _tripRepository;
         private readonly IExpenseRepository _expenseRepository;
         private readonly IStatusHistoryRepository _statusHistoryRepository;
+        private readonly IUserRepository _userRepository;
         private readonly OtasContext _context;
         private readonly IMapper _mapper;
 
@@ -31,6 +27,7 @@ namespace OTAS.Services
                 ITripRepository tripRepository,
                 IExpenseRepository expenseRepository,
                 IStatusHistoryRepository statusHistoryRepository,
+                IUserRepository userRepository,
                 OtasContext context,
                 IMapper mapper
             ) 
@@ -41,21 +38,22 @@ namespace OTAS.Services
             _tripRepository = tripRepository;
             _expenseRepository = expenseRepository;
             _statusHistoryRepository = statusHistoryRepository;
+            _userRepository = userRepository;
             _context = context;
             _mapper = mapper;
         }
 
-        public async Task<ServiceResult> CreateAvanceVoyageForEachCurrency(OrdreMission mappedOM, List<TripPostDTO> mixedTrips, List<ExpensePostDTO> mixedExpenses)
+        public async Task<ServiceResult> CreateAvanceVoyageForEachCurrency(OrdreMission mappedOM, List<TripPostDTO> mixedTrips, List<ExpensePostDTO>? mixedExpenses)
         {
             ServiceResult result = new();
 
             // Sort Trips
-            List<TripPostDTO> trips_in_mad = new();
-            List<TripPostDTO> trips_in_eur = new();
+            List<TripPostDTO>? trips_in_mad = new();
+            List<TripPostDTO>? trips_in_eur = new();
 
             foreach (TripPostDTO trip in mixedTrips)
             {
-                if (trip.Unit == "MAD")
+                if (trip.Unit == "MAD" || trip.Unit == "KM")
                 {
                     trips_in_mad.Add(trip);
                 }
@@ -66,8 +64,8 @@ namespace OTAS.Services
             }
 
             // Sort Expenses
-            List<ExpensePostDTO> expenses_in_mad = new();
-            List<ExpensePostDTO> expenses_in_eur = new();
+            List<ExpensePostDTO>? expenses_in_mad = new();
+            List<ExpensePostDTO>? expenses_in_eur = new();
 
             foreach (ExpensePostDTO expense in mixedExpenses)
             {
@@ -91,7 +89,7 @@ namespace OTAS.Services
                     // Factoring in total fees of the trip(s) in the estimated total of the whole "AvanceVoyage" in MAD
                     foreach (TripPostDTO trip in trips_in_mad)
                     {
-                        estm_total_mad += trip.EstimatedFee;
+                        estm_total_mad += CalculateTripEstimatedFee(_mapper.Map<Trip>(trip));
                     }
                 }
 
@@ -132,7 +130,7 @@ namespace OTAS.Services
                 }
 
 
-                //There might be a case where an AV has no other expenses
+                //There might be a case where an AV has no Trips in mad
                 if (trips_in_mad.Count > 0)
                 {
                     // Inserting the trip(s) related to the "AvanceVoyage" in MAD (at least one trip)
@@ -140,6 +138,7 @@ namespace OTAS.Services
                     foreach (Trip mappedTrip in mappedTrips)
                     {
                         mappedTrip.AvanceVoyageId = avanceVoyage_in_mad.Id;
+                        mappedTrip.EstimatedFee = CalculateTripEstimatedFee(mappedTrip);
                     }
                     result = await _tripRepository.AddTripsAsync(mappedTrips);
                     if (!result.Success)
@@ -150,7 +149,7 @@ namespace OTAS.Services
                 }
 
 
-                //There might be a case where an AV has no other expenses
+                //There might be a case where an AV has no other expenses in mad
                 if (expenses_in_mad.Count > 0)
                 {
                     // Inserting the expense(s) related to the "AvanceVoyage" in MAD
@@ -160,10 +159,10 @@ namespace OTAS.Services
                         //mappedExpense.AvanceVoyage = avanceVoyage_in_mad;
                         mappedExpense.AvanceVoyageId = avanceVoyage_in_mad.Id;
                     }
-                    if (!_expenseRepository.AddExpenses(mappedExpenses))
+                    result = await _expenseRepository.AddExpensesAsync(mappedExpenses);
+                    if (!result.Success)
                     {
-                        result.Success = false;
-                        result.Message = "Something went wrong while saving the expenses in MAD.";
+                        result.Message += " (MAD)";
                         return result;
                     }
                 }
@@ -182,7 +181,7 @@ namespace OTAS.Services
                     // Factoring in total fees of the trip(s) in the estimated total of the whole "AvanceVoyage" in EUR
                     foreach (TripPostDTO trip in trips_in_eur)
                     {
-                        estm_total_eur += trip.EstimatedFee;
+                        estm_total_eur += CalculateTripEstimatedFee(_mapper.Map<Trip>(trip));
                     }
                 }
 
@@ -233,6 +232,7 @@ namespace OTAS.Services
                         if (mappedTrip.Unit == "EUR")
                         {
                             mappedTrip.AvanceVoyageId = avanceVoyage_in_eur.Id;
+                            mappedTrip.EstimatedFee = CalculateTripEstimatedFee(mappedTrip);
                         }
                     }
                     result = await _tripRepository.AddTripsAsync(mappedTrips);
@@ -252,12 +252,11 @@ namespace OTAS.Services
                     {
                         mappedExpense.AvanceVoyageId = avanceVoyage_in_eur.Id;
                     }
-                    if (!_expenseRepository.AddExpenses(mappedExpenses))
+                    result = await _expenseRepository.AddExpensesAsync(mappedExpenses);
+                    if (!result.Success)
                     {
-                        result.Success = false;
-                        result.Message = "Something went wrong while saving the expenses in EUR.";
+                        result.Message += " (EUR)";
                         return result;
-
                     }
                 }
             }
@@ -273,13 +272,8 @@ namespace OTAS.Services
             try
             {
                 var mappedOM = _mapper.Map<OrdreMission>(ordreMission);
-                
-                if (! await _ordreMissionRepository.AddOrdreMissionAsync(mappedOM))
-                {
-                    result.Success = false;
-                    result.Message = "Something went wrong while saving \"OrdreMission\"";
-                    return result;
-                }
+                result = await _ordreMissionRepository.AddOrdreMissionAsync(mappedOM);
+                if (!result.Success) return result;
 
                 StatusHistory OM_status = new()
                 {
@@ -293,7 +287,7 @@ namespace OTAS.Services
                 }
 
                 // Handle Actual Requester Info (if exists)
-                if (ordreMission.OnBehalf == 1)
+                if (ordreMission.OnBehalf == true)
                 {
                     if (ordreMission.ActualRequester == null) 
                     {
@@ -396,14 +390,26 @@ namespace OTAS.Services
 
         }
 
-        public async Task<ServiceResult> DecideOnOrdreMissionWithAvanceVoyage
-            (int ordreMissionId,
-             int deciderUserId,
-             string? deciderComment,
-             int decision)
+        public async Task<ServiceResult> DecideOnOrdreMissionWithAvanceVoyage(int ordreMissionId,int deciderUserId,string? deciderComment,int decision)
         {
 
             ServiceResult result = new();
+
+            //Test If decider already decided upon it by the decider or it has been forwarded to the next decider
+            OrdreMission tempOM = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMissionId);
+            int deciderRole_Request = await _userRepository.GetUserRoleByUserIdAsync(deciderUserId);
+            int deciderRole_DB = 0;
+            if(tempOM.DeciderUserId != null)
+            {
+                deciderRole_DB = await _userRepository.GetUserRoleByUserIdAsync((int)tempOM.DeciderUserId);
+            }
+            if (tempOM.DeciderUserId == deciderUserId || deciderRole_Request < deciderRole_DB)
+            {
+                result.Success = false;
+                result.Message = "OrdreMission is already decided upon! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
+                return result;
+            }
+
             const int REJECTION_STATUS = 97;
             const int RETURN_STATUS = 98;
 
@@ -468,7 +474,7 @@ namespace OTAS.Services
                     var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMissionId);
                     decidedOrdreMission.DeciderComment = deciderComment;
                     decidedOrdreMission.DeciderUserId = deciderUserId;
-                    decidedOrdreMission.LatestStatus = REJECTION_STATUS; //returned status
+                    decidedOrdreMission.LatestStatus = RETURN_STATUS; //returned status
                     result = await _ordreMissionRepository.UpdateOrdreMission(decidedOrdreMission);
                     if (!result.Success) return result;
 
@@ -535,7 +541,8 @@ namespace OTAS.Services
                     var decidedAvanceVoyage = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
                     foreach (AvanceVoyage av in decidedAvanceVoyage)
                     {
-                        av.LatestStatus++;
+                        if (av.LatestStatus == 5) av.LatestStatus = 7; //Preparing funds in case of TR Approval
+                        av.LatestStatus++; //Otherwise next step of approval process
                         av.DeciderUserId = deciderUserId;
                         result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(av);
                         if (!result.Success) return result;
@@ -567,5 +574,357 @@ namespace OTAS.Services
             return result;
 
         }
+
+        public async Task<ServiceResult> HandleReturnedOrdreMission(OrdreMissionPostDTO ordreMission)
+        {
+            ServiceResult result = new();
+            var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                OrdreMission updatedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMission.Id);
+                if (updatedOrdreMission.LatestStatus != 98)
+                {
+                    result.Success = false;
+                    result.Message = "The OrdreMission you are trying to resubmit is not returned! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
+                    return result;
+                }
+                updatedOrdreMission.DeciderComment = null;
+                updatedOrdreMission.DeciderUserId = null;
+                updatedOrdreMission.LatestStatus = 1;
+                result = await _ordreMissionRepository.UpdateOrdreMission(updatedOrdreMission);
+                if (!result.Success) return result;
+
+                StatusHistory OM_statusHistory = new()
+                {
+                    OrdreMissionId = updatedOrdreMission.Id,
+                    Status = 1
+                };
+                result = await _statusHistoryRepository.AddStatusAsync(OM_statusHistory);
+                if (!result.Success) return result;
+
+
+                List<AvanceVoyage> DB_AvanceVoyages = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMission.Id);
+
+                AvanceVoyage? avanceVoyage_MAD = new();
+                AvanceVoyage? avanceVoyage_EUR = new();
+
+                if (DB_AvanceVoyages.Count == 2)
+                {
+                    if (DB_AvanceVoyages[0].Currency == "MAD")
+                    {
+                        avanceVoyage_MAD = DB_AvanceVoyages[0];
+                        avanceVoyage_EUR = DB_AvanceVoyages[1];
+                    }
+                    else
+                    {
+                        avanceVoyage_MAD = DB_AvanceVoyages[1];
+                        avanceVoyage_EUR = DB_AvanceVoyages[0];
+                    }
+                }
+                else
+                {
+                    if (DB_AvanceVoyages[0].Currency == "MAD")
+                    {
+                        avanceVoyage_MAD = DB_AvanceVoyages[0];
+                    }
+                    else
+                    {
+                        avanceVoyage_MAD = DB_AvanceVoyages[0];
+                    }
+                }
+
+
+                /*In case of adding new expenses in different curreny, and there is no AV that already contain that curreny
+                 we will need to gather these expenses and add them later on along with a new AV since we can't add them without
+                an AvId*/
+                List<Expense> newCurrencyExpensesWithNoExistingAvanceVoyage = new();
+
+                if (ordreMission.Expenses == null || ordreMission.Expenses.Count <= 0)
+                {
+                    List<Expense> expensesToDelete = await _expenseRepository.GetAvanceVoyageExpensesByAvIdAsync(DB_AvanceVoyages[0].Id);
+                    if (DB_AvanceVoyages[1] != null)
+                    {
+                        expensesToDelete.AddRange(await _expenseRepository.GetAvanceVoyageExpensesByAvIdAsync(DB_AvanceVoyages[1].Id));
+                    }
+                    //var expensesToDelete = _mapper.Map<List<Expense>>(ordreMission.Expenses);
+                    result = await _expenseRepository.DeleteExpenses(expensesToDelete);
+                    if (!result.Success) return result;
+                }
+                else
+                {
+                    //List of Ids so that if an object exists in database and not in request list, we delete it
+                    List<int> expensesFromRequest = new();
+
+                    foreach(ExpensePostDTO expense in ordreMission.Expenses)
+                    {
+                        expensesFromRequest.Add(expense.Id);
+                        //If the expense is already there update it
+                        Expense expenseToUpdate = await _expenseRepository.FindExpenseAsync(expense.Id);
+                        if (expenseToUpdate != null)
+                        {
+                            result = await _expenseRepository.UpdateExpense(expenseToUpdate);
+                            if (!result.Success) return result;
+                        }
+                        //If it's not in database insert it, if it is MAD add it to AV in MAD (if AV is null add the expense to the created list for this scenario) - (same with EUR)
+                        else
+                        {
+                            if(expense.Currency == "MAD")
+                            {
+                                if(avanceVoyage_MAD != null)
+                                {
+                                    Expense mappedExpense = _mapper.Map<Expense>(expense);
+                                    mappedExpense.AvanceVoyageId = avanceVoyage_MAD.Id;
+                                    result = await _expenseRepository.AddExpenseAsync(mappedExpense);
+                                    if(!result.Success) return result;
+                                }
+                                else
+                                {
+                                    Expense mappedExpense = _mapper.Map<Expense>(expense);
+                                    newCurrencyExpensesWithNoExistingAvanceVoyage.Add(mappedExpense);
+                                }
+                            }
+                            else
+                            {
+                                if (avanceVoyage_EUR != null)
+                                {
+                                    Expense mappedExpense = _mapper.Map<Expense>(expense);
+                                    mappedExpense.AvanceVoyageId = avanceVoyage_EUR.Id;
+                                    result = await _expenseRepository.AddExpenseAsync(mappedExpense);
+                                    if (!result.Success) return result;
+                                }
+                                else
+                                {
+                                    Expense mappedExpense = _mapper.Map<Expense>(expense);
+                                    newCurrencyExpensesWithNoExistingAvanceVoyage.Add(mappedExpense);
+                                }
+                            }
+
+                        }
+                    }
+
+                    // In case of existing expense in DB and not existant in request list, delete it
+                    var DB_Expenses = await _expenseRepository.GetAvanceVoyageExpensesByAvIdAsync(DB_AvanceVoyages[0].Id);
+                    if (DB_AvanceVoyages[1] != null) DB_Expenses.AddRange(await _expenseRepository.GetAvanceVoyageExpensesByAvIdAsync(DB_AvanceVoyages[1].Id));
+                    
+                    foreach(Expense expenseInDB  in DB_Expenses)
+                    {
+                        if(!expensesFromRequest.Contains(expenseInDB.Id))
+                        {
+                            await _expenseRepository.DeleteExpense(expenseInDB);
+                        }
+                    }
+
+                }
+
+
+                List<Trip> newCurrencyTripsWithNoExistingAvanceVoyage = new();
+
+                //List of Ids so that if an object exists in database and not in request list, we delete it
+                List<int> tripsFromRequest = new();
+
+                foreach (TripPostDTO trip in ordreMission.Trips)
+                {
+                    tripsFromRequest.Add(trip.Id);
+                    //If the trip is already there update it
+                    Trip tripToUpdate = await _tripRepository.FindTripAsync(trip.Id);
+                    if (tripToUpdate != null)
+                    {
+                        result = await _tripRepository.UpdateTrip(tripToUpdate);
+                        if (!result.Success) return result;
+                    }
+                    //If it's not add it, if it is MAD add it to AV in MAD (if AV is null add the trip to the created list for this scenario) - (same with EUR)
+                    else
+                    {
+                        if (trip.Unit == "MAD" || trip.Unit == "KM")
+                        {
+                            if (avanceVoyage_MAD != null)
+                            {
+                                Trip mappedTrip = _mapper.Map<Trip>(trip);
+
+                                mappedTrip.AvanceVoyageId = avanceVoyage_MAD.Id;
+                                mappedTrip.EstimatedFee = CalculateTripEstimatedFee(mappedTrip);
+                                result = await _tripRepository.AddTripAsync(mappedTrip);
+                                if (!result.Success) return result;
+                            }
+                            else
+                            {
+                                Trip mappedTrip = _mapper.Map<Trip>(trip);
+                                mappedTrip.EstimatedFee = CalculateTripEstimatedFee(mappedTrip);
+                                newCurrencyTripsWithNoExistingAvanceVoyage.Add(mappedTrip);
+                            }
+                        }
+                        else
+                        {
+                            if (avanceVoyage_EUR != null)
+                            {
+                                Trip mappedTrip = _mapper.Map<Trip>(trip);
+                                mappedTrip.AvanceVoyageId = avanceVoyage_EUR.Id;
+                                mappedTrip.EstimatedFee = CalculateTripEstimatedFee(mappedTrip);
+                                result = await _tripRepository.AddTripAsync(mappedTrip);
+                                if (!result.Success) return result;
+                            }
+                            else
+                            {
+                                Trip mappedTrip = _mapper.Map<Trip>(trip);
+                                newCurrencyTripsWithNoExistingAvanceVoyage.Add(mappedTrip);
+                            }
+                        }
+
+                    }
+                }
+
+                // In case of existing trip in DB and not existant in request list, delete it
+                var DB_Trips = await _tripRepository.GetAvanceVoyageTripsByAvIdAsync(DB_AvanceVoyages[0].Id);
+                if (DB_AvanceVoyages[1] != null) DB_Trips.AddRange(await _tripRepository.GetAvanceVoyageTripsByAvIdAsync(DB_AvanceVoyages[1].Id));
+
+                foreach (Trip tripInDB in DB_Trips)
+                {
+                    if (!tripsFromRequest.Contains(tripInDB.Id))
+                    {
+                        await _tripRepository.DeleteTrip(tripInDB);
+                    }
+                }
+
+                //Updating AvancesVoyage estimatedTotal and latest status props (existant in Database)
+                foreach (AvanceVoyage avanceVoyage in DB_AvanceVoyages)
+                {
+                    decimal NewEstimatedTotal = CalculateTripsEstimatedTotal(await _tripRepository.GetAvanceVoyageTripsByAvIdAsync(avanceVoyage.Id));
+                    avanceVoyage.EstimatedTotal = NewEstimatedTotal;
+                    avanceVoyage.LatestStatus = 1;
+                    avanceVoyage.DeciderComment = null;
+                    avanceVoyage.DeciderUserId = null;
+                    result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyage);
+                    if (!result.Success) return result;
+
+                    StatusHistory AV_statusHistory = new()
+                    {
+                        AvanceVoyageId = avanceVoyage.Id,
+                        Status = 1
+                    };
+                    result = await _statusHistoryRepository.AddStatusAsync(AV_statusHistory);
+                    if (!result.Success) return result;
+
+                }
+
+
+
+                //Adding new AvanceVoyage in case user has updated expenses/trips with new currency
+                if (newCurrencyExpensesWithNoExistingAvanceVoyage.Count > 0 || newCurrencyTripsWithNoExistingAvanceVoyage.Count > 0)
+                {
+                    AvanceVoyage avanceVoyageNewCurrency = new();
+
+                    if (newCurrencyTripsWithNoExistingAvanceVoyage != null)
+                    {
+                        avanceVoyageNewCurrency.OrdreMissionId = ordreMission.Id;
+                        avanceVoyageNewCurrency.LatestStatus = 1;
+                        avanceVoyageNewCurrency.EstimatedTotal = CalculateTripsEstimatedTotal(newCurrencyTripsWithNoExistingAvanceVoyage)
+                                        + CalculateExpensesEstimatedTotal(newCurrencyExpensesWithNoExistingAvanceVoyage);
+                        avanceVoyageNewCurrency.Currency = newCurrencyTripsWithNoExistingAvanceVoyage[0].Unit == "MAD"
+                                    || newCurrencyTripsWithNoExistingAvanceVoyage[0].Unit == "KM" ? "MAD" : "EUR";
+                        avanceVoyageNewCurrency.DeciderComment = null;
+                        avanceVoyageNewCurrency.DeciderUserId = null;
+                    }
+
+                    if (newCurrencyExpensesWithNoExistingAvanceVoyage != null)
+                    {
+                        avanceVoyageNewCurrency.OrdreMissionId = ordreMission.Id;
+                        avanceVoyageNewCurrency.LatestStatus = 1;
+                        avanceVoyageNewCurrency.EstimatedTotal = CalculateTripsEstimatedTotal(newCurrencyTripsWithNoExistingAvanceVoyage)
+                                        + CalculateExpensesEstimatedTotal(newCurrencyExpensesWithNoExistingAvanceVoyage);
+                        avanceVoyageNewCurrency.Currency = newCurrencyExpensesWithNoExistingAvanceVoyage[0].Currency;
+                        avanceVoyageNewCurrency.DeciderComment = null;
+                        avanceVoyageNewCurrency.DeciderUserId = null;
+
+                    }
+                    result = await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyageNewCurrency);
+                    if (!result.Success) return result;
+
+                    StatusHistory statusHistory = new()
+                    {
+                        AvanceVoyageId = avanceVoyageNewCurrency.Id,
+                        Status = 1
+                    };
+                    result = await _statusHistoryRepository.AddStatusAsync(statusHistory);
+                    if (!result.Success) return result;
+
+
+                    foreach (Expense expense in newCurrencyExpensesWithNoExistingAvanceVoyage)
+                    {
+                        expense.AvanceVoyageId = avanceVoyageNewCurrency.Id;
+                        result = await _expenseRepository.AddExpenseAsync(expense);
+                        if (!result.Success) return result;
+                    }
+                    foreach (Trip trip in newCurrencyTripsWithNoExistingAvanceVoyage)
+                    {
+                        trip.AvanceVoyageId = avanceVoyageNewCurrency.Id;
+                        result = await _tripRepository.AddTripAsync(trip);
+                        if (!result.Success) return result;
+                    }
+                }
+
+
+                await transaction.CommitAsync();
+
+            }
+            catch (Exception exception)
+            {
+                result.Success = false;
+                result.Message = exception.Message;
+                return result;
+            }
+
+            result.Success = true;
+            result.Message = "OrdreMission & AvanceVoyage(s) are resubmitted successfully";
+            return result;
+
+        }
+
+        public decimal CalculateTripEstimatedFee(Trip trip)
+        {
+            decimal estimatedFee = 0;
+            const decimal MILEAGE_ALLOWANCE = 2.5m; // 2.5DH PER KM
+            if (trip.Unit == "KM")
+            {
+                estimatedFee += trip.HighwayFee + (trip.Value * MILEAGE_ALLOWANCE);
+            }
+            else
+            {
+                estimatedFee += trip.Value;
+            }
+            
+
+            return estimatedFee;
+        }
+
+        public decimal CalculateTripsEstimatedTotal(List<Trip> trips)
+        {
+            decimal estimatedTotal = 0;
+            const decimal MILEAGE_ALLOWANCE = 2.5m; // 2.5DH PER KM
+            foreach(Trip trip in trips)
+            {
+                if (trip.Unit == "KM")
+                {
+                    estimatedTotal += trip.HighwayFee + (trip.Value * MILEAGE_ALLOWANCE);
+                }
+                else
+                {
+                    estimatedTotal += trip.Value;
+                }
+            }
+
+            return estimatedTotal;
+        }
+
+        public decimal CalculateExpensesEstimatedTotal(List<Expense> expenses)
+        {
+            decimal estimatedTotal = 0;
+            foreach (Expense expense in expenses)
+            {
+                estimatedTotal += expense.EstimatedFee;
+            }
+
+            return estimatedTotal;
+        }
+
     }
 }

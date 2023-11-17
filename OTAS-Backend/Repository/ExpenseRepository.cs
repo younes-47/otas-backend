@@ -2,6 +2,8 @@
 using OTAS.Models;
 using Microsoft.Identity.Client;
 using OTAS.Interfaces.IRepository;
+using Microsoft.EntityFrameworkCore;
+using OTAS.Services;
 
 namespace OTAS.Repository
 {
@@ -15,35 +17,77 @@ namespace OTAS.Repository
 
         //Get Methods
 
-        public ICollection<Expense> GetAvanceCaisseExpensesByAvId(int acId)
+        public async Task<List<Expense>> GetAvanceCaisseExpensesByAvIdAsync(int acId)
         {
-            return _context.Expenses.Where(expenses => expenses.AvanceCaisseId == acId).ToList();
+            return await _context.Expenses.Where(expenses => expenses.AvanceCaisseId == acId).ToListAsync();
         }
 
-        public ICollection<Expense> GetAvanceVoyageExpensesByAvId(int avId)
+        public async Task<List<Expense>> GetAvanceVoyageExpensesByAvIdAsync(int avId)
         {
-            return _context.Expenses.Where(expenses => expenses.AvanceVoyageId == avId).ToList();
+            return await _context.Expenses.Where(expenses => expenses.AvanceVoyageId == avId).ToListAsync();
         }
 
-        public ICollection<Expense> GetDepenseCaisseExpensesByAvId(int dcId)
+        public async Task<List<Expense>> GetDepenseCaisseExpensesByAvIdAsync(int dcId)
         {
-            return _context.Expenses.Where(expenses => expenses.DepenseCaisseId == dcId).ToList();
+            return await _context.Expenses.Where(expenses => expenses.DepenseCaisseId == dcId).ToListAsync();
+        }
+
+        public async Task<Expense?> FindExpenseAsync(int expenseId)
+        {
+            return await _context.Expenses.FindAsync(expenseId);
         }
 
         //Post Methods
-        public bool AddExpenses(ICollection<Expense> expenses)
+        public async Task<ServiceResult> AddExpensesAsync(List<Expense> expenses)
         {
-            _context.AddRange(expenses);
-            return Save();
+            ServiceResult result = new();
+            await _context.AddRangeAsync(expenses);
+            result.Success= await SaveAsync();
+            result.Message = result.Success == true ? "Expenses added successfully" : "Something went wrong while saving the expenses.";
+            return result;
         }
 
+        public async Task<ServiceResult> AddExpenseAsync(Expense expense)
+        {
+            ServiceResult result = new();
+            await _context.AddAsync(expense);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "Expense added successfully" : "Something went wrong while saving an expense.";
+            return result;
+        }
 
+        public async Task<ServiceResult> UpdateExpense(Expense expense)
+        {
+            ServiceResult result = new();
+            _context.Update(expense);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "Expense updated successfully" : "Something went wrong while updating an expense.";
+            return result;
+        }
+
+        public async Task<ServiceResult> DeleteExpenses(List<Expense> expenses)
+        {
+            ServiceResult result = new();
+            _context.RemoveRange(expenses);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "Expenses deleted successfully" : "Something went wrong while deleting the expenses.";
+            return result;
+        }
+
+        public async Task<ServiceResult> DeleteExpense(Expense expense)
+        {
+            ServiceResult result = new();
+            _context.Remove(expense);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "Expense deleted successfully" : "Something went wrong while deleting the expense.";
+            return result;
+        }
 
         // Save context state
-        public bool Save()
+        public async Task<bool> SaveAsync()
         {
-            int saved = _context.SaveChanges();
-            return saved > 0 ? true : false;
+            int saved = await _context.SaveChangesAsync();
+            return saved > 0;
         }
     }
 }

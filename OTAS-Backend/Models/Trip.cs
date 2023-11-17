@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace OTAS.Models;
+﻿namespace OTAS.Models;
 
 public partial class Trip
 {
@@ -21,7 +18,7 @@ public partial class Trip
 
     public decimal Value { get; set; }
 
-    public decimal? HighwayFee { get; set; }
+    public decimal HighwayFee { get; set; }
 
     public decimal EstimatedFee { get; set; }
 
