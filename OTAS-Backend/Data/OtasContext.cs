@@ -67,12 +67,12 @@ public partial class OtasContext : DbContext
                 .HasColumnType("datetime");
 
 
-            entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.ActualRequesters)
-                .HasForeignKey(d => d.AvanceCaisseId)
+            entity.HasOne(d => d.AvanceCaisse).WithOne(p => p.ActualRequester)
+                .HasForeignKey<ActualRequester>(d => d.AvanceCaisseId)
                 .HasConstraintName("FK_AC_ActualRequester");
 
-            entity.HasOne(d => d.DepenseCaisse).WithMany(p => p.ActualRequesters)
-                .HasForeignKey(d => d.DepenseCaisseId)
+            entity.HasOne(d => d.DepenseCaisse).WithOne(p => p.ActualRequester)
+                .HasForeignKey<ActualRequester>(d => d.DepenseCaisseId)
                 .HasConstraintName("FK_DC_ActualRequester");
 
             entity.HasOne(d => d.OrderingUser).WithMany(p => p.ActualRequesters)
@@ -80,8 +80,8 @@ public partial class OtasContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OrderingUser_ActualRequester");
 
-            entity.HasOne(d => d.OrdreMission).WithMany(p => p.ActualRequesters)
-                .HasForeignKey(d => d.OrdreMissionId)
+            entity.HasOne(d => d.OrdreMission).WithOne(p => p.ActualRequester)
+                .HasForeignKey<ActualRequester>(d => d.OrdreMissionId)
                 .HasConstraintName("FK_OM_ActualRequester");
         });
 
