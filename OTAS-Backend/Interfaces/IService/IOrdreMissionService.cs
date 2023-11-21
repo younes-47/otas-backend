@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using OTAS.DTO.Get;
 using OTAS.DTO.Post;
 using OTAS.Models;
 using OTAS.Services;
@@ -11,6 +12,7 @@ namespace OTAS.Interfaces.IService
         Task<ServiceResult> CreateOrdreMissionWithAvanceVoyageAsDraft(OrdreMissionPostDTO ordreMissionPostDTO);
         Task<ServiceResult> SubmitOrdreMissionWithAvanceVoyage(int ordreMissionId);
         Task<ServiceResult> DecideOnOrdreMissionWithAvanceVoyage(int ordreMissionId,int deciderUserId,string? deciderComment,int decision);
-        Task<ServiceResult> ModifyOrdreMission(OrdreMissionPostDTO ordreMission, int currentStatus);
+        Task<ServiceResult> ModifyOrdreMissionWithAvanceVoyage(OrdreMissionPostDTO ordreMission, int currentStatus);
+        Task<List<OrdreMissionDTO>> GetOrdreMissionsForDeciderTable(int userId);
     }
 }

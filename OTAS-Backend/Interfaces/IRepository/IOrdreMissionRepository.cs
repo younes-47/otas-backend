@@ -1,4 +1,5 @@
-﻿using OTAS.Models;
+﻿using OTAS.DTO.Get;
+using OTAS.Models;
 using OTAS.Services;
 
 namespace OTAS.Interfaces.IRepository
@@ -6,6 +7,7 @@ namespace OTAS.Interfaces.IRepository
     public interface IOrdreMissionRepository
     {
         Task<OrdreMission> GetOrdreMissionByIdAsync(int id);
+        Task<OrdreMissionFullDetailsDTO> GetOrdreMissionFullDetailsByOrdreMissionId(int ordreMissionId);
         Task<OrdreMission?> FindOrdreMissionByIdAsync(int ordreMissionId);
         Task<List<OrdreMission>?> GetOrdresMissionByUserIdAsync(int userid);
         Task<List<OrdreMission>> GetOrdresMissionByStatusAsync(int status);

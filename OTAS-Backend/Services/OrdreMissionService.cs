@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using OTAS.Data;
+using OTAS.DTO.Get;
 using OTAS.DTO.Post;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
+using System.Collections.Generic;
 
 namespace OTAS.Services
 {
@@ -30,7 +32,7 @@ namespace OTAS.Services
                 IUserRepository userRepository,
                 OtasContext context,
                 IMapper mapper
-            ) 
+            )
         {
             _actualRequesterService = actualRequester;
             _avanceVoyageRepository = avanceVoyageRepository;
@@ -111,7 +113,7 @@ namespace OTAS.Services
                     Currency = "MAD",
                 };
                 result = await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_mad);
-                if(!result.Success)
+                if (!result.Success)
                 {
                     result.Message += " (MAD)";
                     return result;
@@ -286,10 +288,11 @@ namespace OTAS.Services
                     return result;
                 }
 
+
                 // Handle Actual Requester Info (if exists)
                 if (ordreMission.OnBehalf == true)
                 {
-                    if (ordreMission.ActualRequester == null) 
+                    if (ordreMission.ActualRequester == null)
                     {
                         result.Success = false;
                         result.Message = "You must fill actual requester's information";
@@ -300,15 +303,10 @@ namespace OTAS.Services
                     mappedActualRequester.OrdreMissionId = mappedOM.Id;
                     mappedActualRequester.OrderingUserId = mappedOM.UserId;
                     result = await _actualRequesterService.AddActualRequesterInfoAsync(mappedActualRequester);
-
+                    if (!result.Success) return result;
                 }
 
-
-
                 result = await CreateAvanceVoyageForEachCurrency(mappedOM, ordreMission.Trips, ordreMission.Expenses);
-
-
-
                 await transaction.CommitAsync();
 
                 result.Success = true;
@@ -319,12 +317,9 @@ namespace OTAS.Services
             catch (Exception exception)
             {
                 transaction.Rollback();
-
                 result.Success = false;
                 result.Message = exception.Message;
-
                 return result;
-
             }
         }
 
@@ -351,7 +346,7 @@ namespace OTAS.Services
                 }
 
                 List<AvanceVoyage> avacesVoyage = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
-                foreach(AvanceVoyage av in  avacesVoyage)
+                foreach (AvanceVoyage av in avacesVoyage)
                 {
                     result = await _avanceVoyageRepository.UpdateAvanceVoyageStatusAsync(av.Id, 1);
                     if (!result.Success)
@@ -390,7 +385,7 @@ namespace OTAS.Services
 
         }
 
-        public async Task<ServiceResult> DecideOnOrdreMissionWithAvanceVoyage(int ordreMissionId,int deciderUserId,string? deciderComment,int decision)
+        public async Task<ServiceResult> DecideOnOrdreMissionWithAvanceVoyage(int ordreMissionId, int deciderUserId, string? deciderComment, int decision)
         {
 
             ServiceResult result = new();
@@ -399,7 +394,7 @@ namespace OTAS.Services
             OrdreMission tempOM = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMissionId);
             int deciderRole_Request = await _userRepository.GetUserRoleByUserIdAsync(deciderUserId);
             int deciderRole_DB = 0;
-            if(tempOM.DeciderUserId != null)
+            if (tempOM.DeciderUserId != null)
             {
                 deciderRole_DB = await _userRepository.GetUserRoleByUserIdAsync((int)tempOM.DeciderUserId);
             }
@@ -575,7 +570,7 @@ namespace OTAS.Services
 
         }
 
-        public async Task<ServiceResult> ModifyOrdreMission(OrdreMissionPostDTO ordreMission, int action) // action = 99 || 1
+        public async Task<ServiceResult> ModifyOrdreMissionWithAvanceVoyage(OrdreMissionPostDTO ordreMission, int action) // action = 99 || 1
         {
             ServiceResult result = new();
             var transaction = _context.Database.BeginTransaction();
@@ -594,7 +589,7 @@ namespace OTAS.Services
                 result = await _ordreMissionRepository.UpdateOrdreMission(updatedOrdreMission);
                 if (!result.Success) return result;
 
-                if(action == 1)
+                if (action == 1)
                 {
                     StatusHistory OM_statusHistory = new()
                     {
@@ -683,18 +678,18 @@ namespace OTAS.Services
                         {
                             result = await _expenseRepository.UpdateExpense(expenseToUpdate);
                             if (!result.Success) return result;
-                        }                        
+                        }
                         //If it's not in database, insert it. If its currency is MAD add it to AV in MAD (if AV is null add the expense to the created list for new currency, it will be added later) - (same with EUR)
                         else
                         {
-                            if(expense.Currency == "MAD")
+                            if (expense.Currency == "MAD")
                             {
                                 if (avanceVoyage_MAD.Id != 0)
                                 {
                                     Expense mappedExpense = _mapper.Map<Expense>(expense);
                                     mappedExpense.AvanceVoyageId = avanceVoyage_MAD.Id;
                                     result = await _expenseRepository.AddExpenseAsync(mappedExpense);
-                                    if(!result.Success) return result;
+                                    if (!result.Success) return result;
                                 }
                                 else
                                 {
@@ -726,7 +721,7 @@ namespace OTAS.Services
 
                 //List of trips Ids so that if an object exists in database and not in request list, we delete it
                 List<int> tripsIdsFromRequest = new();
-                foreach(TripPostDTO trip in ordreMission.Trips)
+                foreach (TripPostDTO trip in ordreMission.Trips)
                 {
                     tripsIdsFromRequest.Add(trip.Id);
                 }
@@ -807,7 +802,7 @@ namespace OTAS.Services
                     result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyage);
                     if (!result.Success) return result;
 
-                    if(action == 1)
+                    if (action == 1)
                     {
                         StatusHistory AV_statusHistory = new()
                         {
@@ -880,11 +875,11 @@ namespace OTAS.Services
             catch (Exception exception)
             {
                 result.Success = false;
-                result.Message = exception.Message + exception.GetType() +exception.StackTrace ;
+                result.Message = exception.Message + exception.GetType() + exception.StackTrace;
                 return result;
             }
 
-            if(action == 1)
+            if (action == 1)
             {
                 result.Success = true;
                 result.Message = "OrdreMission is resubmitted successfully";
@@ -894,6 +889,14 @@ namespace OTAS.Services
             result.Success = true;
             result.Message = "Changes made to \"OrdreMission\" are saved successfully";
             return result;
+        }
+
+        public async Task<List<OrdreMissionDTO>> GetOrdreMissionsForDeciderTable(int userId)
+        {
+            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(userId);
+            List<OrdreMission> ordreMissions = await _ordreMissionRepository.GetOrdresMissionByStatusAsync(deciderRole - 1); //See oneNote sketches to understand why it is role-1
+            List<OrdreMissionDTO> mappedOrdreMissions = _mapper.Map<List<OrdreMissionDTO>>(ordreMissions);
+            return mappedOrdreMissions;
         }
 
         public decimal CalculateTripEstimatedFee(Trip trip)
@@ -908,7 +911,7 @@ namespace OTAS.Services
             {
                 estimatedFee += trip.Value;
             }
-            
+
 
             return estimatedFee;
         }
@@ -917,7 +920,7 @@ namespace OTAS.Services
         {
             decimal estimatedTotal = 0;
             const decimal MILEAGE_ALLOWANCE = 2.5m; // 2.5DH PER KM
-            foreach(Trip trip in trips)
+            foreach (Trip trip in trips)
             {
                 if (trip.Unit == "KM")
                 {

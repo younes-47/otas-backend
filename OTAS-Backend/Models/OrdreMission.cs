@@ -25,7 +25,7 @@ public partial class OrdreMission
 
     public DateTime CreateDate { get; set; }
 
-    public virtual ICollection<ActualRequester> ActualRequesters { get; set; } = new List<ActualRequester>();
+    public virtual ActualRequester? ActualRequester { get; set; }
 
     public virtual ICollection<AvanceVoyage> AvanceVoyages { get; set; } = new List<AvanceVoyage>();
 

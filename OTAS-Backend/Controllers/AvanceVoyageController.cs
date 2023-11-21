@@ -17,9 +17,9 @@ namespace OTAS.Controllers
 
 
         [HttpGet("{AvanceVoyageId}")]
-        public async Task<IActionResult> GetAvanceVoyageById(int id)
+        public async Task<IActionResult> GetAvanceVoyageById(int AvanceVoyageId)
         {
-            var AV = await _avanceVoyageRepository.GetAvanceVoyageByIdAsync(id);
+            var AV = await _avanceVoyageRepository.GetAvanceVoyageByIdAsync(AvanceVoyageId);
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);

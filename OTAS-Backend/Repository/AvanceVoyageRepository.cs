@@ -21,9 +21,9 @@ namespace OTAS.Repository
             return await _context.AvanceVoyages.Where(av => av.LatestStatus == status).ToListAsync();
         }
 
-        public async Task<AvanceVoyage> GetAvanceVoyageByIdAsync(int id)
+        public async Task<AvanceVoyage> GetAvanceVoyageByIdAsync(int avanceVoyageId)
         {
-            return await _context.AvanceVoyages.Where(av => av.Id == id).FirstAsync();
+            return await _context.AvanceVoyages.Where(av => av.Id == avanceVoyageId).FirstAsync();
         }
 
         public async Task<AvanceVoyage?> FindAvanceVoyageByIdAsync(int avanceVoyageId)
@@ -35,10 +35,9 @@ namespace OTAS.Repository
             return await _context.AvanceVoyages.Where(av => av.OrdreMissionId == ordreMissionId).ToListAsync();
         }
 
-        /* ??????????????????????????*/
-        public async Task<List<AvanceVoyage>> GetAvancesVoyageByRequesterUserIdAsync(int requesterUserId)
+        public async Task<List<AvanceVoyage>> GetAvancesVoyageByUserIdAsync(int userId)
         {
-            throw new NotImplementedException();
+            return await _context.AvanceVoyages.Where(av => av.UserId == userId).ToListAsync();
         }
 
         public async Task<ServiceResult> AddAvanceVoyageAsync(AvanceVoyage avanceVoyage)

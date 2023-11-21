@@ -29,7 +29,7 @@ public partial class DepenseCaisse
 
     public DateTime CreateDate { get; set; }
 
-    public virtual ICollection<ActualRequester> ActualRequesters { get; set; } = new List<ActualRequester>();
+    public virtual ActualRequester? ActualRequester { get; set; }
 
     public virtual ICollection<Expense> Expenses { get; set; } = new List<Expense>();
 

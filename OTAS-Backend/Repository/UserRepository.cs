@@ -25,6 +25,13 @@ namespace OTAS.Repository
         {
             return await _context.Users.Where(user => user.Id == userId).FirstAsync();
         }
+        public async Task<User> GetUserByOrdreMissionId(int ordreMissionId)
+        {
+            OrdreMission om = await _context.OrdreMissions.Where(om => om.Id == ordreMissionId).FirstAsync();
+            int userId = om.UserId;
+
+            return await GetUserByUserIdAsync(userId);
+        }
 
         public async Task<User?> FindUserByUserIdAsync(int userId)
         {

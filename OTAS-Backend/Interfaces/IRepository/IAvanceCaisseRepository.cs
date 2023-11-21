@@ -1,14 +1,18 @@
 ﻿using OTAS.Models;
+using OTAS.Services;
 
 namespace OTAS.Interfaces.IRepository
 {
     public interface IAvanceCaisseRepository
     {
-        // Show a specific "Avance de caisse" details (page)
-        AvanceCaisse GetAvanceCaisseById(int id);
-        // Show relevant "Avances de caisse" to a decider based on its current status
-        ICollection<AvanceCaisse> GetAvancesCaisseByStatus(int status);
-        // Show requested "Avances de caisse" for the relevant requester
-        ICollection<AvanceCaisse> GetAvancesCaisseByRequesterUserId(int requesterUserId);
+        Task<AvanceCaisse> GetAvanceCaisseByIdAsync(int idavanceCaisseId);
+        Task<AvanceCaisse?> FindAvaneCaisseAsync(int avanceCaisseId);
+        Task<List<AvanceCaisse>> GetAvancesCaisseByStatusAsync(int status);
+        Task<List<AvanceCaisse>> GetAvancesCaisseByUserIdAsync(int userId);
+        Task<ServiceResult> AddAvanceCaisseAsync(AvanceCaisse avanceCaisse);
+        Task<ServiceResult> UpdateAvanceCaisseStatusAsync(int avanceCaisseId, int status);
+        Task<ServiceResult> UpdateAvanceCaisseAsync(AvanceCaisse avanceCaisse);
+        Task<bool> SaveAsync();
+
     }
 }
