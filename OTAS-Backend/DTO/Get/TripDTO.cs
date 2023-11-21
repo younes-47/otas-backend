@@ -6,7 +6,7 @@ namespace OTAS.DTO.Get
     {
         public int Id { get; set; }
 
-        public int AvanceVoyageId { get; set; }
+        //public int AvanceVoyageId { get; set; }
 
         public string DeparturePlace { get; set; } = null!;
 

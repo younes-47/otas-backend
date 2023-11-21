@@ -1,4 +1,6 @@
-﻿namespace OTAS.DTO.Get
+﻿using OTAS.Models;
+
+namespace OTAS.DTO.Get
 {
     public class AvanceVoyageDTO
     {
@@ -6,7 +8,7 @@
 
         public int UserId { get; set; }
 
-        public int OrdreMissionId { get; set; }
+        //public int OrdreMissionId { get; set; }
 
         public decimal EstimatedTotal { get; set; }
 
@@ -23,6 +25,10 @@
         public string? DeciderComment { get; set; }
 
         public DateTime CreateDate { get; set; }
+
+        public virtual ICollection<ExpenseDTO> Expenses { get; set; } = new List<ExpenseDTO>();
+
+        public virtual ICollection<TripDTO> Trips { get; set; } = new List<TripDTO>();
 
     }
 }

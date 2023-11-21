@@ -4,11 +4,11 @@
     {
         public int Id { get; set; }
 
-        public int? AvanceVoyageId { get; set; }
+        //public int? AvanceVoyageId { get; set; }
 
-        public int? AvanceCaisseId { get; set; }
+        //public int? AvanceCaisseId { get; set; }
 
-        public int? DepenseCaisseId { get; set; }
+        //public int? DepenseCaisseId { get; set; }
 
         public string Currency { get; set; } = null!;
 

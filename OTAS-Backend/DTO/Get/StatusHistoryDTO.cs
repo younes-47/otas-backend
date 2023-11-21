@@ -4,17 +4,17 @@ namespace OTAS.DTO.Get
 {
     public class StatusHistoryDTO
     {
-        public int Id { get; set; }
+        //public int Id { get; set; }
 
-        public int? AvanceVoyageId { get; set; }
+        //public int? AvanceVoyageId { get; set; }
 
-        public int? AvanceCaisseId { get; set; }
+        //public int? AvanceCaisseId { get; set; }
 
-        public int? DepenseCaisseId { get; set; }
+        //public int? DepenseCaisseId { get; set; }
 
-        public int? OrdreMissionId { get; set; }
+        //public int? OrdreMissionId { get; set; }
 
-        public int? LiquidationId { get; set; }
+        //public int? LiquidationId { get; set; }
 
         public int Status { get; set; }
 
