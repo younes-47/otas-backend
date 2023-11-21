@@ -17,7 +17,7 @@ namespace OTAS.Repository
 
 
         
-        public async  Task<List<OrdreMission>> GetOrdresMissionByUserIdAsync(int userid)
+        public async  Task<List<OrdreMission>?> GetOrdresMissionByUserIdAsync(int userid)
         {
             return await _context.OrdreMissions.Where(om => om.UserId == userid).ToListAsync();
         }

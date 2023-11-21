@@ -14,6 +14,7 @@ namespace OTAS.Controllers
             _avanceCaisseRepository = avanceCaisseRepository;
         }
 
+        // Requester
         [HttpGet("{AvanceCaisseId}")]
         public IActionResult GetAvanceCaisseById(int id)
         {
@@ -25,6 +26,7 @@ namespace OTAS.Controllers
             return Ok(AC);
         }
 
+        // Requester
         [HttpGet("Table")]
         public IActionResult GetAvancesCaisseByStatus(int status)
         {
@@ -39,6 +41,7 @@ namespace OTAS.Controllers
             return Ok(ACs);
         }
 
+        //Decider
         [HttpGet("Decide/Table")]
         public IActionResult GetAvancesCaisseByRequesterUsername(int requesterUserId)
         {

@@ -17,27 +17,35 @@ namespace OTAS.Controllers
     {
         private readonly IOrdreMissionService _ordreMissionService;
         private readonly IOrdreMissionRepository _ordreMissionRepository;
+        private readonly IMapper _mapper;
 
-        public OrdreMissionController(IOrdreMissionService ordreMissionService, IOrdreMissionRepository ordreMissionRepository)
+        public OrdreMissionController(IOrdreMissionService ordreMissionService,
+            IOrdreMissionRepository ordreMissionRepository,
+            IMapper mapper)
         {
             _ordreMissionService = ordreMissionService;
             _ordreMissionRepository = ordreMissionRepository;
+            _mapper = mapper;
         }
 
-        /* This get /Table endpoint is within the Request section and it is shown for all the roles
-         * since everyone can perform a request, it shows all the Missions ordered */
-        //[HttpGet("Table")]
-        //public IActionResult OrdreMissionTable(int status)
-        //{
-        //    var oms = _mapper.Map<List<OrdreMissionDTO>>(_ordreMissionRepository.GetOrdresMissionByRequesterUsername());
+        //Requester + decider
+        [HttpGet("Requests/Table")]
+        public async Task<IActionResult> ShowOrdreMissionRequestsTable(int userId)
+        {
+            var ordreMissions = await _ordreMissionRepository.GetOrdresMissionByUserIdAsync(userId);
+            if(ordreMissions == null || ordreMissions.Count <= 0) return NotFound("User has no \"OrdreMission\"");
 
-        //    if (!ModelState.IsValid)
-        //        return BadRequest(ModelState);
+            var mappedOrdreMissions = _mapper.Map<List<OrdreMissionDTO>>(ordreMissions);
 
-        //    return Ok(oms);
+            return Ok(mappedOrdreMissions);
+        }
 
-        //}
+        // Decider
+        [HttpGet("DecideOnRequests/Table")]
+        public async Task<IActionResult> ShowOrdreMissionTable(int userId)
+        {
 
+        }
 
 
         //Requester + decider
@@ -45,6 +53,18 @@ namespace OTAS.Controllers
         public async Task<IActionResult> AddOrdreMission([FromBody] OrdreMissionPostDTO ordreMissionRequest)
         {  
             if(!ModelState.IsValid) return BadRequest(ModelState);
+
+            if(ordreMissionRequest.Abroad == false)
+            {
+                foreach(TripPostDTO trip in ordreMissionRequest.Trips)
+                {
+                    if(trip.Unit == "EUR") return BadRequest("A trip estimated fee cannot be in EUR if your mission is not abroad!");
+                }
+                foreach(ExpensePostDTO expense in ordreMissionRequest.Expenses)
+                {
+                    if (expense.Currency == "EUR") return BadRequest("An expense cannot be in EUR if your mission is not abroad!");
+                }
+            }
 
             ServiceResult omResult = await _ordreMissionService.CreateOrdreMissionWithAvanceVoyageAsDraft(ordreMissionRequest);
 
@@ -78,12 +98,27 @@ namespace OTAS.Controllers
         }
 
         //Requester
-        [HttpPut("HandleReturn")]
-        public async Task<IActionResult> HandleReturnedOrdreMission([FromBody] OrdreMissionPostDTO ordreMission)
+        [HttpPut("Modify")]
+        public async Task<IActionResult> ModifyOrdreMission([FromBody] OrdreMissionPostDTO ordreMission, [FromQuery] int action)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            ServiceResult result = await _ordreMissionService.HandleReturnedOrdreMission(ordreMission);
+            var testOrdreMission = await _ordreMissionRepository.FindOrdreMissionByIdAsync(ordreMission.Id);
+            if(testOrdreMission == null) return NotFound("OrdreMission not found");
+
+            if (ordreMission.Abroad == false)
+            {
+                foreach (TripPostDTO trip in ordreMission.Trips)
+                {
+                    if (trip.Unit == "EUR") return BadRequest("A trip estimated fee cannot be in EUR if your mission is not abroad!");
+                }
+                foreach (ExpensePostDTO expense in ordreMission.Expenses)
+                {
+                    if (expense.Currency == "EUR") return BadRequest("An expense cannot be in EUR if your mission is not abroad!");
+                }
+            }
+
+            ServiceResult result = await _ordreMissionService.ModifyOrdreMission(ordreMission, action);
 
             if (!result.Success) return Ok(result.Message);
             return Ok(result.Message);

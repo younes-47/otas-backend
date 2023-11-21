@@ -7,7 +7,7 @@ namespace OTAS.Interfaces.IRepository
     {
         Task<OrdreMission> GetOrdreMissionByIdAsync(int id);
         Task<OrdreMission?> FindOrdreMissionByIdAsync(int ordreMissionId);
-        Task<List<OrdreMission>> GetOrdresMissionByUserIdAsync(int userid);
+        Task<List<OrdreMission>?> GetOrdresMissionByUserIdAsync(int userid);
         Task<List<OrdreMission>> GetOrdresMissionByStatusAsync(int status);
         Task<string?> DecodeStatusAsync(int statusCode);
         Task<ServiceResult> AddOrdreMissionAsync(OrdreMission ordreMission);
