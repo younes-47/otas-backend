@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.Interfaces.IRepository;
+using OTAS.Models;
+using OTAS.Repository;
+using OTAS.Services;
 
 
 /*This Controller is intended for testing purposes, most of these endpoints don't reflect actual
@@ -29,7 +32,7 @@ namespace OTAS.Controllers
         [HttpGet("OrdreMission/All")]
         public async Task<IActionResult> GetAllOrdreMissions()
         {
-            var OM_List = await _testingRepository.GetAllOrdreMissions();
+            var OM_List = await _testingRepository.GetAllOrdreMissionsAsync();
             if(OM_List.Count <= 0) return NotFound("There is no OrdreMission");
             var mappedOM_List = _mapper.Map<List<OrdreMissionDTO>>(OM_List);
             return Ok(mappedOM_List);
@@ -38,16 +41,25 @@ namespace OTAS.Controllers
         [HttpGet("AvanceVoyage/All")]
         public async Task<IActionResult> GetAllAvanceVoyages()
         {
-            var AV_List = await _testingRepository.GetAllAvanceVoyages();
+            var AV_List = await _testingRepository.GetAllAvanceVoyagesAsync();
             if (AV_List.Count <= 0) return NotFound("There is no AvanceVoyage");
             var mappedAV_List = _mapper.Map<List<AvanceVoyageDTO>>(AV_List);
             return Ok(mappedAV_List);
         }
 
+        [HttpGet("AvanceCaisse/All")]
+        public async Task<IActionResult> GetAllAvanceCaisses()
+        {
+            var AC_List = await _testingRepository.GetAllAvanceCaissesAsync();
+            if (AC_List.Count <= 0) return NotFound("There is no AvanceCaisse");
+            var mappedAC_List = _mapper.Map<List<AvanceCaisseDTO>>(AC_List);
+            return Ok(mappedAC_List);
+        }
+
         [HttpGet("Expense/All")]
         public async Task<IActionResult> GetAllExpenses()
         {
-            var Expenses_List = await _testingRepository.GetAllExpenses();
+            var Expenses_List = await _testingRepository.GetAllExpensesAsync();
             if (Expenses_List.Count <= 0) return NotFound("There is no Expense");
             var mappedExpenses_List = _mapper.Map<List<ExpenseDTO>>(Expenses_List);
             return Ok(mappedExpenses_List);
@@ -56,7 +68,7 @@ namespace OTAS.Controllers
         [HttpGet("Trip/All")]
         public async Task<IActionResult> GetAllTrips()
         {
-            var Trips_List = await _testingRepository.GetAllTrips();
+            var Trips_List = await _testingRepository.GetAllTripsAsync();
             if (Trips_List.Count <= 0) return NotFound("There is no Trip");
             var mappedTrips_List = _mapper.Map<List<TripDTO>>(Trips_List);
             return Ok(mappedTrips_List);
@@ -65,10 +77,32 @@ namespace OTAS.Controllers
         [HttpGet("StatusHistory/All")]
         public async Task<IActionResult> GetAllStatusHistories()
         {
-            var SH_List = await _testingRepository.GetAllStatusHistories();
+            var SH_List = await _testingRepository.GetAllStatusHistoriesAsync();
             if (SH_List.Count <= 0) return NotFound("There is no StatusHitory");
             var mappedSH_List = _mapper.Map<List<StatusHistoryDTO>>(SH_List);
             return Ok(mappedSH_List);
+        }
+
+        [HttpGet("User/All")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _testingRepository.GetAllUsersAsync();
+            List<UserDTO> mappedUsers = _mapper.Map<List<UserDTO>>(users);
+
+            if (users.Count <= 0) return NotFound("No User found");
+
+            return Ok(mappedUsers);
+        }
+
+        [HttpPost("User/Add")]
+        public async Task<IActionResult> AddUserAsync([FromBody] UserDTO user)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var mappedUser = _mapper.Map<User>(user);
+            ServiceResult result = await _testingRepository.AddUserAsync(mappedUser);
+
+            return Ok(result.Message);
         }
 
     }

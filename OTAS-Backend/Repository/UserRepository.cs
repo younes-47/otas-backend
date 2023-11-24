@@ -16,10 +16,6 @@ namespace OTAS.Repository
 
 
 
-        public async Task<List<User>> GetAllUsersAsync()
-        {
-            return await _context.Users.OrderBy(user => user.Id).ToListAsync();
-        }
 
         public async Task<User> GetUserByUserIdAsync(int userId)
         {

@@ -5,7 +5,6 @@ namespace OTAS.Interfaces.IRepository
 {
     public interface IUserRepository
     {
-        Task<List<User>> GetAllUsersAsync();
         Task<int> GetUserRoleByUserIdAsync(int userId);
         Task<User> GetUserByUserIdAsync(int userId);
         Task<User> GetUserByOrdreMissionId(int ordreMissionId);
