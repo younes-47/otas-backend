@@ -31,9 +31,9 @@ public partial class DepenseCaisse
 
     public virtual ActualRequester? ActualRequester { get; set; }
 
-    public virtual ICollection<Expense> Expenses { get; set; } = new List<Expense>();
+    public virtual List<Expense> Expenses { get; set; } = new List<Expense>();
 
-    public virtual ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
+    public virtual List<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
 
     public virtual User User { get; set; } = null!;
 

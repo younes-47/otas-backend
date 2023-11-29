@@ -17,13 +17,24 @@ namespace OTAS.Helper
                 .ForMember(dest => dest.ActualRequester, opt => opt.MapFrom(src => src.ActualRequester))
                 .ForMember(dest => dest.StatusHistories, opt => opt.MapFrom(src => src.StatusHistories));
 
+            CreateMap<AvanceCaisse, AvanceCaisseFullDetailsDTO>()
+                .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User))
+                .ForMember(dest => dest.Expenses, opt => opt.MapFrom(src => src.Expenses))
+                .ForMember(dest => dest.ActualRequester, opt => opt.MapFrom(src => src.ActualRequester))
+                .ForMember(dest => dest.StatusHistories, opt => opt.MapFrom(src => src.StatusHistories));
+                
 
-            CreateMap<AvanceVoyage, AvanceVoyageDTO>().ReverseMap()
+            CreateMap<AvanceVoyage, AvanceVoyageDTO>()
                 .ForMember(dest => dest.Expenses, opt => opt.MapFrom(src => src.Expenses))
                 .ForMember(dest => dest.Trips, opt => opt.MapFrom(src => src.Trips));
 
+            CreateMap<AvanceVoyageDTO, AvanceVoyage>();
+            CreateMap<AvanceVoyage, AvanceVoyageTableDTO>().ReverseMap();
+
             CreateMap<AvanceVoyageDTO, AvanceVoyage>().ReverseMap();
             CreateMap<AvanceCaisse, AvanceCaisseDTO>().ReverseMap();
+
+
             CreateMap<DepenseCaisse, DepenseCaisseDTO>().ReverseMap();
             CreateMap<Liquidation, LiquidationDTO>().ReverseMap();
             CreateMap<Expense, ExpenseDTO>().ReverseMap();
@@ -37,9 +48,20 @@ namespace OTAS.Helper
             CreateMap<OrdreMissionPostDTO, OrdreMission>()
                 .ForMember(dest => dest.ActualRequester, opt => opt.Ignore());
 
-            CreateMap<ExpensePostDTO, Expense>().ReverseMap();
-            CreateMap<TripPostDTO, Trip>().ReverseMap();
+            CreateMap<AvanceCaissePostDTO, AvanceCaisse>()
+                .ForMember(dest => dest.ActualRequester, opt => opt.Ignore())
+                .ForMember(dest => dest.Expenses, opt => opt.Ignore());
+
+            CreateMap<ExpensePostDTO, Expense>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
+            CreateMap<ExpenseNoCurrencyPostDTO, Expense>().ReverseMap();
+            CreateMap<TripPostDTO, Trip>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
             CreateMap<ActualRequesterPostDTO, ActualRequester>().ReverseMap();
+
+            CreateMap<DepenseCaissePostDTO, DepenseCaisse>()
+                .ForMember(dest => dest.ActualRequester, opt => opt.Ignore());
+
         }
     }
 }
