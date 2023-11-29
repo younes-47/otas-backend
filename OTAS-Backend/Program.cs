@@ -31,11 +31,12 @@ builder.Services.AddScoped<IStatusHistoryRepository, StatusHistoryRepository>();
 builder.Services.AddScoped<ITripRepository, TripRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IActualRequesterRepository, ActualRequesterRepository>();
-
 builder.Services.AddScoped<ITestingRepository, TestingRepository>();
 //Services
 builder.Services.AddScoped<IOrdreMissionService, OrdreMissionService>();
-builder.Services.AddScoped<IActualRequesterService, ActualRequesterService>();
+builder.Services.AddScoped<IAvanceCaisseService, AvanceCaisseService>();
+builder.Services.AddScoped<IDepenseCaisseService, DepenseCaisseService>();
+
 
 //Add the DataConext
 builder.Services.AddDbContext<OtasContext>(options =>
@@ -74,6 +75,9 @@ builder.Services.AddControllers().AddJsonOptions(x => x.JsonSerializerOptions.Re
 /***************************************************************/
 
 var app = builder.Build();
+
+// To deal wit files
+app.UseStaticFiles();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

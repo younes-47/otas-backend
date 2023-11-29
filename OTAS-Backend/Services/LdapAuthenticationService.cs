@@ -1,6 +1,6 @@
 ﻿//using Microsoft.AspNetCore.Authentication;
 //using System;
-//using System.DirectoryServices.ActiveDirectory;
+//using System.DirectoryServices;
 //using System.Threading.Tasks;
 
 //public class LdapAuthenticationService

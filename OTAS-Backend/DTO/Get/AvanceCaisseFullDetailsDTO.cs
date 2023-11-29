@@ -2,7 +2,7 @@
 
 namespace OTAS.DTO.Get
 {
-    public class OrdreMissionFullDetailsDTO
+    public class AvanceCaisseFullDetailsDTO
     {
         public int Id { get; set; }
 
@@ -12,11 +12,13 @@ namespace OTAS.DTO.Get
 
         public string Description { get; set; } = null!;
 
-        public bool Abroad { get; set; }
+        public string Currency { get; set; } = null!;
 
-        public DateTime DepartureDate { get; set; }
+        public decimal EstimatedTotal { get; set; }
 
-        public DateTime ReturnDate { get; set; }
+        public decimal? ActualTotal { get; set; }
+
+        public int? ConfirmationNumber { get; set; }
 
         public int LatestStatus { get; set; }
 
@@ -26,13 +28,13 @@ namespace OTAS.DTO.Get
 
         public DateTime CreateDate { get; set; }
 
-        public virtual UserDTO User { get; set; } = null!;
-
         public virtual ActualRequesterDTO? ActualRequester { get; set; }
 
-        public virtual ICollection<AvanceVoyageDTO> AvanceVoyages { get; set; } = new List<AvanceVoyageDTO>();
+        public virtual ICollection<ExpenseDTO> Expenses { get; set; } = new List<ExpenseDTO>();
 
         public virtual ICollection<StatusHistoryDTO> StatusHistories { get; set; } = new List<StatusHistoryDTO>();
+
+        public virtual UserDTO User { get; set; } = null!;
 
     }
 }

@@ -17,7 +17,7 @@ namespace OTAS.DTO.Post
 
         public DateTime ReturnDate { get; set; }
 
-        public int LatestStatus { get; set; }
+        public int LatestStatus { get; set; } //Default is 99 (draft) but needed in case of submit
 
         public bool OnBehalf { get; set; }
 

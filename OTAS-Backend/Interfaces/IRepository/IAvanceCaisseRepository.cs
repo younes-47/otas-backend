@@ -1,4 +1,5 @@
-﻿using OTAS.Models;
+﻿using OTAS.DTO.Get;
+using OTAS.Models;
 using OTAS.Services;
 
 namespace OTAS.Interfaces.IRepository
@@ -6,7 +7,7 @@ namespace OTAS.Interfaces.IRepository
     public interface IAvanceCaisseRepository
     {
         Task<AvanceCaisse> GetAvanceCaisseByIdAsync(int idavanceCaisseId);
-        Task<AvanceCaisse?> FindAvaneCaisseAsync(int avanceCaisseId);
+        Task<AvanceCaisse?> FindAvanceCaisseAsync(int avanceCaisseId);
         Task<List<AvanceCaisse>> GetAvancesCaisseByStatusAsync(int status);
         Task<List<AvanceCaisse>> GetAvancesCaisseByUserIdAsync(int userId);
         Task<ServiceResult> AddAvanceCaisseAsync(AvanceCaisse avanceCaisse);

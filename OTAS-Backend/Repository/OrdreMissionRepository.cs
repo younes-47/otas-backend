@@ -21,7 +21,7 @@ namespace OTAS.Repository
         }
 
 
-        public async Task<OrdreMissionFullDetailsDTO> GetOrdreMissionFullDetailsByOrdreMissionId(int ordreMissionId)
+        public async Task<OrdreMissionFullDetailsDTO> GetOrdreMissionFullDetailsById(int ordreMissionId)
         {
             //var ordreMission = await _context.OrdreMissions
             //    .Where(om => om.Id == ordreMissionId)
@@ -49,6 +49,7 @@ namespace OTAS.Repository
                 .ProjectTo<OrdreMissionFullDetailsDTO>(_mapper.ConfigurationProvider)
                 .FirstOrDefaultAsync();
 
+            //For some reason Automapper doesn't map the user object
             ordreMission.User = _mapper.Map<UserDTO>(await _context.Users.Where(user => user.Id == ordreMission.UserId).FirstAsync());
 
             return ordreMission;

@@ -1,6 +1,9 @@
 ﻿using OTAS.Data;
 using OTAS.Models;
 using OTAS.Interfaces.IRepository;
+using Microsoft.EntityFrameworkCore;
+using OTAS.Services;
+using Azure.Core;
 
 namespace OTAS.Repository
 {
@@ -13,20 +16,48 @@ namespace OTAS.Repository
             _context = context;
         }
 
-
-        public DepenseCaisse GetDepenseCaisseById(int id)
+        public async Task<DepenseCaisse?> FindDepenseCaisseAsync(int depenseCaisseId)
         {
-            return _context.DepenseCaisses.Where(dc => dc.Id == id).FirstOrDefault();
+            return await _context.DepenseCaisses.FindAsync(depenseCaisseId);
         }
 
-        public ICollection<DepenseCaisse> GetDepensesCaisseByRequesterUserId(int requesterUserId)
+        public async Task<ServiceResult> AddDepenseCaisseAsync(DepenseCaisse depenseCaisse)
         {
-            return _context.DepenseCaisses.Where(dc => dc.UserId == requesterUserId).ToList();
+            ServiceResult result = new();
+            await _context.AddAsync(depenseCaisse);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "DepenseCaisse has been added successfully" : "Something went wrong while adding the DepenseCaisse";
+            return result;
         }
 
-        public ICollection<DepenseCaisse> GetDepensesCaisseByStatus(int status)
+        public async Task<ServiceResult> UpdateDepenseCaisseAsync(DepenseCaisse depenseCaisse)
         {
-            return _context.DepenseCaisses.Where(dc => dc.LatestStatus == status).ToList();
+            ServiceResult result = new();
+            _context.Update(depenseCaisse);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "DepenseCaisse has been updated successfully" : "Something went wrong while updating the DepenseCaisse";
+            return result;
+        }
+
+        public async Task<DepenseCaisse> GetDepenseCaisseByIdAsync(int depenseCaisseId)
+        {
+            return await _context.DepenseCaisses.Where(dc => dc.Id == depenseCaisseId).FirstAsync();
+        }
+
+        public async Task<List<DepenseCaisse>> GetDepensesCaisseByUserIdAsync(int userId)
+        {
+            return await _context.DepenseCaisses.Where(dc => dc.UserId == userId).ToListAsync();
+        }
+
+        public async Task<List<DepenseCaisse>> GetDepensesCaisseByStatus(int status)
+        {
+            return await _context.DepenseCaisses.Where(dc => dc.LatestStatus == status).ToListAsync();
+        }
+
+        public async Task<bool> SaveAsync()
+        {
+            int result = await _context.SaveChangesAsync();
+            return result > 0;
         }
     }
 }

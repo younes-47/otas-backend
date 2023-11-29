@@ -3,12 +3,16 @@ using OTAS.Models;
 using OTAS.Interfaces.IRepository;
 using OTAS.Services;
 using Microsoft.EntityFrameworkCore;
+using AutoMapper.QueryableExtensions;
+using OTAS.DTO.Get;
+using AutoMapper;
 
 namespace OTAS.Repository
 {
     public class AvanceCaisseRepository : IAvanceCaisseRepository
     {
         private readonly OtasContext _context;
+
         public AvanceCaisseRepository(OtasContext context)
         {
             _context = context;
@@ -23,7 +27,7 @@ namespace OTAS.Repository
             return result;
         }
 
-        public async Task<AvanceCaisse?> FindAvaneCaisseAsync(int avanceCaisseId)
+        public async Task<AvanceCaisse?> FindAvanceCaisseAsync(int avanceCaisseId)
         {
             return await _context.AvanceCaisses.FindAsync(avanceCaisseId);
         }

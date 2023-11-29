@@ -3,18 +3,30 @@ using OTAS.Models;
 using Microsoft.EntityFrameworkCore;
 using OTAS.Interfaces.IRepository;
 using OTAS.Services;
+using OTAS.DTO.Get;
+using AutoMapper;
 
 namespace OTAS.Repository
 {
     public class AvanceVoyageRepository : IAvanceVoyageRepository
     {
         private readonly OtasContext _context;
-        public AvanceVoyageRepository(OtasContext context)
+        private readonly IMapper _mapper;
+
+        public AvanceVoyageRepository(OtasContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
-        
+        // This method should probably be in a service rather than the repo (like AC) but whatever
+        public async Task<List<AvanceVoyageTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderRole)
+        {
+            List<AvanceVoyage> avanceVoyages = await GetAvancesVoyageByStatusAsync(deciderRole - 1); //See oneNote sketches to understand why it is role-1
+            List<AvanceVoyageTableDTO> mappedAvanceVoyages = _mapper.Map<List<AvanceVoyageTableDTO>>(avanceVoyages);
+            return mappedAvanceVoyages;
+        }
+
 
         public async Task<List<AvanceVoyage>> GetAvancesVoyageByStatusAsync(int status)
         {
