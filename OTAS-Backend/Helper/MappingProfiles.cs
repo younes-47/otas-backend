@@ -60,7 +60,8 @@ namespace OTAS.Helper
             CreateMap<ActualRequesterPostDTO, ActualRequester>().ReverseMap();
 
             CreateMap<DepenseCaissePostDTO, DepenseCaisse>()
-                .ForMember(dest => dest.ActualRequester, opt => opt.Ignore());
+                .ForMember(dest => dest.ActualRequester, opt => opt.Ignore())
+                .ForMember(dest => dest.Expenses, opt => opt.Ignore());
 
         }
     }

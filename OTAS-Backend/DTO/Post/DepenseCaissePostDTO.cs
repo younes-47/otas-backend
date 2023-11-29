@@ -10,9 +10,9 @@ namespace OTAS.DTO.Post
 
         public bool OnBehalf { get; set; }
 
-        public string Description { get; set; }
+        public string Description { get; set; } = null!;
 
-        public string Currency { get; set; }
+        public string Currency { get; set; } = null!;
 
         public Byte[] ReceiptsFile { get; set; } = null!;
 

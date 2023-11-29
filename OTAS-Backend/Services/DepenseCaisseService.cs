@@ -53,9 +53,13 @@ namespace OTAS.Services
                     return result;
                 }
 
-                //map
+                //MAP
                 List<Expense> mappedExpenses = _mapper.Map<List<Expense>>(depenseCaisse.Expenses);
-                var mappedDepenseCaisse = _mapper.Map<DepenseCaisse>(depenseCaisse);
+
+                DepenseCaisse mappedDepenseCaisse = _mapper.Map<DepenseCaisse>(depenseCaisse);
+
+
+
 
                 //Manually map
                 mappedDepenseCaisse.Total = CalculateExpensesEstimatedTotal(mappedExpenses);
@@ -78,16 +82,16 @@ namespace OTAS.Services
                 }
 
                 // Handle Actual Requester Info (if exists)
-                if (mappedDepenseCaisse.OnBehalf == true)
+                if (depenseCaisse.OnBehalf == true)
                 {
-                    if (mappedDepenseCaisse.ActualRequester == null)
+                    if (depenseCaisse.ActualRequester == null)
                     {
                         result.Success = false;
                         result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
                         return result;
                     }
 
-                    ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(mappedDepenseCaisse.ActualRequester);
+                    ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(depenseCaisse.ActualRequester);
                     mappedActualRequester.DepenseCaisseId = mappedDepenseCaisse.Id;
                     mappedActualRequester.OrderingUserId = mappedDepenseCaisse.UserId;
                     result = await _actualRequesterRepository.AddActualRequesterInfoAsync(mappedActualRequester);
@@ -103,19 +107,19 @@ namespace OTAS.Services
                     if (!result.Success) return result;
                 }
 
-
                 await transaction.CommitAsync();
+
             }
             catch (Exception ex)
             {
                 result.Success = false;
                 result.Message = $"ERROR: {ex.Message} ||| {ex.InnerException} ||| {ex.StackTrace}";
+                return result;
             }
 
             result.Success = true;
             result.Message = "DepenseCaisse & Receipts have been sent successfully";
             return result;
-
         }
 
 

@@ -1,10 +1,6 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Post;
-using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
-using OTAS.Models;
 using OTAS.Services;
 
 namespace OTAS.Controllers
@@ -25,7 +21,6 @@ namespace OTAS.Controllers
 
         //Requester
         [HttpPost("Create")]
-        //public async Task<IActionResult> AddDepenseCaisse([FromForm] IFormFile receipts, [FromForm] string depenseCaisse)
         public async Task<IActionResult> AddDepenseCaisse([FromBody] DepenseCaissePostDTO depenseCaisse)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -39,38 +34,30 @@ namespace OTAS.Controllers
             {
                 try
                 {
-                    var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Uploads");
+                    // _webHostEnvironment.WebRootPath == wwwroot\ (the default folder to store files)
+                    var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Depense-Caisse");
 
                     if (!Directory.Exists(uploadsFolderPath))
                     {
                         Directory.CreateDirectory(uploadsFolderPath);
                     }
-
-                    var uniqueReceiptsFileName = Guid.NewGuid().ToString() + "_DP_" + depenseCaisse.Id + "_" + depenseCaisse.UserId;
-
+                    var uniqueReceiptsFileName = "DC_" + depenseCaisse.UserId + "__" + Guid.NewGuid().ToString() + ".pdf";
                     var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
-
-                    //using var fileStream = new FileStream(filePath, FileMode.Create);
-
-                    using System.IO.File.WriteAllBytes(filePath, depenseCaisse.ReceiptsFile);
-
-                    //receipts.CopyTo(fileStream);
-
+                    await System.IO.File.WriteAllBytesAsync(filePath, depenseCaisse.ReceiptsFile);
                     receiptsFilePath = filePath;
                 }
                 catch (Exception ex)
                 {
-                    return BadRequest($"ERROR:{ex.Message} |||||||||| {ex.Source} |||||||||| {ex.InnerException}");
+                    return BadRequest($"ERROR: {ex.Message} |||||||||| {ex.Source} |||||||||| {ex.InnerException}");
                 }
             }
+            
+            //File uploaded and path assigned now deal with the json
 
-            // File uploaded and path assigned now deal with the json
+            ServiceResult result = await _depenseCaisseService.AddDepenseCaisse(depenseCaisse, receiptsFilePath);
+            if (!result.Success) return BadRequest($"{result.Message}");
 
-            //ServiceResult result = await _depenseCaisseService.AddDepenseCaisse(depenseCaisse, receiptsFilePath);
-            //if (!result.Success) return BadRequest($"{result.Message}");
-
-            //return Ok(result.Message);
-            return Ok();
+            return Ok(result.Message);
         }
 
 
