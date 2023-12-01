@@ -14,7 +14,9 @@ namespace OTAS.DTO.Post
 
         public string Currency { get; set; } = null!;
 
-        public Byte[] ReceiptsFile { get; set; } = null!;
+        public int LatestStatus { get; set; }
+
+        public Byte[]? ReceiptsFile { get; set; }
 
         public virtual ActualRequesterPostDTO? ActualRequester { get; set; }
 

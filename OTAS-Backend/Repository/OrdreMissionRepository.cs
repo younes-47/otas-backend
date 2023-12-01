@@ -6,6 +6,7 @@ using OTAS.DTO.Get;
 using OTAS.Interfaces.IRepository;
 using OTAS.Models;
 using OTAS.Services;
+using System.Collections.Generic;
 
 namespace OTAS.Repository
 {
@@ -54,9 +55,23 @@ namespace OTAS.Repository
 
             return ordreMission;
         }
-        public async Task<List<OrdreMission>?> GetOrdresMissionByUserIdAsync(int userid)
+        public async Task<List<OrdreMissionDTO>?> GetOrdresMissionByUserIdAsync(int userid)
         {
-            return await _context.OrdreMissions.Where(om => om.UserId == userid).ToListAsync();
+            List<OrdreMissionDTO> ordreMissionDTO = await _context.OrdreMissions
+                .Where(om => om.UserId == userid)
+                .Include(om => om.StatusNavigation)
+                .Select(OM => new OrdreMissionDTO
+                {
+                    Id = OM.Id,
+                    OnBehalf = OM.OnBehalf,
+                    Description = OM.Description,
+                    DepartureDate = OM.DepartureDate,
+                    ReturnDate = OM.ReturnDate,
+                    LatestStatus = OM.StatusNavigation.StatusString,
+                    CreateDate = OM.CreateDate,
+                    Abroad = OM.Abroad,
+                }).ToListAsync();
+            return ordreMissionDTO;
         }
 
         public async Task<OrdreMission> GetOrdreMissionByIdAsync(int ordreMissionId)

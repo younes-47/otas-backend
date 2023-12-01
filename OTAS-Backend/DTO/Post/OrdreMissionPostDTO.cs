@@ -1,11 +1,10 @@
-﻿using OTAS.DTO.Get;
-using OTAS.Models;
+﻿
 
 namespace OTAS.DTO.Post
 {
     public class OrdreMissionPostDTO
     {
-        public int Id { get; set; } //Need Id when resubmitting in case of return
+        public int Id { get; set; } //Need Id when resubmitting in case of return but it is not required in case of creation
 
         public int UserId { get; set; }
 
@@ -17,7 +16,7 @@ namespace OTAS.DTO.Post
 
         public DateTime ReturnDate { get; set; }
 
-        public int LatestStatus { get; set; } //Default is 99 (draft) but needed in case of submit
+        public int LatestStatus { get; set; } //Default is 99 (draft)
 
         public bool OnBehalf { get; set; }
 

@@ -7,11 +7,23 @@ using OTAS.Interfaces.IService;
 using OTAS.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.Extensions.Options;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 /**************** Add services to the container. ***************/
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy", builder =>
+    {
+        builder.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -45,23 +57,45 @@ builder.Services.AddDbContext<OtasContext>(options =>
 });
 
 // Add Authorization & Authentication
-builder.Services.AddAuthentication(Microsoft.AspNetCore.Server.IISIntegration.IISDefaults.AuthenticationScheme);
-builder.Services.AddAuthorization();
-
-// MS Identity is already looking at "AzureAD" at appSettings file by injecting the configuration
-//builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
-
-// Add Roles
-//builder.Services.AddAuthorization(options =>
+//builder.Services.AddAuthentication(x =>
 //{
-//    options.AddPolicy("RequireHRRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
-//    options.AddPolicy("RequireMDRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
-//    options.AddPolicy("RequireFDRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
-//    options.AddPolicy("RequireGDRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
-//    options.AddPolicy("RequireTRRole", policy => policy.RequireRole("DOMAIN\\AD-Group"));
+//    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//}).AddJwtBearer(o =>
+//{
+//    var Key = Encoding.UTF8.GetBytes(Configuration["JWT:Key"]);
+//    o.SaveToken = true;
+//    o.TokenValidationParameters = new TokenValidationParameters
+//    {
+//        ValidateIssuer = false,
+//        ValidateAudience = false,
+//        ValidateLifetime = true,
+//        ValidateIssuerSigningKey = true,
+//        ValidIssuer = Configuration["JWT:Issuer"],
+//        ValidAudience = Configuration["JWT:Audience"],
+//        IssuerSigningKey = new SymmetricSecurityKey(Key),
+//        ClockSkew = TimeSpan.Zero
+//    };
+//    o.Events = new JwtBearerEvents
+//    {
+//        OnChallenge = async (context) =>
+//        {
+//            context.HandleResponse();
 
+//            // the details about why the authentication has failed
+//            if (context.AuthenticateFailure != null)
+//            {
+//                context.Response.StatusCode = 401;
+
+//                context.HttpContext.Response.Headers.Add("Token-Expired", "true");
+//                await context.HttpContext.Response.WriteAsync("TOKEN-EXPIRED");
+//            }
+//        }
+
+//    };
 //});
-/* decorate your controller Method with this -> [Authorize(Policy = "RequireDeciderRole")] */
+
+
 
 
 /* Inject Automapper */
@@ -76,7 +110,7 @@ builder.Services.AddControllers().AddJsonOptions(x => x.JsonSerializerOptions.Re
 
 var app = builder.Build();
 
-// To deal wit files
+// To deal with files
 app.UseStaticFiles();
 
 // Configure the HTTP request pipeline.
@@ -87,10 +121,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-//app.UseAuthorization();
-
+app.UseCors("CorsPolicy");
 app.UseAuthentication();
+app.UseAuthorization();
+
 //app.Use(async (context, next) =>
 //{
 //    if (!context.User.Identity?.IsAuthenticated ?? false)

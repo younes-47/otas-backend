@@ -38,6 +38,21 @@ namespace OTAS.Repository
             result.Message = result.Success == true ? "DepenseCaisse has been updated successfully" : "Something went wrong while updating the DepenseCaisse";
             return result;
         }
+        
+        public async Task<ServiceResult> UpdateDepenseCaisseStatusAsync(int depesneCaisseId, int status)
+        {
+            ServiceResult result = new();
+
+            DepenseCaisse updatedDepenseCaisse = await GetDepenseCaisseByIdAsync(depesneCaisseId);
+            updatedDepenseCaisse.LatestStatus = status;
+            _context.DepenseCaisses.Update(updatedDepenseCaisse);
+
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "\"DepenseCaisse\" Status Updated Successfully" : "Something went wrong while updating \"DepenseCaisse\" Status";
+
+            return result;
+        }
+
 
         public async Task<DepenseCaisse> GetDepenseCaisseByIdAsync(int depenseCaisseId)
         {

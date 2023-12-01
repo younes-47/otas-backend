@@ -6,7 +6,7 @@ namespace OTAS.DTO.Get
     {
         public int Id { get; set; }
 
-        public int UserId { get; set; }
+        //public int UserId { get; set; }
 
         public bool OnBehalf { get; set; }
 
@@ -18,11 +18,11 @@ namespace OTAS.DTO.Get
 
         public DateTime ReturnDate { get; set; }
 
-        public int LatestStatus { get; set; }
+        public string LatestStatus { get; set; } = null!;
 
-        public int? DeciderUserId { get; set; }
+        //public int? DeciderUserId { get; set; }
 
-        public string? DeciderComment { get; set; }
+        //public string? DeciderComment { get; set; }
 
         public DateTime CreateDate { get; set; }
 

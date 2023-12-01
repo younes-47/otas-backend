@@ -39,6 +39,12 @@ namespace OTAS.Repository
             return user.Role;
         }
 
+        public async Task<int> GetUserRoleByUsernameAsync(string username)
+        {
+            var user = await _context.Users.Where(user => user.Username == username).FirstAsync();
+            return user.Role;
+        }
+
         public async Task<ServiceResult> AddUserAsync(User user)
         {
             ServiceResult result = new();

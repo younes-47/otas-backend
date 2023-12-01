@@ -376,7 +376,7 @@ namespace OTAS.Services
                 foreach (Expense expense in mappedExpenses)
                 {
                     expense.AvanceCaisseId = avanceCaisse_DB.Id;
-                    expense.Currency = avanceCaisse_DB.Currency;
+                    expense.Currency = avanceCaisse.Currency;
                 }
                 result = await _expenseRepository.AddExpensesAsync(mappedExpenses);
                 if(!result.Success) return result;

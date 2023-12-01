@@ -35,11 +35,11 @@ namespace OTAS.Controllers
         {
             if (await _userRepository.FindUserByUserIdAsync(userId) == null) return BadRequest("User not found!");
             var ordreMissions = await _ordreMissionRepository.GetOrdresMissionByUserIdAsync(userId);
-            if (ordreMissions == null || ordreMissions.Count <= 0) return NotFound("You haven't placed any \"OrdreMission\" yet!");
+            //if (ordreMissions == null || ordreMissions.Count <= 0) return NotFound("You haven't placed any \"OrdreMission\" yet!");
 
-            var mappedOrdreMissions = _mapper.Map<List<OrdreMissionDTO>>(ordreMissions);
+            //var mappedOrdreMissions = _mapper.Map<List<OrdreMissionDTO>>(ordreMissions);
 
-            return Ok(mappedOrdreMissions);
+            return Ok(ordreMissions);
         }
 
         //Requester
