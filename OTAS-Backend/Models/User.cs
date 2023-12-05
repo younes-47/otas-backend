@@ -1,4 +1,7 @@
-﻿namespace OTAS.Models;
+﻿using System;
+using System.Collections.Generic;
+
+namespace OTAS.Models;
 
 public partial class User
 {
@@ -18,9 +21,9 @@ public partial class User
 
     public virtual ICollection<AvanceVoyage> AvanceVoyages { get; set; } = new List<AvanceVoyage>();
 
-    public virtual ICollection<Delegation> DelegationDeciderUsers { get; set; } = new List<Delegation>();
+    public virtual ICollection<Delegation>? DelegationDeciderUsers { get; set; }
 
-    public virtual ICollection<Delegation> DelegationDelegateUsers { get; set; } = new List<Delegation>();
+    public virtual ICollection<Delegation>? DelegationDelegateUsers { get; set; }
 
     public virtual ICollection<DepenseCaisse> DepenseCaisses { get; set; } = new List<DepenseCaisse>();
 
@@ -28,6 +31,7 @@ public partial class User
 
     public virtual ICollection<OrdreMission> OrdreMissions { get; set; } = new List<OrdreMission>();
 
-    public virtual ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
+    public virtual RoleCode RoleString { get; set; } = null!;
 
+    public virtual ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
 }

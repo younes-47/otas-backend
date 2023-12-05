@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace OTAS.Models;
+﻿namespace OTAS.Models;
 
 public partial class AvanceVoyage
 {
@@ -27,7 +24,9 @@ public partial class AvanceVoyage
 
     public DateTime CreateDate { get; set; }
 
-    public virtual ICollection<Expense>? Expenses { get; set; } = new List<Expense>();
+    public virtual ICollection<Expense> Expenses { get; set; } = new List<Expense>();
+
+    public virtual StatusCode LatestStatusNavigation { get; set; } = null!;
 
     public virtual ICollection<Liquidation> Liquidations { get; set; } = new List<Liquidation>();
 
@@ -38,7 +37,4 @@ public partial class AvanceVoyage
     public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
 
     public virtual User User { get; set; } = null!;
-
-    public virtual StatusCode StatusNavigation { get; set; } = null!;
-
 }

@@ -1,4 +1,7 @@
-﻿namespace OTAS.Models;
+﻿using System;
+using System.Collections.Generic;
+
+namespace OTAS.Models;
 
 public partial class Trip
 {

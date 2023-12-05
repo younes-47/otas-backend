@@ -22,7 +22,7 @@ namespace OTAS.Helper
                 .ForMember(dest => dest.Expenses, opt => opt.MapFrom(src => src.Expenses))
                 .ForMember(dest => dest.ActualRequester, opt => opt.MapFrom(src => src.ActualRequester))
                 .ForMember(dest => dest.StatusHistories, opt => opt.MapFrom(src => src.StatusHistories));
-                
+
 
             CreateMap<AvanceVoyage, AvanceVoyageDTO>()
                 .ForMember(dest => dest.Expenses, opt => opt.MapFrom(src => src.Expenses))

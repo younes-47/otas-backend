@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
+﻿
 namespace OTAS.Models;
 
 public partial class ActualRequester
@@ -38,5 +36,4 @@ public partial class ActualRequester
     public virtual User OrderingUser { get; set; } = null!;
 
     public virtual OrdreMission? OrdreMission { get; set; }
-
 }

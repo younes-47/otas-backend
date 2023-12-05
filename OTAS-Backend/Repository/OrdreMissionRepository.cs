@@ -59,7 +59,7 @@ namespace OTAS.Repository
         {
             List<OrdreMissionDTO> ordreMissionDTO = await _context.OrdreMissions
                 .Where(om => om.UserId == userid)
-                .Include(om => om.StatusNavigation)
+                .Include(om => om.LatestStatusString)
                 .Select(OM => new OrdreMissionDTO
                 {
                     Id = OM.Id,
@@ -67,7 +67,7 @@ namespace OTAS.Repository
                     Description = OM.Description,
                     DepartureDate = OM.DepartureDate,
                     ReturnDate = OM.ReturnDate,
-                    LatestStatus = OM.StatusNavigation.StatusString,
+                    LatestStatus = OM.LatestStatusString.StatusString,
                     CreateDate = OM.CreateDate,
                     Abroad = OM.Abroad,
                 }).ToListAsync();

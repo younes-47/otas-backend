@@ -26,16 +26,12 @@
 //            bool isAuthenticated = ldap.IsAuthenticated(username, password);
 //            if (isAuthenticated)
 //            {
-//                int role = await _userRepository.GetUserRoleByUsernameAsync(username);
+//                string role = await _userRepository.GetUserRoleByUsernameAsync(username);
 //                Tokens tokens = _jwtManagerRepository.CreateToken(username, role);
 //                return tokens;
 //            }
 //            else { return null; }
 //        }
-
-        
-
-
 //        public async Task<ServiceResult> CreateNewUserAsync(string username)
 //        {
 //            string[] userInfo;
@@ -47,25 +43,6 @@
 //                FirstName = userInfo[0],
 //                LastName = userInfo[1],
 //            };
-//            string superiorUserName = userInfo[2];
-//            if (superiorUserName == "")
-//            {
-//                //no superior exist user is the VP
-//            }
-//            else
-//            {
-//                User? superiorUser = await _userRepository.FindUserByUsernameAsync(superiorUserName);
-//                if (superiorUser == null)
-//                {
-//                    superiorUser = await CreateNewUserAsync(superiorUserName) ?? throw new Exception($"error while creating new user {superiorUserName}");
-//                    //Create new user and add superior FK if exists
-//                }
-//                else
-//                {
-//                    //superiorUser is in the database
-//                }
-//                user.Superior = superiorUser.UserId;
-//            }
 //            //This method is used to create a new user with minimal access using username as parameter and returning the created user as async response
 //            return await _userRepository.AddUserAsync(user);
 //        }

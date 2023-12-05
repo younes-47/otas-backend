@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using OTAS.Models;
 
 namespace OTAS.Data;
@@ -30,6 +32,8 @@ public partial class OtasContext : DbContext
 
     public virtual DbSet<OrdreMission> OrdreMissions { get; set; }
 
+    public virtual DbSet<RoleCode> RoleCodes { get; set; }
+
     public virtual DbSet<StatusCode> StatusCodes { get; set; }
 
     public virtual DbSet<StatusHistory> StatusHistories { get; set; }
@@ -40,32 +44,29 @@ public partial class OtasContext : DbContext
 
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-    //        => optionsBuilder.UseSqlServer("Data Source=LENOVO-LAPTOP\\SQLEXPRESS;Initial Catalog=otas;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False");
+    //        => optionsBuilder.UseSqlServer("Data Source=LENOVO-LAPTOP\\SQLEXPRESS;Initial Catalog=otas;Integrated Security=True;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ActualRequester>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ActualRe__3214EC075F746395");
+            entity.HasKey(e => e.Id).HasName("PK__ActualRe__3214EC077090802F");
 
             entity.ToTable("ActualRequester");
 
+            entity.Property(e => e.CreateDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.Department)
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.FirstName).HasMaxLength(50);
             entity.Property(e => e.HiringDate).HasColumnType("date");
-            entity.Property(e => e.JobTitle)
-                .HasMaxLength(120)
-                .IsUnicode(false);
+            entity.Property(e => e.JobTitle).HasMaxLength(120);
             entity.Property(e => e.LastName).HasMaxLength(50);
             entity.Property(e => e.Manager)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            entity.Property(e => e.CreateDate)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-
 
             entity.HasOne(d => d.AvanceCaisse).WithOne(p => p.ActualRequester)
                 .HasForeignKey<ActualRequester>(d => d.AvanceCaisseId)
@@ -87,7 +88,7 @@ public partial class OtasContext : DbContext
 
         modelBuilder.Entity<AvanceCaisse>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__AvanceCa__3214EC07F25631E8");
+            entity.HasKey(e => e.Id).HasName("PK__AvanceCa__3214EC07B6932794");
 
             entity.ToTable("AvanceCaisse");
 
@@ -98,35 +99,25 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.Currency)
                 .HasMaxLength(5)
                 .IsUnicode(false);
+            entity.Property(e => e.DeciderComment).HasMaxLength(350);
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
 
-            entity.Property(e => e.LatestStatus)
-                   .HasDefaultValue(99);
-
-            entity.HasOne(d => d.User).WithMany(p => p.AvanceCaisses)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_AC_Requester");
-
-            entity.HasOne(d => d.StatusNavigation).WithMany(p => p.AvanceCaisses)
+            entity.HasOne(d => d.LatestStatusNavigation).WithMany(p => p.AvanceCaisses)
                 .HasForeignKey(d => d.LatestStatus)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AC_StatusCode");
 
             entity.HasOne(d => d.User).WithMany(p => p.AvanceCaisses)
-                .HasForeignKey(d => d.DeciderUserId)
-                .HasConstraintName("FK_AC_Decider");
-
-            entity.Property(e => e.DeciderComment)
-                .HasMaxLength(350)
-                .IsUnicode(false);
-
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AC_Requester");
         });
 
         modelBuilder.Entity<AvanceVoyage>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__AvanceVo__3214EC07711625B2");
+            entity.HasKey(e => e.Id).HasName("PK__AvanceVo__3214EC0742D682A4");
 
             entity.ToTable("AvanceVoyage");
 
@@ -137,10 +128,15 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.Currency)
                 .HasMaxLength(5)
                 .IsUnicode(false);
+            entity.Property(e => e.DeciderComment).HasMaxLength(350);
             entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
 
-            entity.Property(e => e.LatestStatus)
-                  .HasDefaultValue(99);
+
+            entity.HasOne(d => d.LatestStatusNavigation).WithMany(p => p.AvanceVoyages)
+                .HasForeignKey(d => d.LatestStatus)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AV_StatusCode");
 
             entity.HasOne(d => d.OrdreMission).WithMany(p => p.AvanceVoyages)
                 .HasForeignKey(d => d.OrdreMissionId)
@@ -151,33 +147,19 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AV_Requester");
-
-            entity.HasOne(d => d.StatusNavigation).WithMany(p => p.AvanceVoyages)
-                .HasForeignKey(d => d.LatestStatus)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_AV_StatusCode");
-
-            entity.HasOne(d => d.User).WithMany(p => p.AvanceVoyages)
-                .HasForeignKey(d => d.DeciderUserId)
-                .HasConstraintName("FK_AV_Decider");
-
-            entity.Property(e => e.DeciderComment)
-                .HasMaxLength(350)
-                .IsUnicode(false);
-
         });
 
         modelBuilder.Entity<Delegation>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Delegati__3214EC071ABE2E66");
+            entity.HasKey(e => e.Id).HasName("PK__Delegati__3214EC076B575C3D");
 
             entity.ToTable("Delegation");
 
-            entity.Property(e => e.EndDate).HasColumnType("datetime");
-            entity.Property(e => e.StartDate).HasColumnType("datetime");
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.EndDate).HasColumnType("datetime");
+            entity.Property(e => e.StartDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.DeciderUser).WithMany(p => p.DelegationDeciderUsers)
                 .HasForeignKey(d => d.DeciderUserId)
@@ -192,7 +174,7 @@ public partial class OtasContext : DbContext
 
         modelBuilder.Entity<DepenseCaisse>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__DepenseC__3214EC076F493C39");
+            entity.HasKey(e => e.Id).HasName("PK__DepenseC__3214EC07A4DE8291");
 
             entity.ToTable("DepenseCaisse");
 
@@ -202,38 +184,29 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.Currency)
                 .HasMaxLength(10)
                 .IsUnicode(false);
+            entity.Property(e => e.DeciderComment).HasMaxLength(350);
             entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
             entity.Property(e => e.ReceiptsFilePath)
                 .HasMaxLength(500)
                 .IsUnicode(false);
             entity.Property(e => e.Total).HasColumnType("decimal(10, 2)");
 
-            entity.Property(e => e.LatestStatus)
-                .HasDefaultValue(99);
+
+            entity.HasOne(d => d.LatestStatusNavigation).WithMany(p => p.DepenseCaisses)
+                .HasForeignKey(d => d.LatestStatus)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DP_StatusCode");
 
             entity.HasOne(d => d.User).WithMany(p => p.DepenseCaisses)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_DC_Requester");
-
-            entity.HasOne(d => d.StatusNavigation).WithMany(p => p.DepenseCaisses)
-                .HasForeignKey(d => d.LatestStatus)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_DC_StatusCode");
-
-            entity.HasOne(d => d.User).WithMany(p => p.DepenseCaisses)
-                .HasForeignKey(d => d.DeciderUserId)
-                .HasConstraintName("FK_DC_Decider");
-
-            entity.Property(e => e.DeciderComment)
-                .HasMaxLength(350)
-                .IsUnicode(false);
-
         });
 
         modelBuilder.Entity<Expense>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Expense__3214EC07CB7BD2A4");
+            entity.HasKey(e => e.Id).HasName("PK__Expense__3214EC0797565966");
 
             entity.ToTable("Expense");
 
@@ -264,7 +237,7 @@ public partial class OtasContext : DbContext
 
         modelBuilder.Entity<Liquidation>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Liquidat__3214EC07E8A9D63B");
+            entity.HasKey(e => e.Id).HasName("PK__Liquidat__3214EC07477D93CC");
 
             entity.ToTable("Liquidation");
 
@@ -272,16 +245,14 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.DeciderComment).HasMaxLength(350);
+            entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
             entity.Property(e => e.LiquidationOption)
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.ReceiptsFilePath)
                 .HasMaxLength(500)
                 .IsUnicode(false);
-
-            entity.Property(e => e.LatestStatus)
-                 .HasDefaultValue(99);
-
 
             entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.Liquidations)
                 .HasForeignKey(d => d.AvanceCaisseId)
@@ -291,64 +262,57 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.AvanceVoyageId)
                 .HasConstraintName("FK_AV_Liquidation");
 
-            entity.HasOne(d => d.User).WithMany(p => p.Liquidations)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Liquidation_Requester");
-
-            entity.HasOne(d => d.StatusNavigation).WithMany(p => p.Liquidations)
+            entity.HasOne(d => d.LatestStatusNavigation).WithMany(p => p.Liquidations)
                 .HasForeignKey(d => d.LatestStatus)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_LQ_StatusCode");
 
             entity.HasOne(d => d.User).WithMany(p => p.Liquidations)
-                .HasForeignKey(d => d.DeciderUserId)
-                .HasConstraintName("FK_LS_Decider");
-
-            entity.Property(e => e.DeciderComment)
-                .HasMaxLength(350)
-                .IsUnicode(false);
-
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("Liquidation_Requester");
         });
 
         modelBuilder.Entity<OrdreMission>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__OrdreMis__3214EC07E98E377F");
+            entity.HasKey(e => e.Id).HasName("PK__OrdreMis__3214EC07F1443C00");
 
             entity.ToTable("OrdreMission");
 
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.DeciderComment).HasMaxLength(350);
             entity.Property(e => e.DepartureDate).HasColumnType("datetime");
+            entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
             entity.Property(e => e.ReturnDate).HasColumnType("datetime");
 
-            entity.Property(e => e.LatestStatus)
-                .HasDefaultValue(99);
-
-            entity.HasOne(d => d.User).WithMany(p => p.OrdreMissions)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_OM_Requester");
-
-            entity.HasOne(d => d.StatusNavigation).WithMany(p => p.OrdreMissions)
+            entity.HasOne(d => d.LatestStatusString).WithMany(p => p.OrdreMissions)
                 .HasForeignKey(d => d.LatestStatus)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OM_StatusCode");
 
             entity.HasOne(d => d.User).WithMany(p => p.OrdreMissions)
-                .HasForeignKey(d => d.DeciderUserId)
-                .HasConstraintName("FK_OM_Decider");
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OM_Requester");
+        });
 
-            entity.Property(e => e.DeciderComment)
-                .HasMaxLength(350)
+        modelBuilder.Entity<RoleCode>(entity =>
+        {
+            entity.HasKey(e => e.RoleInt).HasName("PK__RoleCode__D27556AC90DF92AF");
+
+            entity.ToTable("RoleCode");
+
+            entity.Property(e => e.RoleInt).ValueGeneratedNever();
+            entity.Property(e => e.RoleString)
+                .HasMaxLength(100)
                 .IsUnicode(false);
-
         });
 
         modelBuilder.Entity<StatusCode>(entity =>
         {
-            entity.HasKey(e => e.StatusInt).HasName("PK__StatusCo__09ECF5E7BBE84A35");
+            entity.HasKey(e => e.StatusInt).HasName("PK__StatusCo__09ECF5E73FF578E5");
 
             entity.ToTable("StatusCode");
 
@@ -360,7 +324,7 @@ public partial class OtasContext : DbContext
 
         modelBuilder.Entity<StatusHistory>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__StatusHi__3214EC0734700B76");
+            entity.HasKey(e => e.Id).HasName("PK__StatusHi__3214EC071D11D24C");
 
             entity.ToTable("StatusHistory");
 
@@ -368,11 +332,8 @@ public partial class OtasContext : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.DeciderComment)
-                .HasMaxLength(350)
+                .HasMaxLength(50)
                 .IsUnicode(false);
-
-            entity.Property(e => e.Status)
-                .HasDefaultValue(99);
 
             entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.StatusHistories)
                 .HasForeignKey(d => d.AvanceCaisseId)
@@ -381,6 +342,10 @@ public partial class OtasContext : DbContext
             entity.HasOne(d => d.AvanceVoyage).WithMany(p => p.StatusHistories)
                 .HasForeignKey(d => d.AvanceVoyageId)
                 .HasConstraintName("FK_AV_StatusHistory");
+
+            entity.HasOne(d => d.Decider).WithMany(p => p.StatusHistories)
+                .HasForeignKey(d => d.DeciderUserId)
+                .HasConstraintName("FK_SH_Decider");
 
             entity.HasOne(d => d.DepenseCaisse).WithMany(p => p.StatusHistories)
                 .HasForeignKey(d => d.DepenseCaisseId)
@@ -398,16 +363,11 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.Status)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_SH_StatusCode");
-
-            entity.HasOne(d => d.Decider).WithMany(p => p.StatusHistories)
-                .HasForeignKey(d => d.DeciderUserId)
-                .HasConstraintName("FK_SH_Decider");
-
         });
 
         modelBuilder.Entity<Trip>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Trip__3214EC07F005332E");
+            entity.HasKey(e => e.Id).HasName("PK__Trip__3214EC074485C5EB");
 
             entity.ToTable("Trip");
 
@@ -415,7 +375,6 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.UpdateDate).HasColumnType("datetime");
             entity.Property(e => e.DepartureDate).HasColumnType("datetime");
             entity.Property(e => e.DeparturePlace)
                 .HasMaxLength(50)
@@ -433,6 +392,7 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.Unit)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.UpdateDate).HasColumnType("datetime");
             entity.Property(e => e.Value).HasColumnType("decimal(10, 2)");
 
             entity.HasOne(d => d.AvanceVoyage).WithMany(p => p.Trips)
@@ -443,7 +403,7 @@ public partial class OtasContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__User__3214EC0714C2BE1A");
+            entity.HasKey(e => e.Id).HasName("PK__User__3214EC076D2914FA");
 
             entity.ToTable("User");
 
@@ -456,6 +416,11 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.Username)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+
+            entity.HasOne(d => d.RoleString).WithMany(p => p.Users)
+                .HasForeignKey(d => d.Role)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_User_RoleCode");
         });
 
         OnModelCreatingPartial(modelBuilder);

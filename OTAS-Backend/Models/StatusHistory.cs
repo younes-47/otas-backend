@@ -29,6 +29,8 @@ public partial class StatusHistory
 
     public virtual AvanceVoyage? AvanceVoyage { get; set; }
 
+    public virtual User? Decider { get; set; }
+
     public virtual DepenseCaisse? DepenseCaisse { get; set; }
 
     public virtual Liquidation? Liquidation { get; set; }
@@ -36,6 +38,4 @@ public partial class StatusHistory
     public virtual OrdreMission? OrdreMission { get; set; }
 
     public virtual StatusCode StatusNavigation { get; set; } = null!;
-
-    public virtual User? Decider { get; set; }
 }

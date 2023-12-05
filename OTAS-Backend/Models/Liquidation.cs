@@ -1,4 +1,6 @@
-﻿
+﻿using System;
+using System.Collections.Generic;
+
 namespace OTAS.Models;
 
 public partial class Liquidation
@@ -31,10 +33,9 @@ public partial class Liquidation
 
     public virtual AvanceVoyage? AvanceVoyage { get; set; }
 
+    public virtual StatusCode LatestStatusNavigation { get; set; } = null!;
+
     public virtual ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
 
     public virtual User User { get; set; } = null!;
-
-    public virtual StatusCode StatusNavigation { get; set; } = null!;
-
 }
