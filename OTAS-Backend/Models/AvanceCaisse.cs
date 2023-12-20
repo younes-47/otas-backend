@@ -17,6 +17,8 @@ public partial class AvanceCaisse
 
     public decimal? ActualTotal { get; set; }
 
+    public string? AdvanceOption { get; set; }
+
     public int? ConfirmationNumber { get; set; }
 
     public int LatestStatus { get; set; }

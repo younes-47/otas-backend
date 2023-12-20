@@ -12,7 +12,7 @@ namespace OTAS.Interfaces.IService
         Task<ServiceResult> UpdateAvanceVoyageForEachCurrency(OrdreMission ordreMission, List<AvanceVoyage> avanceVoyages, List<TripPostDTO> mixedTrips, List<ExpensePostDTO>? mixedExpenses);
         Task<ServiceResult> CreateOrdreMissionWithAvanceVoyageAsDraft(OrdreMissionPostDTO ordreMissionPostDTO);
         Task<ServiceResult> SubmitOrdreMissionWithAvanceVoyage(int ordreMissionId);
-        Task<ServiceResult> DecideOnOrdreMissionWithAvanceVoyage(int ordreMissionId,int deciderUserId,string? deciderComment,int decision);
+        Task<ServiceResult> DecideOnOrdreMissionWithAvanceVoyage(int ordreMissionId,string? AdvanceOption,int deciderUserId,string? deciderComment,int decision);
         Task<ServiceResult> ModifyOrdreMissionWithAvanceVoyage(OrdreMissionPostDTO ordreMission, int currentStatus);
         Task<List<OrdreMissionDTO>> GetOrdreMissionsForDeciderTable(int userId);
     }

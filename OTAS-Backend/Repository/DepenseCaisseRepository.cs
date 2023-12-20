@@ -4,6 +4,7 @@ using OTAS.Interfaces.IRepository;
 using Microsoft.EntityFrameworkCore;
 using OTAS.Services;
 using Azure.Core;
+using OTAS.DTO.Get;
 
 namespace OTAS.Repository
 {
@@ -59,9 +60,23 @@ namespace OTAS.Repository
             return await _context.DepenseCaisses.Where(dc => dc.Id == depenseCaisseId).FirstAsync();
         }
 
-        public async Task<List<DepenseCaisse>> GetDepensesCaisseByUserIdAsync(int userId)
+        public async Task<List<DepenseCaisseDTO>> GetDepensesCaisseByUserIdAsync(int userId)
         {
-            return await _context.DepenseCaisses.Where(dc => dc.UserId == userId).ToListAsync();
+            return await _context.DepenseCaisses.Where(dc => dc.UserId == userId)
+                .Include(dc => dc.LatestStatusNavigation)
+                .Select(dc => new DepenseCaisseDTO
+                {
+                    Id = dc.Id,
+                    OnBehalf = dc.OnBehalf,
+                    Description = dc.Description,
+                    Currency = dc.Currency,
+                    Total = dc.Total,
+                    ReceiptsFilePath = dc.ReceiptsFilePath,
+                    ConfirmationNumber = dc.ConfirmationNumber,
+                    LatestStatus = dc.LatestStatusNavigation.StatusString,
+                    CreateDate = dc.CreateDate,
+                })
+                .ToListAsync();
         }
 
         public async Task<List<DepenseCaisse>> GetDepensesCaisseByStatus(int status)

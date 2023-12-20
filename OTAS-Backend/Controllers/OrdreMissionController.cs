@@ -139,7 +139,7 @@ namespace OTAS.Controllers
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(decision.RequestId) == null) return NotFound("OrdreMission is not found!");
 
-            ServiceResult result = await _ordreMissionService.DecideOnOrdreMissionWithAvanceVoyage(decision.RequestId, decision.DeciderUserId, decision.DeciderComment, decision.Decision);
+            ServiceResult result = await _ordreMissionService.DecideOnOrdreMissionWithAvanceVoyage(decision.RequestId, decision.AdvanceOption, decision.DeciderUserId, decision.DeciderComment, decision.Decision);
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Message);
         }

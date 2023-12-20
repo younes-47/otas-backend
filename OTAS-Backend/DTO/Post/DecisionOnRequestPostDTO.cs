@@ -8,6 +8,8 @@
 
         public string? DeciderComment { get; set; }
 
+        public string? AdvanceOption { get; set; }
+
         public int Decision { get; set; }
     }
 }

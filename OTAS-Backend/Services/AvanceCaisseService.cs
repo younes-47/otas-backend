@@ -69,7 +69,9 @@ namespace OTAS.Services
 
                 StatusHistory AV_status = new()
                 {
+                    Total = mappedAC.EstimatedTotal,
                     AvanceCaisseId = mappedAC.Id,
+                    Status = mappedAC.LatestStatus
                 };
                 result = await _statusHistoryRepository.AddStatusAsync(AV_status);
                 if (!result.Success)
@@ -136,8 +138,10 @@ namespace OTAS.Services
                 result = await _avanceCaisseRepository.UpdateAvanceCaisseStatusAsync(avanceCaisseId, 1);
                 if (!result.Success) return result;
 
+                AvanceCaisse av = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisseId);
                 StatusHistory newOM_Status = new()
                 {
+                    Total = av.EstimatedTotal,
                     AvanceCaisseId = avanceCaisseId,
                     Status = 1,
                 };
@@ -183,7 +187,7 @@ namespace OTAS.Services
             return mappedAvanceCaisses;
         }
 
-        public async Task<ServiceResult> DecideOnAvanceCaisse(int avanceCaisseId, int deciderUserId, string? deciderComment, int decision)
+        public async Task<ServiceResult> DecideOnAvanceCaisse(int avanceCaisseId, string? advanceOption, int deciderUserId, string? deciderComment, int decision)
         {
 
             ServiceResult result = new();
@@ -198,8 +202,8 @@ namespace OTAS.Services
             }
 
             // Test if the decider is allowed to decide on the request on this level
-            if (await _userRepository.GetUserRoleByUserIdAsync(deciderUserId) != (decidedAvanceCaisse.LatestStatus + 1))
-            // Here the role of the decider should always be equal to the latest status of the request +1 (refer to one note). If not, he is trying to approve on a different level from his.
+            if (await _userRepository.GetUserRoleByUserIdAsync(deciderUserId) != (decidedAvanceCaisse.LatestStatus + 2))
+            // Here the role of the decider should always be equal to the latest status of the request + 2 (refer to one note). If not, he is trying to approve on a different level from his.
             {
                 result.Success = false;
                 result.Message = "You are not allowed to approve on this level! Either the request is still not forwarded to you yet, or you have already decided upon it. If you think this error is not supposed to occur, report the IT department with the issue. Thanks";
@@ -244,6 +248,7 @@ namespace OTAS.Services
                         AvanceCaisseId = avanceCaisseId,
                         DeciderUserId = deciderUserId,
                         DeciderComment = deciderComment,
+                        Total = decidedAvanceCaisse.EstimatedTotal,
                         Status = decision,
                     };
                     result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);
@@ -265,7 +270,9 @@ namespace OTAS.Services
                 try
                 {
                     decidedAvanceCaisse.DeciderUserId = deciderUserId;
-                    decidedAvanceCaisse.LatestStatus++; //Incrementig the status to apppear on the next decider table.
+                    if (decidedAvanceCaisse.LatestStatus == 5) decidedAvanceCaisse.LatestStatus = 7; //Preparing funds in case of TR Approval (6 is approved, and it will be assigned only for OM not AV)
+                    decidedAvanceCaisse.LatestStatus++; // Otherwise next step of approval process.
+                    decidedAvanceCaisse.AdvanceOption = advanceOption;
                     result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(decidedAvanceCaisse);
                     if (!result.Success) return result;
 
@@ -274,6 +281,7 @@ namespace OTAS.Services
                         AvanceCaisseId = avanceCaisseId,
                         DeciderUserId = deciderUserId,
                         Status = decidedAvanceCaisse.LatestStatus,
+                        Total = decidedAvanceCaisse.EstimatedTotal,
                     };
                     result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);
                     if (!result.Success) return result;
@@ -389,19 +397,26 @@ namespace OTAS.Services
                 avanceCaisse_DB.Currency = avanceCaisse.Currency;
                 avanceCaisse_DB.OnBehalf = avanceCaisse.OnBehalf;
                 avanceCaisse_DB.EstimatedTotal = CalculateExpensesEstimatedTotal(mappedExpenses);
-
                 result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(avanceCaisse_DB);
                 if (!result.Success) return result;
 
-                //Insert new status history in case of a submit action
+
+                //Insert new status history in case of a submit or re submit action
                 if (action == 1)
                 {
                     StatusHistory OM_statusHistory = new()
                     {
+                        Total = avanceCaisse_DB.EstimatedTotal,
                         AvanceCaisseId = avanceCaisse_DB.Id,
                         Status = 1
                     };
                     result = await _statusHistoryRepository.AddStatusAsync(OM_statusHistory);
+                    if (!result.Success) return result;
+                }
+                else
+                {
+                    // Just Update Status History Total in case of saving
+                    result = await _statusHistoryRepository.UpdateStatusHistoryTotal(avanceCaisse_DB.Id, "AC", avanceCaisse_DB.EstimatedTotal);
                     if (!result.Success) return result;
                 }
 

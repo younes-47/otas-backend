@@ -39,12 +39,10 @@ namespace OTAS.Controllers
         [HttpGet("Requests/Table")]
         public async Task<IActionResult> ShowAvanceVoyageRequestsTable(int userId)
         {
-            var AVs = await _avanceVoyageRepository.GetAvancesVoyageByUserIdAsync(userId);
+            if (await _userRepository.FindUserByUserIdAsync(userId) == null) return BadRequest("User not found!");
 
-            if (AVs.Count <= 0)
-                return NotFound("You haven't requested any AvanceVoyage yet!");
+            List<AvanceVoyageTableDTO> mappedAVs = await _avanceVoyageRepository.GetAvancesVoyageByUserIdAsync(userId);
 
-            List<AvanceVoyageTableDTO> mappedAVs = _mapper.Map<List<AvanceVoyageTableDTO>>(AVs);
             return Ok(mappedAVs);
         }
 
@@ -66,21 +64,6 @@ namespace OTAS.Controllers
 
             return Ok(AVs);
         }
-
-
-        //[HttpGet("OrdreMission-{ordreMissionId}")]
-        //public async Task<IActionResult> GetAvancesVoyageByOrdreMissionId(int ordreMissionId)
-        //{
-        //    var AVs = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
-
-        //    if (AVs.Count <= 0)
-        //        return NoContent();
-
-        //    if (!ModelState.IsValid)
-        //        return BadRequest(ModelState);
-
-        //    return Ok(AVs);
-        //}
-
+        
     }
 }

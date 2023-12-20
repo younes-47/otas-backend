@@ -136,6 +136,7 @@ namespace OTAS.Services
                 // Inserting the initial status of the "AvanceVoyage" in MAD in StatusHistory in case of CREATE
                 StatusHistory AV_status = new()
                 {
+                    Total = avanceVoyage_in_mad.EstimatedTotal,
                     AvanceVoyageId = avanceVoyage_in_mad.Id,
                     Status = avanceVoyage_in_mad.LatestStatus
                 };
@@ -229,6 +230,7 @@ namespace OTAS.Services
                 // Inserting the initial status of the "AvanceVoyage" in EUR in StatusHistory
                 StatusHistory AV_status = new()
                 {
+                    Total = avanceVoyage_in_eur.EstimatedTotal,
                     AvanceVoyageId = avanceVoyage_in_eur.Id,
                     Status = avanceVoyage_in_eur.LatestStatus
                 };
@@ -465,6 +467,7 @@ namespace OTAS.Services
                     }
                     StatusHistory AV_MAD_Status = new()
                     {
+                        Total = avanceVoyage_in_mad.EstimatedTotal,
                         AvanceVoyageId = avanceVoyage_in_mad.Id,
                         Status = avanceVoyage_in_mad.LatestStatus
                     };
@@ -612,6 +615,7 @@ namespace OTAS.Services
                     }
                     StatusHistory AV_EUR_Status = new()
                     {
+                        Total = avanceVoyage_in_eur.EstimatedTotal,
                         AvanceVoyageId = avanceVoyage_in_eur.Id,
                         Status = avanceVoyage_in_eur.LatestStatus
                     };
@@ -705,16 +709,52 @@ namespace OTAS.Services
             using var transaction = _context.Database.BeginTransaction();
             ServiceResult result = new();
 
-            if (ordreMission.Trips.Count < 1)
+            // Bad requests handling
+            if (ordreMission.Trips.Count < 2)
             {
                 result.Success = false;
-                result.Message = "OrdreMission must have at least one trip! You can't request an OrdreMission with no trip.";
+                result.Message = "OrdreMission must have at least two trips!";
                 return result;
+            }
+
+            var sortedTrips = ordreMission.Trips.OrderBy(trip => trip.DepartureDate).ToList();
+            for( int i = 0; i< sortedTrips.Count; i++)
+            {
+                if (sortedTrips[i].DepartureDate > sortedTrips[i].ArrivalDate)
+                {
+                    result.Success = false;
+                    result.Message = "One of the trips has a departure date bigger than its arrival date!";
+                    return result;
+                }
+                if (i == sortedTrips.Count - 1) break; // prevent out of range index exception
+                if (sortedTrips[i].ArrivalDate > sortedTrips[i + 1].DepartureDate)
+                {
+                    result.Success = false;
+                    result.Message = "Trips dates don't make sense! You can't start another trip before you arrive from the previous one.";
+                    return result;
+                }
             }
 
             try
             {
                 var mappedOM = _mapper.Map<OrdreMission>(ordreMission);
+
+                DateTime smallestDate = DateTime.MaxValue;
+                DateTime biggestDate = DateTime.MinValue;
+                foreach (var trip in ordreMission.Trips)
+                {
+                    if (trip.DepartureDate <=  smallestDate)
+                    {
+                        smallestDate = trip.DepartureDate;
+                    }
+                    if(trip.ArrivalDate >= biggestDate)
+                    {
+                        biggestDate = trip.ArrivalDate;
+                    }
+                }
+                mappedOM.DepartureDate = smallestDate;
+                mappedOM.ReturnDate = biggestDate;
+
                 result = await _ordreMissionRepository.AddOrdreMissionAsync(mappedOM);
                 if (!result.Success) return result;
 
@@ -800,6 +840,7 @@ namespace OTAS.Services
 
                     StatusHistory newAV_Status = new()
                     {
+                        Total = av.EstimatedTotal,
                         AvanceVoyageId = av.Id,
                         Status = 1,
                     };
@@ -828,7 +869,7 @@ namespace OTAS.Services
 
         }
 
-        public async Task<ServiceResult> DecideOnOrdreMissionWithAvanceVoyage(int ordreMissionId, int deciderUserId, string? deciderComment, int decision)
+        public async Task<ServiceResult> DecideOnOrdreMissionWithAvanceVoyage(int ordreMissionId, string? advanceOption, int deciderUserId, string? deciderComment, int decision)
         {
 
             ServiceResult result = new();
@@ -893,6 +934,7 @@ namespace OTAS.Services
                         if (!result.Success) return result;
                         StatusHistory decidedAvanceVoyage_SH = new()
                         {
+                            Total = av.EstimatedTotal,
                             AvanceVoyageId = av.Id,
                             DeciderUserId = deciderUserId,
                             DeciderComment = deciderComment,
@@ -912,69 +954,14 @@ namespace OTAS.Services
                     return result;
                 }
             }
-            //// CASE: Return
-            ///
-            //else if (decision == RETURN_STATUS)
-            //{
-            //    var transaction = _context.Database.BeginTransaction();
-            //    try
-            //    {
-            //        var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMissionId);
-            //        decidedOrdreMission.DeciderComment = deciderComment;
-            //        decidedOrdreMission.DeciderUserId = deciderUserId;
-            //        decidedOrdreMission.LatestStatus = RETURN_STATUS; //returned status
-            //        result = await _ordreMissionRepository.UpdateOrdreMission(decidedOrdreMission);
-            //        if (!result.Success) return result;
-
-            //        StatusHistory decidedOrdreMission_SH = new()
-            //        {
-            //            OrdreMissionId = ordreMissionId,
-            //            DeciderUserId = deciderUserId,
-            //            DeciderComment = deciderComment,
-            //            Status = RETURN_STATUS,
-            //        };
-            //        result = await _statusHistoryRepository.AddStatusAsync(decidedOrdreMission_SH);
-            //        if (!result.Success) return result;
-
-            //        var decidedAvanceVoyage = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
-            //        foreach (AvanceVoyage av in decidedAvanceVoyage)
-            //        {
-            //            av.LatestStatus = RETURN_STATUS;
-            //            av.DeciderComment = deciderComment;
-            //            av.DeciderUserId = deciderUserId;
-            //            result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(av);
-            //            if (!result.Success) return result;
-            //            StatusHistory decidedAvanceVoyage_SH = new()
-            //            {
-            //                AvanceVoyageId = av.Id,
-            //                DeciderUserId = deciderUserId,
-            //                DeciderComment = deciderComment,
-            //                Status = RETURN_STATUS,
-            //            };
-            //            result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceVoyage_SH);
-            //            if (!result.Success) return result;
-            //        }
-
-
-            //        await transaction.CommitAsync();
-            //    }
-            //    catch (Exception exception)
-            //    {
-            //        result.Success = false;
-            //        result.Message = exception.Message;
-            //        return result;
-            //    }
-            //}
-
-            // CASE: Approve
             else
             {
                 var transaction = _context.Database.BeginTransaction();
                 try
                 {
                     var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMissionId);
-                    if (await _userRepository.GetUserRoleByUserIdAsync(deciderUserId) != (decidedOrdreMission.LatestStatus + 1))
-                    // Here the role of the decider should always be equal to the latest status of the request +1 (refer to one note). If not, he is trying to approve on a different level from his.
+                    if (await _userRepository.GetUserRoleByUserIdAsync(deciderUserId) != (decidedOrdreMission.LatestStatus + 2))
+                    // Here the role of the decider should always be equal to the latest status of the request + 2 (refer to one note). If not, he is trying to approve on a different level from his.
                     {
                         result.Success = false;
                         result.Message = "You are not allowed to approve on this level!";
@@ -997,14 +984,16 @@ namespace OTAS.Services
                     var decidedAvanceVoyage = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
                     foreach (AvanceVoyage av in decidedAvanceVoyage)
                     {
-                        if (av.LatestStatus == 5) av.LatestStatus = 7; //Preparing funds in case of TR Approval
-                        av.LatestStatus++; //Otherwise next step of approval process
+                        if (av.LatestStatus == 5) av.LatestStatus = 7; //Preparing funds in case of TR Approval (6 is approved, and it will be assigned only for OM not AV)
+                        av.LatestStatus++; // Otherwise next step of approval process
                         av.DeciderUserId = deciderUserId;
+                        av.AdvanceOption = advanceOption;
                         result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(av);
                         if (!result.Success) return result;
 
                         StatusHistory decidedAvanceVoyage_SH = new()
                         {
+                            Total = av.EstimatedTotal,
                             AvanceVoyageId = av.Id,
                             DeciderUserId = deciderUserId,
                             DeciderComment = deciderComment,
@@ -1110,8 +1099,23 @@ namespace OTAS.Services
                 updatedOrdreMission.LatestStatus = action;
                 updatedOrdreMission.Description = ordreMission.Description;
                 updatedOrdreMission.Abroad = ordreMission.Abroad;
-                updatedOrdreMission.DepartureDate = ordreMission.DepartureDate;
-                updatedOrdreMission.ReturnDate = ordreMission.ReturnDate;
+
+                DateTime smallestDate = DateTime.MaxValue;
+                DateTime biggestDate = DateTime.MinValue;
+                foreach (var trip in ordreMission.Trips)
+                {
+                    if (trip.DepartureDate <= smallestDate)
+                    {
+                        smallestDate = trip.DepartureDate;
+                    }
+                    if (trip.ArrivalDate >= biggestDate)
+                    {
+                        biggestDate = trip.ArrivalDate;
+                    }
+                }
+                updatedOrdreMission.DepartureDate = smallestDate;
+                updatedOrdreMission.ReturnDate = biggestDate;
+
                 updatedOrdreMission.OnBehalf = ordreMission.OnBehalf;
 
                 result = await _ordreMissionRepository.UpdateOrdreMission(updatedOrdreMission);
@@ -1184,6 +1188,9 @@ namespace OTAS.Services
             List<OrdreMissionDTO> mappedOrdreMissions = _mapper.Map<List<OrdreMissionDTO>>(ordreMissions);
             return mappedOrdreMissions;
         }
+
+
+
 
 
         // These functions should be in their respective services but whatever

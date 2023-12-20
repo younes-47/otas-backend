@@ -76,7 +76,9 @@ namespace OTAS.Services
                 // Status History
                 StatusHistory DC_status = new()
                 {
+                    Total = mappedDepenseCaisse.Total,
                     DepenseCaisseId = mappedDepenseCaisse.Id,
+                    Status = mappedDepenseCaisse.LatestStatus,
                 };
                 result = await _statusHistoryRepository.AddStatusAsync(DC_status);
 
@@ -246,10 +248,17 @@ namespace OTAS.Services
                 {
                     StatusHistory OM_statusHistory = new()
                     {
+                        Total = depenseCaisse_DB.Total,
                         DepenseCaisseId = depenseCaisse_DB.Id,
                         Status = 1
                     };
                     result = await _statusHistoryRepository.AddStatusAsync(OM_statusHistory);
+                    if (!result.Success) return result;
+                }
+                else
+                {
+                    // Just Update Status History Total in case of saving
+                    result = await _statusHistoryRepository.UpdateStatusHistoryTotal(depenseCaisse_DB.Id, "DC", depenseCaisse_DB.Total);
                     if (!result.Success) return result;
                 }
 
@@ -292,8 +301,11 @@ namespace OTAS.Services
                 result = await _depenseCaisseRepository.UpdateDepenseCaisseStatusAsync(depenseCaisseId, 1);
                 if (!result.Success) return result;
 
+                DepenseCaisse dc = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(depenseCaisseId);
+
                 StatusHistory newOM_Status = new()
                 {
+                    Total = dc.Total,
                     DepenseCaisseId = depenseCaisseId,
                     Status = 1,
                 };

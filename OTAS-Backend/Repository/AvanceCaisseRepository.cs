@@ -42,9 +42,23 @@ namespace OTAS.Repository
             return await _context.AvanceCaisses.Where(ac => ac.LatestStatus == status).ToListAsync();
         }
 
-        public async Task<List<AvanceCaisse>> GetAvancesCaisseByUserIdAsync(int userId)
+        public async Task<List<AvanceCaisseDTO>> GetAvancesCaisseByUserIdAsync(int userId)
         {
-            return await _context.AvanceCaisses.Where(ac => ac.UserId == userId).ToListAsync();
+            return await _context.AvanceCaisses.Where(ac => ac.UserId == userId)
+                .Include(ac => ac.LatestStatusNavigation)
+                .Select(ac => new AvanceCaisseDTO
+                {
+                    Id = ac.Id,
+                    OnBehalf = ac.OnBehalf,
+                    Description = ac.Description,
+                    Currency = ac.Currency,
+                    EstimatedTotal = ac.EstimatedTotal,
+                    ActualTotal = ac.ActualTotal,
+                    ConfirmationNumber = ac.ConfirmationNumber,
+                    LatestStatus = ac.LatestStatusNavigation.StatusString,
+                    CreateDate = ac.CreateDate,
+                })
+                .ToListAsync();
         }
 
         public async Task<bool> SaveAsync()
@@ -74,6 +88,13 @@ namespace OTAS.Repository
             result.Message = result.Success == true ? "\"AvanceCaisse\" Status Updated Successfully" : "Something went wrong while updating \"AvanceCaisse\" Status";
 
             return result;
+        }
+
+        public async Task<string?> DecodeStatusAsync(int statusCode)
+        {
+            var statusCodeEntity = await _context.StatusCodes.Where(sc => sc.StatusInt == statusCode).FirstOrDefaultAsync();
+
+            return statusCodeEntity?.StatusString;
         }
     }
 }

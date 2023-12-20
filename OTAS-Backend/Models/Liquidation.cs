@@ -17,8 +17,6 @@ public partial class Liquidation
 
     public string? ReceiptsFilePath { get; set; }
 
-    public string? LiquidationOption { get; set; }
-
     public int? Result { get; set; }
 
     public int LatestStatus { get; set; }

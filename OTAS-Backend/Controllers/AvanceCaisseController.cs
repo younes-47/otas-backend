@@ -35,11 +35,8 @@ namespace OTAS.Controllers
         public async Task<IActionResult> ShowAvanceCaisseRequestsTable(int userId)
         {
             if (await _userRepository.FindUserByUserIdAsync(userId) == null) return BadRequest("User not found!");
-            var ACs = await _avanceCaisseRepository.GetAvancesCaisseByUserIdAsync(userId);
-            if (ACs.Count <= 0)
-                return NotFound("You haven't requested any AvanceCaisse yet!");
-            var mappedAVs = _mapper.Map<List<AvanceCaisseDTO>>(ACs);
-            return Ok(mappedAVs);
+            var mappedACs = await _avanceCaisseRepository.GetAvancesCaisseByUserIdAsync(userId);
+            return Ok(mappedACs);
         }
 
         //Requester
@@ -123,7 +120,7 @@ namespace OTAS.Controllers
             bool isDecisionValid = decision.Decision > 1 && decision.Decision <= 14 || decision.Decision == 98 || decision.Decision == 97;
             if (!isDecisionValid) return BadRequest("Decision is invalid!");
 
-            ServiceResult result = await _avanceCaisseService.DecideOnAvanceCaisse(decision.RequestId, decision.DeciderUserId, decision.DeciderComment, decision.Decision);
+            ServiceResult result = await _avanceCaisseService.DecideOnAvanceCaisse(decision.RequestId, decision.AdvanceOption, decision.DeciderUserId, decision.DeciderComment, decision.Decision);
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Message);
         }

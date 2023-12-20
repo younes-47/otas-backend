@@ -19,6 +19,8 @@ public partial class StatusHistory
 
     public int Status { get; set; }
 
+    public decimal? Total { get; set; }
+
     public int? DeciderUserId { get; set; }
 
     public string? DeciderComment { get; set; }

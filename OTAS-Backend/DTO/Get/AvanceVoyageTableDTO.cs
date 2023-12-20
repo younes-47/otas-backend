@@ -4,9 +4,9 @@
     {
         public int Id { get; set; }
 
-        public int UserId { get; set; }
+        //public int UserId { get; set; }
 
-        public int OrdreMissionId { get; set; }
+        //public int OrdreMissionId { get; set; }
 
         public decimal EstimatedTotal { get; set; }
 
@@ -16,11 +16,11 @@
 
         public int? ConfirmationNumber { get; set; }
 
-        public int LatestStatus { get; set; }
+        public string LatestStatus { get; set; } = null!;
 
-        public int? DeciderUserId { get; set; }
+        //public int? DeciderUserId { get; set; }
 
-        public string? DeciderComment { get; set; }
+        //public string? DeciderComment { get; set; }
 
         public DateTime CreateDate { get; set; }
     }

@@ -16,7 +16,7 @@ namespace OTAS.DTO.Post
 
         public int LatestStatus { get; set; }
 
-        public Byte[]? ReceiptsFile { get; set; }
+        public Byte[] ReceiptsFile { get; set; } = null!;
 
         public virtual ActualRequesterPostDTO? ActualRequester { get; set; }
 

@@ -9,7 +9,7 @@ namespace OTAS.Interfaces.IRepository
         //Get Methods
         Task<AvanceVoyage> GetAvanceVoyageByIdAsync(int id);
         Task<AvanceVoyage?> FindAvanceVoyageByIdAsync(int avanceVoyageId);
-        Task<List<AvanceVoyage>> GetAvancesVoyageByUserIdAsync(int userId);
+        Task<List<AvanceVoyageTableDTO>> GetAvancesVoyageByUserIdAsync(int userId);
         Task<List<AvanceVoyage>> GetAvancesVoyageByStatusAsync(int status);
         Task<List<AvanceVoyage>> GetAvancesVoyageByOrdreMissionIdAsync(int ordreMissionId);
 

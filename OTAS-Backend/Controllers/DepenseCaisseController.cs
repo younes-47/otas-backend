@@ -39,7 +39,6 @@ namespace OTAS.Controllers
         {
             if (await _userRepository.FindUserByUserIdAsync(userId) == null) return BadRequest("User not found!");
             var depenseCaisses = await _depenseCaisseRepository.GetDepensesCaisseByUserIdAsync(userId);
-            if (depenseCaisses == null || depenseCaisses.Count <= 0) return NotFound("You haven't placed any \"DepenseCaisse\" yet!");
 
             var mappedOrdreMissions = _mapper.Map<List<DepenseCaisseDTO>>(depenseCaisses);
 

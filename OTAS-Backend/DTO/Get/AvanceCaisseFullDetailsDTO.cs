@@ -20,7 +20,7 @@ namespace OTAS.DTO.Get
 
         public int? ConfirmationNumber { get; set; }
 
-        public int LatestStatus { get; set; }
+        public string LatestStatus { get; set; } = null!;
 
         //public int? DeciderUserId { get; set; }
 

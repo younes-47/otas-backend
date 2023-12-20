@@ -100,6 +100,7 @@ public partial class OtasContext : DbContext
                 .HasMaxLength(5)
                 .IsUnicode(false);
             entity.Property(e => e.DeciderComment).HasMaxLength(350);
+            entity.Property(e => e.AdvanceOption).HasMaxLength(50);
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
@@ -129,6 +130,7 @@ public partial class OtasContext : DbContext
                 .HasMaxLength(5)
                 .IsUnicode(false);
             entity.Property(e => e.DeciderComment).HasMaxLength(350);
+            entity.Property(e => e.AdvanceOption).HasMaxLength(50);
             entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
 
@@ -247,9 +249,6 @@ public partial class OtasContext : DbContext
                 .HasColumnType("datetime");
             entity.Property(e => e.DeciderComment).HasMaxLength(350);
             entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
-            entity.Property(e => e.LiquidationOption)
-                .HasMaxLength(50)
-                .IsUnicode(false);
             entity.Property(e => e.ReceiptsFilePath)
                 .HasMaxLength(500)
                 .IsUnicode(false);
@@ -335,6 +334,9 @@ public partial class OtasContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
 
+            entity.Property(e => e.Status).HasDefaultValueSql("((99))");
+            entity.Property(e => e.Total).HasColumnType("decimal(10, 2)");
+
             entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.StatusHistories)
                 .HasForeignKey(d => d.AvanceCaisseId)
                 .HasConstraintName("FK_AC_StatusHistory");
@@ -376,6 +378,7 @@ public partial class OtasContext : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.DepartureDate).HasColumnType("datetime");
+            entity.Property(e => e.ArrivalDate).HasColumnType("datetime2");
             entity.Property(e => e.DeparturePlace)
                 .HasMaxLength(50)
                 .IsUnicode(false);

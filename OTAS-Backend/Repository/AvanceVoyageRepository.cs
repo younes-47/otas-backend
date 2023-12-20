@@ -47,9 +47,21 @@ namespace OTAS.Repository
             return await _context.AvanceVoyages.Where(av => av.OrdreMissionId == ordreMissionId).ToListAsync();
         }
 
-        public async Task<List<AvanceVoyage>> GetAvancesVoyageByUserIdAsync(int userId)
+        public async Task<List<AvanceVoyageTableDTO>> GetAvancesVoyageByUserIdAsync(int userId)
         {
-            return await _context.AvanceVoyages.Where(av => av.UserId == userId).ToListAsync();
+            return await _context.AvanceVoyages.Where(av => av.UserId == userId)
+                .Include(av => av.LatestStatusNavigation)
+                .Select(av => new AvanceVoyageTableDTO
+                {
+                    Id = av.Id,
+                    EstimatedTotal = av.EstimatedTotal,
+                    ActualTotal = av.ActualTotal,
+                    Currency = av.Currency,
+                    ConfirmationNumber = av.ConfirmationNumber,
+                    LatestStatus = av.LatestStatusNavigation.StatusString,
+                    CreateDate = av.CreateDate,
+                })
+                .ToListAsync();
         }
 
         public async Task<ServiceResult> AddAvanceVoyageAsync(AvanceVoyage avanceVoyage)

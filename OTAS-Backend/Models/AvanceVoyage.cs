@@ -14,6 +14,8 @@ public partial class AvanceVoyage
 
     public string Currency { get; set; } = null!;
 
+    public string? AdvanceOption { get; set; }
+
     public int? ConfirmationNumber { get; set; }
 
     public int LatestStatus { get; set; }

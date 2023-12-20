@@ -9,7 +9,7 @@ namespace OTAS.Interfaces.IService
         Task<ServiceResult> CreateAvanceCaisseAsync(AvanceCaissePostDTO avanceCaisse);
         Task<List<AvanceCaisseDTO>> GetAvanceCaissesForDeciderTable(int userId);
         Task<AvanceCaisseFullDetailsDTO> GetAvanceCaisseFullDetailsById(int avanceCaisseId);
-        Task<ServiceResult> DecideOnAvanceCaisse(int avanceCaisseId, int deciderUserId, string? deciderComment, int decision);
+        Task<ServiceResult> DecideOnAvanceCaisse(int avanceCaisseId, string? advanceOption, int deciderUserId, string? deciderComment, int decision);
         Task<ServiceResult> SubmitAvanceCaisse(int ordreMissionId);
         Task<ServiceResult> ModifyAvanceCaisse(AvanceCaissePostDTO avanceCaisse, int action);
     }
