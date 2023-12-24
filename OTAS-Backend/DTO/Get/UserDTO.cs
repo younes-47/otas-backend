@@ -12,5 +12,9 @@
 
         public int Role { get; set; }
 
+        public int SuperiorUserId { get; set; }
+
+        public string PreferredLanguage { get; set; } = null!;
+
     }
 }

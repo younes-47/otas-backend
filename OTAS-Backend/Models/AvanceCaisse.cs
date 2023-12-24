@@ -27,6 +27,8 @@ public partial class AvanceCaisse
 
     public string? DeciderComment { get; set; }
 
+    public int? NextDeciderUserId { get; set; }
+
     public DateTime CreateDate { get; set; }
 
     public virtual ActualRequester? ActualRequester { get; set; }

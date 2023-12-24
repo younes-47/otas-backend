@@ -25,7 +25,7 @@ public partial class ActualRequester
 
     public string Department { get; set; } = null!;
 
-    public string Manager { get; set; } = null!;
+    public int Manager { get; set; }
 
     public DateTime CreateDate { get; set; }
 

@@ -22,6 +22,8 @@ public partial class AvanceVoyage
 
     public int? DeciderUserId { get; set; }
 
+    public int? NextDeciderUserId { get; set; }
+
     public string? DeciderComment { get; set; }
 
     public DateTime CreateDate { get; set; }

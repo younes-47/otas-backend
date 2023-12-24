@@ -64,9 +64,9 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.HiringDate).HasColumnType("date");
             entity.Property(e => e.JobTitle).HasMaxLength(120);
             entity.Property(e => e.LastName).HasMaxLength(50);
-            entity.Property(e => e.Manager)
-                .HasMaxLength(50)
-                .IsUnicode(false);
+            //entity.Property(e => e.Manager)
+            //    .HasMaxLength(50)
+            //    .IsUnicode(false);
 
             entity.HasOne(d => d.AvanceCaisse).WithOne(p => p.ActualRequester)
                 .HasForeignKey<ActualRequester>(d => d.AvanceCaisseId)
@@ -418,6 +418,9 @@ public partial class OtasContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.Username)
                 .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.PreferredLanguage)
+                .HasMaxLength(5)
                 .IsUnicode(false);
 
             entity.HasOne(d => d.RoleString).WithMany(p => p.Users)

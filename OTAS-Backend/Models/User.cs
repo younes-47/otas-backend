@@ -15,6 +15,10 @@ public partial class User
 
     public int Role { get; set; }
 
+    public int SuperiorUserId {  get; set; }
+
+    public string PreferredLanguage { get; set; } = null!;
+
     public virtual ICollection<ActualRequester> ActualRequesters { get; set; } = new List<ActualRequester>();
 
     public virtual ICollection<AvanceCaisse> AvanceCaisses { get; set; } = new List<AvanceCaisse>();
