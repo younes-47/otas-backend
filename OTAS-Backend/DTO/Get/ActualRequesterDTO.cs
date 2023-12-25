@@ -26,7 +26,7 @@ namespace OTAS.DTO.Get
 
         public string Department { get; set; } = null!;
 
-        public int Manager { get; set; }
+        public int ManagerUserId { get; set; }
 
         public DateTime CreateDate { get; set; }
 

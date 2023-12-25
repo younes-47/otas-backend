@@ -420,6 +420,7 @@ public partial class OtasContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.PreferredLanguage)
+                .HasDefaultValueSql("en")
                 .HasMaxLength(5)
                 .IsUnicode(false);
 
