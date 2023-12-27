@@ -10,6 +10,7 @@ using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Data;
 using System.Text.Json.Serialization;
+using TMA_App.Services;
 namespace OTAS
 {
     public class Startup
@@ -100,13 +101,14 @@ namespace OTAS
             services.AddScoped<IActualRequesterRepository, ActualRequesterRepository>();
             services.AddScoped<ITestingRepository, TestingRepository>();
             services.AddScoped<IJWTManagerRepository, JWTManagerRepository>();
-            
+
             //Services
             services.AddScoped<IOrdreMissionService, OrdreMissionService>();
             services.AddScoped<IAvanceCaisseService, AvanceCaisseService>();
             services.AddScoped<IDepenseCaisseService, DepenseCaisseService>();
             services.AddScoped<IAvanceVoyageService, AvanceVoyageService>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<ILdapAuthenticationService, LdapAuthenticationService>();
 
             /* Inject Automapper */
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
