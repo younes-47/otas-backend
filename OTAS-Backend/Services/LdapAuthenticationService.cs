@@ -1,12 +1,14 @@
-﻿using System.DirectoryServices;
+﻿using OTAS.DTO.Get;
+using OTAS.Interfaces.IService;
+using System.DirectoryServices;
 
 namespace TMA_App.Services
 {
-    public class LdapAuthentication
+    public class LdapAuthenticationService : ILdapAuthenticationService
     {
         private string _path = "LDAP://dicastalma.com";
         private static readonly string _domain = "dicastalma";
-        public LdapAuthentication() { }
+        public LdapAuthenticationService() { }
         public bool IsAuthenticated(string username, string password)
         {
             string domainAndUsername = $"{_domain}\\{username}";
@@ -87,6 +89,49 @@ namespace TMA_App.Services
                 throw new ArgumentException("UserInfo could not be retrieved", ex);
             }
 
+        }
+        public UserInfoDTO GetUserInformation(string username)
+        {
+            UserInfoDTO userInfo = new();
+            try
+            {
+                DirectoryEntry entry = new DirectoryEntry(_path);
+                // Create a DirectorySearcher object to search for the user's information.
+                DirectorySearcher search = new DirectorySearcher(entry);
+                search.Filter = $"(SAMAccountName={username})";
+                search.PropertiesToLoad.Add("givenName");
+                search.PropertiesToLoad.Add("sn");
+                search.PropertiesToLoad.Add("manager");
+                search.PropertiesToLoad.Add("employeeID");
+
+                SearchResult result = search.FindOne();
+
+                if (result != null)
+                {
+                    if (result.Properties.Contains("givenName") && result.Properties["givenName"].Count > 0)
+                    {
+                        userInfo.FirstName = result.Properties["givenName"][0].ToString();
+                    }
+                    else 
+                    { 
+                        throw new Exception($"error while retrieving user:\"{username}\" givenName"); 
+                    };
+
+                    if (result.Properties.Contains("sn") && result.Properties["sn"].Count > 0)
+                    {
+                        userInfo.LastName = result.Properties["sn"][0].ToString();
+                    }
+                    else 
+                    { 
+                        throw new Exception($"error while retrieving user:\"{username}\" sn"); 
+                    };
+                }
+                return userInfo;
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException("UserInfo could not be retrieved", ex);
+            }
         }
         public string GetUsernameByDisplayName(string displayName)
         {//Get username using displayname
