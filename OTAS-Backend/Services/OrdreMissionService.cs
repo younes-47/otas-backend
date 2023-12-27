@@ -53,7 +53,7 @@ namespace OTAS.Services
             _mapper = mapper;
         }
 
-        public async Task<ServiceResult> CreateOrdreMissionWithAvanceVoyageAsDraft(OrdreMissionPostDTO ordreMission)
+        public async Task<ServiceResult> CreateOrdreMissionWithAvanceVoyageAsDraft(OrdreMissionPostDTO ordreMission, int userId)
         {
             using var transaction = _context.Database.BeginTransaction();
             ServiceResult result = new();
@@ -109,7 +109,7 @@ namespace OTAS.Services
                 }
                 mappedOM.DepartureDate = smallestDate;
                 mappedOM.ReturnDate = biggestDate;
-
+                mappedOM.UserId = userId;
                 result = await _ordreMissionRepository.AddOrdreMissionAsync(mappedOM);
                 if (!result.Success) return result;
 
@@ -190,27 +190,8 @@ namespace OTAS.Services
                 List<AvanceVoyage> avacesVoyage = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
                 foreach (AvanceVoyage av in avacesVoyage)
                 {
-                    result = await _avanceVoyageRepository.UpdateAvanceVoyageStatusAsync(av.Id, 1, managerUserId);
-                    if (!result.Success)
-                    {
-                        result.Message = "Something went wrong while submitting \"AvanceVoyages\"";
-                        return result;
-                    };
-
-                    StatusHistory newAV_Status = new()
-                    {
-                        Total = av.EstimatedTotal,
-                        AvanceVoyageId = av.Id,
-                        Status = 1,
-                    };
-
-                    result = await _statusHistoryRepository.AddStatusAsync(newAV_Status);
-                    if (!result.Success)
-                    {
-                        result.Message += " (Avancevoyage)";
-                        return result;
-                    }
-
+                    result = await _avanceVoyageService.SubmitAvanceVoyage(av.Id);
+                    if (!result.Success) return result;
                 }
 
                 await transaction.CommitAsync();
@@ -409,7 +390,7 @@ namespace OTAS.Services
                     //Insert the new one coming from request
                     ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(ordreMission.ActualRequester);
                     mappedActualRequester.OrdreMissionId = ordreMission.Id;
-                    mappedActualRequester.OrderingUserId = ordreMission.UserId;
+                    mappedActualRequester.OrderingUserId = updatedOrdreMission.UserId;
                     result = await _actualRequesterRepository.AddActualRequesterInfoAsync(mappedActualRequester);
                     if (!result.Success) return result;
                 }

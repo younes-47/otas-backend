@@ -2,9 +2,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
+using OTAS.DTO.Post;
 using OTAS.Interfaces.IRepository;
+using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
+using OTAS.Services;
 
 namespace OTAS.Controllers
 {
@@ -14,14 +17,17 @@ namespace OTAS.Controllers
     public class AvanceVoyageController : ControllerBase
     {
         private readonly IAvanceVoyageRepository _avanceVoyageRepository;
+        private readonly IAvanceVoyageService _avanceVoyageService;
         private readonly IMapper _mapper;
         private readonly IUserRepository _userRepository;
 
         public AvanceVoyageController(IAvanceVoyageRepository avanceVoyageRepository,
+            IAvanceVoyageService avanceVoyageService,
             IMapper mapper,
             IUserRepository userRepository)
         {
             _avanceVoyageRepository = avanceVoyageRepository;
+            _avanceVoyageService = avanceVoyageService;
             _mapper = mapper;
             _userRepository = userRepository;
         }
@@ -70,6 +76,19 @@ namespace OTAS.Controllers
 
             return Ok(AVs);
         }
-        
+
+        [Authorize(Roles = "decider")]
+        [HttpPut("Decide")]
+        public async Task<IActionResult> DecideOnAvanceVoyage(DecisionOnRequestPostDTO decision)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(decision.RequestId) == null) return NotFound("AvanceVoyage is not found!");
+
+            ServiceResult result = await _avanceVoyageService.DecideOnAvanceVoyage(decision);
+            if (!result.Success) return BadRequest(result.Message);
+            return Ok(result.Message);
+        }
+
+
     }
 }
