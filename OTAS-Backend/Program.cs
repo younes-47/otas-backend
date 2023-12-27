@@ -41,4 +41,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// navigate to the 'swagger/v1/swagger.json' page you should see some more information which will point you in useful direction.
+app.UseDeveloperExceptionPage();
+
 app.Run();
