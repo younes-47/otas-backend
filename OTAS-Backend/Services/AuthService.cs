@@ -24,7 +24,7 @@ namespace OTAS.Services
         }
         public async Task<Tokens?> AuthenticateAsync(AuthRequest AuthRequest)
         {
-            LdapAuthentication ldap = new();
+            LdapAuthenticationService ldap = new();
             if (AuthRequest.Username == null) { return null; }
             if (AuthRequest.Password == null) { return null; }
             string username = AuthRequest.Username;
@@ -72,7 +72,7 @@ namespace OTAS.Services
         public async Task<User> CreateNewUserAsync(string username)
         {
             string[] userInfo;
-            LdapAuthentication ldap = new();
+            LdapAuthenticationService ldap = new();
             userInfo = ldap.GetUserInfo(username);
             User user = new()
             {
