@@ -62,15 +62,14 @@ namespace OTAS.Controllers
                     if (expense.Currency == "EUR") return BadRequest("An expense cannot be in EUR if your mission is not abroad!");
                 }
             }
-
-            ServiceResult omResult = await _ordreMissionService.CreateOrdreMissionWithAvanceVoyageAsDraft(ordreMissionRequest);
+            var user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            ServiceResult omResult = await _ordreMissionService.CreateOrdreMissionWithAvanceVoyageAsDraft(ordreMissionRequest, user.Id);
 
             if (!omResult.Success) return BadRequest(omResult.Message);
 
             return Ok(omResult.Message);
         }
 
-        [Authorize(Roles = "requester , decider")]
         [Authorize(Roles = "requester , decider")]
         [HttpPut("Modify")]
         public async Task<IActionResult> ModifyOrdreMission([FromBody] OrdreMissionPostDTO ordreMission, [FromQuery] string action)
@@ -80,8 +79,8 @@ namespace OTAS.Controllers
 
             bool isActionValid = action.ToLower() != "save" || action.ToLower() != "submit";
             if (!isActionValid) return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
-
-            if (action.ToLower() != "save" && (ordreMission.LatestStatus == 98 || ordreMission.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
+            var OM = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMission.Id);
+            if (action.ToLower() != "save" && (OM.LatestStatus == 98 || OM.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
 
             if (ordreMission.Abroad == false)
             {

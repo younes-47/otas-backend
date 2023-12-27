@@ -47,8 +47,8 @@ namespace OTAS.Controllers
         public async Task<IActionResult> AddAvanceCaisse([FromBody] AvanceCaissePostDTO avanceCaisseRequest)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            ServiceResult avResult = await _avanceCaisseService.CreateAvanceCaisseAsync(avanceCaisseRequest);
+            var user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            ServiceResult avResult = await _avanceCaisseService.CreateAvanceCaisseAsync(avanceCaisseRequest, user.Id);
 
             if (!avResult.Success) return Ok(avResult.Message);
 
@@ -66,7 +66,8 @@ namespace OTAS.Controllers
             bool isActionValid = action.ToLower() == "submit" || action.ToLower() == "save";
             if (!isActionValid) return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
 
-            if (action.ToLower() == "save" && (avanceCaisse.LatestStatus == 98 || avanceCaisse.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
+            var AC = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisse.Id);
+            if (action.ToLower() == "save" && (AC.LatestStatus == 98 || AC.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
 
             ServiceResult result = await _avanceCaisseService.ModifyAvanceCaisse(avanceCaisse, action);
 

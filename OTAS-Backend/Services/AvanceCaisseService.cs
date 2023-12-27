@@ -43,7 +43,7 @@ namespace OTAS.Services
             _mapper = mapper;
         }
 
-        public async Task<ServiceResult> CreateAvanceCaisseAsync(AvanceCaissePostDTO avanceCaisse)
+        public async Task<ServiceResult> CreateAvanceCaisseAsync(AvanceCaissePostDTO avanceCaisse, int userId)
         {
             var transaction = _context.Database.BeginTransaction();
             ServiceResult result = new();
@@ -66,7 +66,7 @@ namespace OTAS.Services
                 var mappedAC = _mapper.Map<AvanceCaisse>(avanceCaisse);
                 List<Expense> expenses = _mapper.Map<List<Expense>>(avanceCaisse.Expenses);
                 mappedAC.EstimatedTotal = CalculateExpensesEstimatedTotal(expenses);
-
+                mappedAC.UserId = userId;
                 result = await _avanceCaisseRepository.AddAvanceCaisseAsync(mappedAC);
                 if (!result.Success) return result;
 
@@ -352,7 +352,7 @@ namespace OTAS.Services
                     //Insert the new one coming from request
                     ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(avanceCaisse.ActualRequester);
                     mappedActualRequester.AvanceCaisseId = avanceCaisse.Id;
-                    mappedActualRequester.OrderingUserId = avanceCaisse.UserId;
+                    mappedActualRequester.OrderingUserId = avanceCaisse_DB.UserId;
                     result = await _actualRequesterRepository.AddActualRequesterInfoAsync(mappedActualRequester);
                     if (!result.Success) return result;
                 }

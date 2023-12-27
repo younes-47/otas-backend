@@ -6,7 +6,7 @@ namespace OTAS.Interfaces.IService
 {
     public interface IAvanceCaisseService
     {
-        Task<ServiceResult> CreateAvanceCaisseAsync(AvanceCaissePostDTO avanceCaisse);
+        Task<ServiceResult> CreateAvanceCaisseAsync(AvanceCaissePostDTO avanceCaisse, int userId);
         Task<List<AvanceCaisseDTO>> GetAvanceCaissesForDeciderTable(int userId);
         Task<AvanceCaisseFullDetailsDTO> GetAvanceCaisseFullDetailsById(int avanceCaisseId);
         Task<ServiceResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision);
