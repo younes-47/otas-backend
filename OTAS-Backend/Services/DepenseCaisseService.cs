@@ -17,6 +17,7 @@ namespace OTAS.Services
         private readonly IStatusHistoryRepository _statusHistoryRepository;
         private readonly IExpenseRepository _expenseRepository;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IDeciderRepository _deciderRepository;
         private readonly IMapper _mapper;
         private readonly OtasContext _context;
 
@@ -25,6 +26,7 @@ namespace OTAS.Services
             IStatusHistoryRepository statusHistoryRepository,
             IExpenseRepository expenseRepository,
             IWebHostEnvironment webHostEnvironment,
+            IDeciderRepository deciderRepository,
             IMapper mapper,
             OtasContext context)
         {
@@ -33,12 +35,13 @@ namespace OTAS.Services
             _statusHistoryRepository = statusHistoryRepository;
             _expenseRepository = expenseRepository;
             _webHostEnvironment = webHostEnvironment;
+            _deciderRepository = deciderRepository;
             _mapper = mapper;
             _context = context;
         }
 
 
-        public async Task<ServiceResult> AddDepenseCaisse(DepenseCaissePostDTO depenseCaisse, string filePath)
+        public async Task<ServiceResult> AddDepenseCaisse(DepenseCaissePostDTO depenseCaisse, int userId)
         {
             ServiceResult result = new();
             var transaction = _context.Database.BeginTransaction();
@@ -58,17 +61,30 @@ namespace OTAS.Services
                     return result;
                 }
 
-                //MAP
+                //Automatic mapping
                 List<Expense> mappedExpenses = _mapper.Map<List<Expense>>(depenseCaisse.Expenses);
-
                 DepenseCaisse mappedDepenseCaisse = _mapper.Map<DepenseCaisse>(depenseCaisse);
 
 
+                //Manual mapping
+
+                /* _webHostEnvironment.WebRootPath == wwwroot\ (the default folder to store files) */
+                var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Depense-Caisse-Receipts");
+                if (!Directory.Exists(uploadsFolderPath))
+                {
+                    Directory.CreateDirectory(uploadsFolderPath);
+                }
+                /* Create file name by concatenating a uuid + DC + username + .pdf extension */
+                string uniqueReceiptsFileName = Guid.NewGuid() + "_DC_" + userId + ".pdf";
+                /* Combine the folder path with the file name to create full path */
+                var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
+                /* Create the file */
+                await System.IO.File.WriteAllBytesAsync(filePath, depenseCaisse.ReceiptsFile);
 
 
-                //Manually map
                 mappedDepenseCaisse.Total = CalculateExpensesEstimatedTotal(mappedExpenses);
-                mappedDepenseCaisse.ReceiptsFilePath = filePath;
+                mappedDepenseCaisse.ReceiptsFilePath = uniqueReceiptsFileName;
+                mappedDepenseCaisse.UserId = userId;
 
                 result = await _depenseCaisseRepository.AddDepenseCaisseAsync(mappedDepenseCaisse);
                 if (!result.Success) return result;
@@ -129,7 +145,7 @@ namespace OTAS.Services
             return result;
         }
 
-        public async Task<ServiceResult> ModifyDepenseCaisse(DepenseCaissePostDTO depenseCaisse, int action)
+        public async Task<ServiceResult> ModifyDepenseCaisse(DepenseCaissePostDTO depenseCaisse, string action)
         {
             var transaction = _context.Database.BeginTransaction();
             ServiceResult result = new();
@@ -151,7 +167,7 @@ namespace OTAS.Services
                     return result;
                 }
 
-                if (action == 99 && depenseCaisse_DB.LatestStatus == 98)
+                if (action.ToLower() == "save" && depenseCaisse_DB.LatestStatus == 98)
                 {
                     result.Success = false;
                     result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
@@ -186,7 +202,7 @@ namespace OTAS.Services
                     //Insert the new one coming from request
                     ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(depenseCaisse.ActualRequester);
                     mappedActualRequester.DepenseCaisseId = depenseCaisse.Id;
-                    mappedActualRequester.OrderingUserId = depenseCaisse.UserId;
+                    mappedActualRequester.OrderingUserId = depenseCaisse_DB.UserId;
                     result = await _actualRequesterRepository.AddActualRequesterInfoAsync(mappedActualRequester);
                     if (!result.Success) return result;
                 }
@@ -218,34 +234,36 @@ namespace OTAS.Services
                 //Map the fetched DP from the DB with the new values and update it
                 depenseCaisse_DB.DeciderComment = null;
                 depenseCaisse_DB.DeciderUserId = null;
-                depenseCaisse_DB.LatestStatus = action;
+                depenseCaisse_DB.LatestStatus = action.ToLower() == "save" ? 99 : 1;
                 depenseCaisse_DB.Description = depenseCaisse.Description;
                 depenseCaisse_DB.Currency = depenseCaisse.Currency;
                 depenseCaisse_DB.OnBehalf = depenseCaisse.OnBehalf;
 
-                if (depenseCaisse.ReceiptsFile != null && depenseCaisse.ReceiptsFile.Length > 0 && depenseCaisse.ReceiptsFile.ToString() !=  "")
+                
+                /* _webHostEnvironment.WebRootPath == wwwroot\ (the default folder to store files) */
+                var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Depense-Caisse-Receipts");
+                if (!Directory.Exists(uploadsFolderPath))
                 {
-                    // _webHostEnvironment.WebRootPath == wwwroot\ (the default folder to store files)
-                    var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Depense-Caisse");
-
-                    if (!Directory.Exists(uploadsFolderPath))
-                    {
-                        Directory.CreateDirectory(uploadsFolderPath);
-                    }
-                    var uniqueReceiptsFileName = DateTime.Now.ToString("yyyyMMddHHmmss") + "_DC_" + depenseCaisse.UserId + ".pdf";
-                    var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
-                    await System.IO.File.WriteAllBytesAsync(filePath, depenseCaisse.ReceiptsFile);
-                    depenseCaisse_DB.ReceiptsFilePath = filePath;
+                    Directory.CreateDirectory(uploadsFolderPath);
                 }
+                /* concatenate a uuid + DC + username + .pdf extension */
+                string uniqueReceiptsFileName = Guid.NewGuid() + "_DC_" + depenseCaisse_DB.UserId + ".pdf";
+                /* combine the folder path with the file name */
+                var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
+                /* Create the file */
+                await System.IO.File.WriteAllBytesAsync(filePath, depenseCaisse.ReceiptsFile);
 
+                depenseCaisse_DB.ReceiptsFilePath = uniqueReceiptsFileName;
                 depenseCaisse_DB.Total = CalculateExpensesEstimatedTotal(mappedExpenses);
 
-                result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(depenseCaisse_DB);
-                if (!result.Success) return result;
 
                 //Insert new status history in case of a submit action
-                if (action == 1)
+                if (action.ToLower() == "save")
                 {
+                    var managerUserId = await _deciderRepository.GetManagerUserIdByUserIdAsync(depenseCaisse_DB.UserId);
+                    depenseCaisse_DB.NextDeciderUserId = managerUserId;
+                    result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(depenseCaisse_DB);
+                    if (!result.Success) return result;
                     StatusHistory OM_statusHistory = new()
                     {
                         Total = depenseCaisse_DB.Total,
@@ -257,6 +275,8 @@ namespace OTAS.Services
                 }
                 else
                 {
+                    result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(depenseCaisse_DB);
+                    if (!result.Success) return result;
                     // Just Update Status History Total in case of saving
                     result = await _statusHistoryRepository.UpdateStatusHistoryTotal(depenseCaisse_DB.Id, "DC", depenseCaisse_DB.Total);
                     if (!result.Success) return result;
@@ -271,7 +291,7 @@ namespace OTAS.Services
                 return result;
             }
 
-            if (action == 1)
+            if (action.ToLower() == "save")
             {
                 result.Success = true;
                 result.Message = "depenseCaisse is resubmitted successfully";

@@ -56,37 +56,16 @@ namespace OTAS.Controllers
         public async Task<IActionResult> AddDepenseCaisse([FromBody] DepenseCaissePostDTO depenseCaisse)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            string receiptsFilePath;
+            string uniqueReceiptsFileName;
 
-            if (depenseCaisse.ReceiptsFile == null || depenseCaisse.ReceiptsFile.Length == 0)
-            {
+            if (depenseCaisse.ReceiptsFile != null && depenseCaisse.ReceiptsFile.Length > 0 && depenseCaisse.ReceiptsFile.ToString() != "") 
                 return BadRequest("No file uploaded");
-            }
-            else
-            {
-                try
-                {
-                    // _webHostEnvironment.WebRootPath == wwwroot\ (the default folder to store files)
-                    var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Depense-Caisse");
 
-                    if (!Directory.Exists(uploadsFolderPath))
-                    {
-                        Directory.CreateDirectory(uploadsFolderPath);
-                    }
-                    var uniqueReceiptsFileName = DateTime.Now.ToString("yyyyMMddHHmmss") + "_DC_" + depenseCaisse.UserId + ".pdf";
-                    var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
-                    await System.IO.File.WriteAllBytesAsync(filePath, depenseCaisse.ReceiptsFile);
-                    receiptsFilePath = filePath;
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest($"ERROR: {ex.Message} |||||||||| {ex.Source} |||||||||| {ex.InnerException}");
-                }
-            }
-            
-            //File uploaded and path assigned now deal with the json
+            //File has been uploaded and a unique name has been generated now deal with the json
 
-            ServiceResult result = await _depenseCaisseService.AddDepenseCaisse(depenseCaisse, receiptsFilePath);
+            var user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+
+            ServiceResult result = await _depenseCaisseService.AddDepenseCaisse(depenseCaisse, user.Id);
             if (!result.Success) return BadRequest($"{result.Message}");
 
             return Ok(result.Message);
@@ -94,15 +73,20 @@ namespace OTAS.Controllers
 
         [Authorize(Roles = "requester , decider")]
         [HttpPut("Modify")]
-        public async Task<IActionResult> ModifyDepenseCaisse([FromBody] DepenseCaissePostDTO depenseCaisse, [FromQuery] int action)
+        public async Task<IActionResult> ModifyDepenseCaisse([FromBody] DepenseCaissePostDTO depenseCaisse, [FromQuery] string action)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (await _depenseCaisseRepository.FindDepenseCaisseAsync(depenseCaisse.Id) == null) return NotFound("DC is not found");
 
-            bool isActionValid = action == 99 || action == 1;
+            if (depenseCaisse.ReceiptsFile != null && depenseCaisse.ReceiptsFile.Length > 0 && depenseCaisse.ReceiptsFile.ToString() != "")
+                return BadRequest("No file uploaded");
+
+            bool isActionValid = action.ToLower() != "save" && action.ToLower() != "submit";
             if (!isActionValid) return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
 
-            if (action == 99 && (depenseCaisse.LatestStatus == 98 || depenseCaisse.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
+
+            var DC = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(depenseCaisse.Id);
+            if (action == "save" && (DC.LatestStatus == 98 || DC.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
 
             ServiceResult result = await _depenseCaisseService.ModifyDepenseCaisse(depenseCaisse, action);
 
