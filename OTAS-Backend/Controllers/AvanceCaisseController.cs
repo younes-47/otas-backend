@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
@@ -10,6 +11,7 @@ using OTAS.Services;
 
 namespace OTAS.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class AvanceCaisseController : ControllerBase
@@ -30,16 +32,17 @@ namespace OTAS.Controllers
             _mapper = mapper;
         }
 
-        // Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpGet("Requests/Table")]
-        public async Task<IActionResult> ShowAvanceCaisseRequestsTable(int userId)
+        public async Task<IActionResult> ShowAvanceCaisseRequestsTable()
         {
-            if (await _userRepository.FindUserByUserIdAsync(userId) == null) return BadRequest("User not found!");
-            var mappedACs = await _avanceCaisseRepository.GetAvancesCaisseByUserIdAsync(userId);
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+            var mappedACs = await _avanceCaisseRepository.GetAvancesCaisseByUserIdAsync(user.Id);
             return Ok(mappedACs);
         }
 
-        //Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpPost("Create")]
         public async Task<IActionResult> AddAvanceCaisse([FromBody] AvanceCaissePostDTO avanceCaisseRequest)
         {
@@ -53,17 +56,17 @@ namespace OTAS.Controllers
         }
 
 
-        //Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpPut("Modify")]
-        public async Task<IActionResult> ModifyAvanceCaisse([FromBody] AvanceCaissePostDTO avanceCaisse, [FromQuery] int action)
+        public async Task<IActionResult> ModifyAvanceCaisse([FromBody] AvanceCaissePostDTO avanceCaisse, [FromQuery] string action)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (await _avanceCaisseRepository.FindAvanceCaisseAsync(avanceCaisse.Id) == null) return NotFound("AvanceCaisse is not found");
 
-            bool isActionValid = action == 99 || action == 1;
+            bool isActionValid = action.ToLower() == "submit" || action.ToLower() == "save";
             if (!isActionValid) return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
 
-            if (action == 99 && (avanceCaisse.LatestStatus == 98 || avanceCaisse.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
+            if (action.ToLower() == "save" && (avanceCaisse.LatestStatus == 98 || avanceCaisse.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
 
             ServiceResult result = await _avanceCaisseService.ModifyAvanceCaisse(avanceCaisse, action);
 
@@ -71,7 +74,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        //Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpPut("Submit")]
         public async Task<IActionResult> SubmitAvanceCaisse(int avanceCaisseId)
         {
@@ -84,7 +87,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        // Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpGet("{avanceCaisseId}/View")]
         public async Task<IActionResult> GetAvanceCaisseById(int avanceCaisseId)
         {
@@ -94,12 +97,14 @@ namespace OTAS.Controllers
             return Ok(avanceCaisseDetails);
         }
 
-        //Decider
+        [Authorize(Roles = "decider")]
         [HttpGet("DecideOnRequests/Table")]
-        public async Task<IActionResult> GetAvancesCaisseByUserId(int userId)
+        public async Task<IActionResult> GetAvancesCaisseByUserId()
         {
-            if (await _userRepository.FindUserByUserIdAsync(userId) == null) return BadRequest("User not found!");
-            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(userId);
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
             if (deciderRole == 1 || deciderRole == 0) 
                 return BadRequest("You are not authorized to decide upon requests!");
             List<AvanceCaisseDTO> ACs = await _avanceCaisseService.GetAvanceCaissesForDeciderTable(deciderRole);
@@ -109,7 +114,7 @@ namespace OTAS.Controllers
             return Ok(ACs);
         }
 
-        //Decider
+        [Authorize(Roles = "requester , decider")]
         [HttpPut("Decide")]
         public async Task<IActionResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision)
         {
@@ -117,10 +122,10 @@ namespace OTAS.Controllers
             if (await _avanceCaisseRepository.FindAvanceCaisseAsync(decision.RequestId) == null) return NotFound("AvanceCaisse is not found!");
             if (await _userRepository.FindUserByUserIdAsync(decision.DeciderUserId) == null) return NotFound("Decider is not found");
 
-            bool isDecisionValid = decision.Decision > 1 && decision.Decision <= 14 || decision.Decision == 98 || decision.Decision == 97;
+            bool isDecisionValid = decision.DecisionString.ToLower() != "approve" && decision.DecisionString.ToLower() != "return" && decision.DecisionString.ToLower() != "reject";
             if (!isDecisionValid) return BadRequest("Decision is invalid!");
 
-            ServiceResult result = await _avanceCaisseService.DecideOnAvanceCaisse(decision.RequestId, decision.AdvanceOption, decision.DeciderUserId, decision.DeciderComment, decision.Decision);
+            ServiceResult result = await _avanceCaisseService.DecideOnAvanceCaisse(decision);
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Message);
         }

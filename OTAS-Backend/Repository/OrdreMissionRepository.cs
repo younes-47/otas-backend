@@ -14,11 +14,13 @@ namespace OTAS.Repository
     {
         private readonly OtasContext _context;
         private readonly IMapper _mapper;
+        private readonly IDeciderRepository _deciderRepository;
 
-        public OrdreMissionRepository(OtasContext context, IMapper mapper)
+        public OrdreMissionRepository(OtasContext context, IMapper mapper, IDeciderRepository deciderRepository)
         {
             _context = context;
             _mapper = mapper;
+            _deciderRepository = deciderRepository;
         }
 
 
@@ -55,6 +57,7 @@ namespace OTAS.Repository
 
             return ordreMission;
         }
+
         public async Task<List<OrdreMissionDTO>?> GetOrdresMissionByUserIdAsync(int userid)
         {
             List<OrdreMissionDTO> ordreMissionDTO = await _context.OrdreMissions
@@ -72,6 +75,40 @@ namespace OTAS.Repository
                     Abroad = OM.Abroad,
                 }).ToListAsync();
             return ordreMissionDTO;
+        }
+
+        public async Task<int> GetOrdreMissionNextDeciderUserId(string currentlevel, bool? isLongerThanOneDay = false)
+        {
+            int deciderUserId = 0;
+            switch(currentlevel)
+            {
+                case "MG":
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("HR"); 
+                    break;
+
+                case "HR":
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("FM");
+                    break;
+
+                case "FM":
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("GD");
+                    break;
+
+                case "GD":
+                    if(isLongerThanOneDay == true)
+                    {
+                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("VP");
+                        break;
+                    }
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("GD");
+                    break;
+
+                case "VP":
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("VP");
+                    break;
+            }
+
+            return deciderUserId;
         }
 
         public async Task<OrdreMission> GetOrdreMissionByIdAsync(int ordreMissionId)
@@ -106,12 +143,13 @@ namespace OTAS.Repository
             return result;
         }
 
-        public async Task<ServiceResult> UpdateOrdreMissionStatusAsync(int ordreMissionId, int status)
+        public async Task<ServiceResult> UpdateOrdreMissionStatusAsync(int ordreMissionId, int status, int nextDeciderUserId)
         {
             ServiceResult result = new();
 
             OrdreMission updatedOrdreMission = await GetOrdreMissionByIdAsync(ordreMissionId);
             updatedOrdreMission.LatestStatus = status;
+            updatedOrdreMission.NextDeciderUserId = nextDeciderUserId;
             _context.OrdreMissions.Update(updatedOrdreMission);
 
             result.Success = await SaveAsync();

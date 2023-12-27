@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.Interfaces.IRepository;
@@ -7,6 +8,7 @@ using OTAS.Repository;
 
 namespace OTAS.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class AvanceVoyageController : ControllerBase
@@ -24,7 +26,7 @@ namespace OTAS.Controllers
             _userRepository = userRepository;
         }
 
-
+        [Authorize(Roles = "requester , decider")]
         [HttpGet("{avanceVoyageId}/View")]
         public async Task<IActionResult> ShowAvanceVoyageDetailsPage(int avanceVoyageId)
         {
@@ -35,25 +37,29 @@ namespace OTAS.Controllers
             return Ok(mappedAV);
         }
 
-        //Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpGet("Requests/Table")]
-        public async Task<IActionResult> ShowAvanceVoyageRequestsTable(int userId)
+        public async Task<IActionResult> ShowAvanceVoyageRequestsTable()
         {
-            if (await _userRepository.FindUserByUserIdAsync(userId) == null) return BadRequest("User not found!");
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
 
-            List<AvanceVoyageTableDTO> mappedAVs = await _avanceVoyageRepository.GetAvancesVoyageByUserIdAsync(userId);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+
+            List<AvanceVoyageTableDTO> mappedAVs = await _avanceVoyageRepository.GetAvancesVoyageByUserIdAsync(user.Id);
 
             return Ok(mappedAVs);
         }
 
-        //Decider
+        [Authorize(Roles = "decider")]
         [HttpGet("DecideOnRequests/Table")]
-        public async Task<IActionResult> ShowAvanceVoyageDecideTable(int userId)
+        public async Task<IActionResult> ShowAvanceVoyageDecideTable()
         {
-            if (await _userRepository.FindUserByUserIdAsync(userId) == null) 
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) 
                 return BadRequest("User not found!");
 
-            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(userId);
+            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
 
             if (deciderRole == 1 || deciderRole == 0) 
                 return BadRequest("You are not authorized to decide upon requests!");

@@ -72,7 +72,6 @@ namespace OTAS.Repository
                     Currency = dc.Currency,
                     Total = dc.Total,
                     ReceiptsFilePath = dc.ReceiptsFilePath,
-                    ConfirmationNumber = dc.ConfirmationNumber,
                     LatestStatus = dc.LatestStatusNavigation.StatusString,
                     CreateDate = dc.CreateDate,
                 })

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
@@ -9,6 +10,7 @@ using OTAS.Services;
 
 namespace OTAS.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class OrdreMissionController : ControllerBase
@@ -29,12 +31,13 @@ namespace OTAS.Controllers
             _mapper = mapper;
         }
 
-        //Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpGet("Requests/Table")]
-        public async Task<IActionResult> ShowOrdreMissionRequestsTable(int userId)
+        public async Task<IActionResult> ShowOrdreMissionRequestsTable()
         {
-            if (await _userRepository.FindUserByUserIdAsync(userId) == null) return BadRequest("User not found!");
-            var ordreMissions = await _ordreMissionRepository.GetOrdresMissionByUserIdAsync(userId);
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+            var ordreMissions = await _ordreMissionRepository.GetOrdresMissionByUserIdAsync(user.Id);
             //if (ordreMissions == null || ordreMissions.Count <= 0) return NotFound("You haven't placed any \"OrdreMission\" yet!");
 
             //var mappedOrdreMissions = _mapper.Map<List<OrdreMissionDTO>>(ordreMissions);
@@ -42,7 +45,7 @@ namespace OTAS.Controllers
             return Ok(ordreMissions);
         }
 
-        //Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpPost("Create")]
         public async Task<IActionResult> AddOrdreMission([FromBody] OrdreMissionPostDTO ordreMissionRequest)
         {
@@ -67,17 +70,18 @@ namespace OTAS.Controllers
             return Ok(omResult.Message);
         }
 
-        //Requester
+        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester , decider")]
         [HttpPut("Modify")]
-        public async Task<IActionResult> ModifyOrdreMission([FromBody] OrdreMissionPostDTO ordreMission, [FromQuery] int action)
+        public async Task<IActionResult> ModifyOrdreMission([FromBody] OrdreMissionPostDTO ordreMission, [FromQuery] string action)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(ordreMission.Id) == null) return NotFound("OrdreMission not found");
 
-            bool isActionValid = action == 99 || action == 1;
+            bool isActionValid = action.ToLower() != "save" || action.ToLower() != "submit";
             if (!isActionValid) return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
 
-            if (action == 99 && (ordreMission.LatestStatus == 98 || ordreMission.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
+            if (action.ToLower() != "save" && (ordreMission.LatestStatus == 98 || ordreMission.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
 
             if (ordreMission.Abroad == false)
             {
@@ -98,7 +102,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        //Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpPut("Submit")]
         public async Task<IActionResult> SubmitOrdreMission(int ordreMissionId)
         {
@@ -110,7 +114,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-
+        [Authorize(Roles = "requester , decider")]
         [HttpGet("{ordreMissionId}/View")]
         public async Task<IActionResult> ShowOrdreMissionDetailsPage(int ordreMissionId)
         {
@@ -120,26 +124,27 @@ namespace OTAS.Controllers
         }
 
 
-        // Decider
+        [Authorize(Roles ="decider")]
         [HttpGet("DecideOnRequests/Table")]
-        public async Task<IActionResult> ShowOrdreMissionDecideTable(int userId)
+        public async Task<IActionResult> ShowOrdreMissionDecideTable()
         {
-            if (await _userRepository.FindUserByUserIdAsync(userId) == null) return BadRequest("User not found!");
-            List<OrdreMissionDTO> ordreMissions = await _ordreMissionService.GetOrdreMissionsForDeciderTable(userId);
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+            List<OrdreMissionDTO> ordreMissions = await _ordreMissionService.GetOrdreMissionsForDeciderTable(user.Id);
             if (ordreMissions.Count <= 0) return NotFound("User has no \"OrdreMission\" to decide upon!");
 
             return Ok(ordreMissions);
         }
 
 
-        //Decider
+        [Authorize(Roles = "decider")]
         [HttpPut("Decide")]
         public async Task<IActionResult> DecideOnOrdreMission(DecisionOnRequestPostDTO decision)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(decision.RequestId) == null) return NotFound("OrdreMission is not found!");
 
-            ServiceResult result = await _ordreMissionService.DecideOnOrdreMissionWithAvanceVoyage(decision.RequestId, decision.AdvanceOption, decision.DeciderUserId, decision.DeciderComment, decision.Decision);
+            ServiceResult result = await _ordreMissionService.DecideOnOrdreMission(decision);
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Message);
         }

@@ -1,31 +1,37 @@
-﻿//using Microsoft.AspNetCore.Mvc;
-//using Microsoft.IdentityModel.JsonWebTokens;
-//using OTAS.DTO.Get;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.JsonWebTokens;
+using OTAS.DTO.Get;
+using OTAS.Interfaces.IService;
+using OTAS.Models;
+using OTAS.Services;
 
-//namespace OTAS.Controllers
-//{
-//    public class AuthController : ControllerBase
-//    {
-//        private readonly LdapAuthenticationService _ldapAuthService;
+namespace OTAS.Controllers
+{
+    [Authorize]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
+    {
+        private readonly IAuthService _authService;
 
-//        public AuthController(LdapAuthenticationService ldapAuthService)
-//        {
-//            _ldapAuthService = ldapAuthService;
-//        }
+        public AuthController(IAuthService authService)
+        {
+            _authService = authService;
+        }
 
-//        [HttpPost("login")]
-//        public async Task<IActionResult> Login([FromBody] string username, [FromBody] string password)
-//        {
-//            if (username == null || password == null) return BadRequest("Username and Password are required!");
-//            if (await _ldapAuthService.AuthenticateUserAsync(username, password))
-//            {
-//                // Successful authentication, generate and return JWT token
-//                var token = JwtTokenGenerator.GenerateToken(username, role);
-//                return Ok(new { Token = token });
-//            }
+        [AllowAnonymous]
+        [HttpPost]
+        [Route("authenticate")]
+        public async Task<IActionResult> Authenticate([FromBody] AuthRequest usersdata)
+        {
+            Tokens? token = await _authService.AuthenticateAsync(usersdata);
 
-//            // Authentication failed
-//            return Unauthorized(new { Message = "Invalid credentials" });
-//        }
-//    }
-//}
+            if (token == null)
+            {
+                return Unauthorized();
+            }
+
+            return Ok(token);
+        }
+    }
+}

@@ -6,6 +6,8 @@ public partial class AvanceVoyage
 
     public int UserId { get; set; }
 
+    public bool OnBehalf { get; set; }
+
     public int OrdreMissionId { get; set; }
 
     public decimal EstimatedTotal { get; set; }

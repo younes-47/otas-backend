@@ -19,8 +19,6 @@ public partial class DepenseCaisse
 
     public string ReceiptsFilePath { get; set; } = null!;
 
-    public int? ConfirmationNumber { get; set; }
-
     public int LatestStatus { get; set; }
 
     public int? DeciderUserId { get; set; }

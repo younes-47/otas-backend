@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
@@ -10,11 +11,12 @@ using OTAS.Services;
 
 /*This Controller is intended for testing purposes, most of these endpoints don't reflect actual
  use cases in the application, and it won't be in the production state of the app.
-This is created to check data integrity, get ids and so on within Postman/Swagger 
+This is created to check data integrity, get ids and so on 
 instead of manually querrying the data from the DB*/
 
 namespace OTAS.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class TestingController : ControllerBase
@@ -28,7 +30,7 @@ namespace OTAS.Controllers
             _mapper = mapper;
         }
 
-
+        [Authorize(Roles = "requester , decider")]
         [HttpGet("OrdreMission/All")]
         public async Task<IActionResult> GetAllOrdreMissions()
         {

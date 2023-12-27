@@ -19,6 +19,7 @@ namespace OTAS.Services
         private readonly IStatusHistoryRepository _statusHistoryRepository;
         private readonly IActualRequesterRepository _actualRequesterRepository;
         private readonly IExpenseRepository _expenseRepository;
+        private readonly IDeciderRepository _deciderRepository;
         private readonly IUserRepository _userRepository;
         private readonly OtasContext _context;
         private readonly IMapper _mapper;
@@ -27,6 +28,7 @@ namespace OTAS.Services
             IStatusHistoryRepository statusHistoryRepository,
             IActualRequesterRepository actualRequesterRepository,
             IExpenseRepository expenseRepository,
+            IDeciderRepository deciderRepository,
             IUserRepository userRepository,
             OtasContext context,
             IMapper mapper)
@@ -35,6 +37,7 @@ namespace OTAS.Services
             _statusHistoryRepository = statusHistoryRepository;
             _actualRequesterRepository = actualRequesterRepository;
             _expenseRepository = expenseRepository;
+            _deciderRepository = deciderRepository;
             _userRepository = userRepository;
             _context = context;
             _mapper = mapper;
@@ -127,23 +130,26 @@ namespace OTAS.Services
 
             try
             {
-                var testAC = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisseId);
-                if(testAC.LatestStatus == 1)
+                AvanceCaisse avanceCaisse_DB = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisseId);
+                if(avanceCaisse_DB.LatestStatus == 1)
                 {
                     result.Success = false;
                     result.Message = "You've already submitted this AvanceCaisse!";
                     return result;
                 }
 
-                result = await _avanceCaisseRepository.UpdateAvanceCaisseStatusAsync(avanceCaisseId, 1);
+                var nextDeciderUserId = await _deciderRepository.GetManagerUserIdByUserIdAsync(avanceCaisse_DB.UserId);
+                avanceCaisse_DB.NextDeciderUserId = nextDeciderUserId;
+                avanceCaisse_DB.LatestStatus = 1;
+                result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(avanceCaisse_DB);
                 if (!result.Success) return result;
 
-                AvanceCaisse av = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisseId);
                 StatusHistory newOM_Status = new()
                 {
-                    Total = av.EstimatedTotal,
+                    Total = avanceCaisse_DB.EstimatedTotal,
                     AvanceCaisseId = avanceCaisseId,
                     Status = 1,
+                    NextDeciderUserId = nextDeciderUserId,
                 };
                 result = await _statusHistoryRepository.AddStatusAsync(newOM_Status);
                 if (!result.Success)
@@ -187,69 +193,39 @@ namespace OTAS.Services
             return mappedAvanceCaisses;
         }
 
-        public async Task<ServiceResult> DecideOnAvanceCaisse(int avanceCaisseId, string? advanceOption, int deciderUserId, string? deciderComment, int decision)
+        public async Task<ServiceResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision)
         {
 
             ServiceResult result = new();
-            AvanceCaisse decidedAvanceCaisse = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisseId);
+            AvanceCaisse decidedAvanceCaisse = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(decision.RequestId);
 
             //Test if the request is not on a state where you can't decide upon (99, 98, 97)
-            if (decidedAvanceCaisse.LatestStatus == 99 || decidedAvanceCaisse.LatestStatus == 98 || decidedAvanceCaisse.LatestStatus == 97)
+            if (decidedAvanceCaisse.NextDeciderUserId != decision.DeciderUserId)
             {
                 result.Success = false;
                 result.Message = "You can't decide on this request in this state! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
                 return result;
             }
 
-            // Test if the decider is allowed to decide on the request on this level
-            if (await _userRepository.GetUserRoleByUserIdAsync(deciderUserId) != (decidedAvanceCaisse.LatestStatus + 2))
-            // Here the role of the decider should always be equal to the latest status of the request + 2 (refer to one note). If not, he is trying to approve on a different level from his.
-            {
-                result.Success = false;
-                result.Message = "You are not allowed to approve on this level! Either the request is still not forwarded to you yet, or you have already decided upon it. If you think this error is not supposed to occur, report the IT department with the issue. Thanks";
-                return result;
-            }
-
-
-
-            //Test If it has been already decided upon it by the decider or it has been forwarded to the next decider
-            int deciderRole_Request = await _userRepository.GetUserRoleByUserIdAsync(deciderUserId);
-            int deciderRole_DB = 0;
-            if (decidedAvanceCaisse.DeciderUserId != null)
-            {
-                deciderRole_DB = await _userRepository.GetUserRoleByUserIdAsync((int)decidedAvanceCaisse.DeciderUserId);
-            }
-
-                 //If the decider userid is already assigned to the request || or the decider role is smaller than the role of the decider that has decided on the request
-            if (decidedAvanceCaisse.DeciderUserId == deciderUserId || deciderRole_Request < deciderRole_DB)
-            {
-                result.Success = false;
-                result.Message = "AvanceCaisse is already decided upon! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
-                return result;
-            }
-
-            const int REJECTION_STATUS = 97;
-            const int RETURN_STATUS = 98;
-
             // CASE: REJECTION / RETURN
-            if (decision == REJECTION_STATUS || decision == RETURN_STATUS)
+            if (decision.DecisionString == "return" || decision.DecisionString == "reject")
             {
                 var transaction = _context.Database.BeginTransaction();
                 try
                 {
-                    decidedAvanceCaisse.DeciderComment = deciderComment;
-                    decidedAvanceCaisse.DeciderUserId = deciderUserId;
-                    decidedAvanceCaisse.LatestStatus = decision;
+                    decidedAvanceCaisse.DeciderComment = decision.DeciderComment;
+                    decidedAvanceCaisse.DeciderUserId = decision.DeciderUserId;
+                    decidedAvanceCaisse.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97;
                     result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(decidedAvanceCaisse);
                     if (!result.Success) return result;
 
                     StatusHistory decidedAvanceCaisse_SH = new()
                     {
-                        AvanceCaisseId = avanceCaisseId,
-                        DeciderUserId = deciderUserId,
-                        DeciderComment = deciderComment,
+                        AvanceCaisseId = decision.RequestId,
+                        DeciderUserId = decision.DeciderUserId,
+                        DeciderComment = decision.DeciderComment,
                         Total = decidedAvanceCaisse.EstimatedTotal,
-                        Status = decision,
+                        Status = decision.DecisionString.ToLower() == "return" ? 98 : 97,
                     };
                     result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);
                     if (!result.Success) return result;
@@ -269,17 +245,33 @@ namespace OTAS.Services
                 var transaction = _context.Database.BeginTransaction();
                 try
                 {
-                    decidedAvanceCaisse.DeciderUserId = deciderUserId;
-                    if (decidedAvanceCaisse.LatestStatus == 5) decidedAvanceCaisse.LatestStatus = 7; //Preparing funds in case of TR Approval (6 is approved, and it will be assigned only for OM not AV)
-                    decidedAvanceCaisse.LatestStatus++; // Otherwise next step of approval process.
-                    decidedAvanceCaisse.AdvanceOption = advanceOption;
+                    decidedAvanceCaisse.DeciderUserId = decision.DeciderUserId;
+
+                    var deciderLevel = await _deciderRepository.GetDeciderLevelByUserId(decision.DeciderUserId);
+                    switch (deciderLevel)
+                    {
+                        case "MG":
+                            decidedAvanceCaisse.NextDeciderUserId = await _avanceCaisseRepository.GetAvanceCaisseNextDeciderUserId("MG");
+                            decidedAvanceCaisse.LatestStatus = 3;
+                            break;
+                        case "FM":
+                            decidedAvanceCaisse.NextDeciderUserId = await _avanceCaisseRepository.GetAvanceCaisseNextDeciderUserId("FM");
+                            decidedAvanceCaisse.LatestStatus = 4;
+                            break;
+                        case "GD":
+                            decidedAvanceCaisse.NextDeciderUserId = await _avanceCaisseRepository.GetAvanceCaisseNextDeciderUserId("GD");
+                            decidedAvanceCaisse.LatestStatus = 8;
+                            break;
+                    }
+
                     result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(decidedAvanceCaisse);
                     if (!result.Success) return result;
 
                     StatusHistory decidedAvanceCaisse_SH = new()
                     {
-                        AvanceCaisseId = avanceCaisseId,
-                        DeciderUserId = deciderUserId,
+                        AvanceCaisseId = decidedAvanceCaisse.Id,
+                        DeciderUserId = decidedAvanceCaisse.DeciderUserId,
+                        NextDeciderUserId = decidedAvanceCaisse.NextDeciderUserId,
                         Status = decidedAvanceCaisse.LatestStatus,
                         Total = decidedAvanceCaisse.EstimatedTotal,
                     };
@@ -302,7 +294,7 @@ namespace OTAS.Services
 
         }
 
-        public async Task<ServiceResult> ModifyAvanceCaisse(AvanceCaissePostDTO avanceCaisse, int action) // action is either 99 OR 1 ; 99 -> save as draft again, 1 -> submit
+        public async Task<ServiceResult> ModifyAvanceCaisse(AvanceCaissePostDTO avanceCaisse, string action) // action is either 99 OR 1 ; 99 -> save as draft again, 1 -> submit
         {
             var transaction = _context.Database.BeginTransaction();
             ServiceResult result = new();
@@ -324,7 +316,7 @@ namespace OTAS.Services
                     return result;
                 }
 
-                if(action == 99 && avanceCaisse_DB.LatestStatus == 98)
+                if(action.ToLower() == "save" && avanceCaisse_DB.LatestStatus == 98)
                 {
                     result.Success = false;
                     result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
@@ -392,20 +384,23 @@ namespace OTAS.Services
                 // Map the fetched AC from the DB with the new values and update it
                 avanceCaisse_DB.DeciderComment = null;
                 avanceCaisse_DB.DeciderUserId = null;
-                avanceCaisse_DB.LatestStatus = action;
+                avanceCaisse_DB.LatestStatus = action.ToLower() == "save" ? 99 : 1;
                 avanceCaisse_DB.Description = avanceCaisse.Description;
                 avanceCaisse_DB.Currency = avanceCaisse.Currency;
                 avanceCaisse_DB.OnBehalf = avanceCaisse.OnBehalf;
                 avanceCaisse_DB.EstimatedTotal = CalculateExpensesEstimatedTotal(mappedExpenses);
-                result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(avanceCaisse_DB);
-                if (!result.Success) return result;
-
 
                 //Insert new status history in case of a submit or re submit action
-                if (action == 1)
+                if (action.ToLower() == "submit")
                 {
+                    var managerUserId = await _deciderRepository.GetManagerUserIdByUserIdAsync(avanceCaisse_DB.UserId);
+                    avanceCaisse_DB.NextDeciderUserId = managerUserId;
+                    result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(avanceCaisse_DB);
+                    if (!result.Success) return result;
+
                     StatusHistory OM_statusHistory = new()
                     {
+                        NextDeciderUserId = managerUserId,
                         Total = avanceCaisse_DB.EstimatedTotal,
                         AvanceCaisseId = avanceCaisse_DB.Id,
                         Status = 1
@@ -415,6 +410,9 @@ namespace OTAS.Services
                 }
                 else
                 {
+                    result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(avanceCaisse_DB);
+                    if (!result.Success) return result;
+
                     // Just Update Status History Total in case of saving
                     result = await _statusHistoryRepository.UpdateStatusHistoryTotal(avanceCaisse_DB.Id, "AC", avanceCaisse_DB.EstimatedTotal);
                     if (!result.Success) return result;
@@ -430,7 +428,7 @@ namespace OTAS.Services
                 return result;
             }
 
-            if (action == 1)
+            if (action.ToLower() == "submit")
             {
                 result.Success = true;
                 result.Message = "AvanceCaisse is resubmitted successfully";

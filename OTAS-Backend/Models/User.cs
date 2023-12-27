@@ -19,7 +19,9 @@ public partial class User
 
     public string PreferredLanguage { get; set; } = null!;
 
-    public virtual ICollection<ActualRequester> ActualRequesters { get; set; } = new List<ActualRequester>();
+    public virtual ICollection<ActualRequester> OrderingUserActualRequesters { get; set; } = new List<ActualRequester>();
+
+    public virtual ICollection<ActualRequester> ManagerUserActualRequesters { get; set; } = new List<ActualRequester>();
 
     public virtual ICollection<AvanceCaisse> AvanceCaisses { get; set; } = new List<AvanceCaisse>();
 
@@ -38,4 +40,6 @@ public partial class User
     public virtual RoleCode RoleString { get; set; } = null!;
 
     public virtual ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
+
+    public virtual ICollection<Decider>? Deciders { get; set; }
 }

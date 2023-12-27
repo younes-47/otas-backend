@@ -9,6 +9,8 @@ public partial class Liquidation
 
     public int UserId { get; set; }
 
+    public bool OnBehalf { get; set; }
+
     public int? AvanceVoyageId { get; set; }
 
     public int? AvanceCaisseId { get; set; }

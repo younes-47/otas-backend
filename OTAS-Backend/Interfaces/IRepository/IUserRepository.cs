@@ -7,11 +7,13 @@ namespace OTAS.Interfaces.IRepository
     public interface IUserRepository
     {
         Task<int> GetUserRoleByUserIdAsync(int userId);
+        Task<User?> GetUserByHttpContextAsync(HttpContext httpContext);
         Task<int> GetUserRoleByUsernameAsync(string username);
         Task<User> GetUserByUserIdAsync(int userId);
-        Task<User> GetUserByOrdreMissionId(int ordreMissionId);
         Task<User?> FindUserByUserIdAsync(int userId);
+        Task<User?> FindUserByUsernameAsync(string username);
         Task<ServiceResult> AddUserAsync(User user);
+        Task<User> CreateUserAsync(User user);
         Task<bool> SaveAsync();
     }
 }

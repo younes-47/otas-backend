@@ -1,14 +1,17 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
+using OTAS.Models;
 using OTAS.Repository;
 using OTAS.Services;
 
 namespace OTAS.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class DepenseCaisseController : ControllerBase
@@ -33,20 +36,22 @@ namespace OTAS.Controllers
         }
 
 
-        //Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpGet("Requests/Table")]
-        public async Task<IActionResult> ShowDepenseCaisseRequestsTable(int userId)
+        public async Task<IActionResult> ShowDepenseCaisseRequestsTable()
         {
-            if (await _userRepository.FindUserByUserIdAsync(userId) == null) return BadRequest("User not found!");
-            var depenseCaisses = await _depenseCaisseRepository.GetDepensesCaisseByUserIdAsync(userId);
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
 
-            var mappedOrdreMissions = _mapper.Map<List<DepenseCaisseDTO>>(depenseCaisses);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+            var depenseCaisses = await _depenseCaisseRepository.GetDepensesCaisseByUserIdAsync(user.Id);
 
-            return Ok(mappedOrdreMissions);
+            var mappedDepenseCaisses = _mapper.Map<List<DepenseCaisseDTO>>(depenseCaisses);
+
+            return Ok(mappedDepenseCaisses);
 
         }
 
-        //Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpPost("Create")]
         public async Task<IActionResult> AddDepenseCaisse([FromBody] DepenseCaissePostDTO depenseCaisse)
         {
@@ -87,7 +92,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        ////Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpPut("Modify")]
         public async Task<IActionResult> ModifyDepenseCaisse([FromBody] DepenseCaissePostDTO depenseCaisse, [FromQuery] int action)
         {
@@ -105,7 +110,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        //Requester
+        [Authorize(Roles = "requester , decider")]
         [HttpPut("Submit")]
         public async Task<IActionResult> Submit(int depenseCaisseId)
         {

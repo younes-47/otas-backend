@@ -10,6 +10,12 @@
 
         public string? AdvanceOption { get; set; }
 
-        public int Decision { get; set; }
+        public string DecisionString { get; set; } = null!;
+
+        public bool ReturnedToFMByTR { get; set; }
+
+        public bool ReturnedToTRByFM { get; set; }
+
+        public bool ReturnedToRequesterByTR { get; set; }
     }
 }

@@ -16,8 +16,6 @@
 
         public string ReceiptsFilePath { get; set; } = null!;
 
-        public int? ConfirmationNumber { get; set; }
-
         public string LatestStatus { get; set; } = null!;
 
         //public int? DeciderUserId { get; set; }

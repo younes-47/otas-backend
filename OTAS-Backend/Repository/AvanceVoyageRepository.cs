@@ -11,22 +11,68 @@ namespace OTAS.Repository
     public class AvanceVoyageRepository : IAvanceVoyageRepository
     {
         private readonly OtasContext _context;
+        private readonly IDeciderRepository _deciderRepository;
         private readonly IMapper _mapper;
 
-        public AvanceVoyageRepository(OtasContext context, IMapper mapper)
+        public AvanceVoyageRepository(OtasContext context, IDeciderRepository deciderRepository, IMapper mapper)
         {
             _context = context;
+            _deciderRepository = deciderRepository;
             _mapper = mapper;
         }
 
-        // This method should probably be in a service rather than the repo (like AC) but whatever
+
+        public async Task<int> GetAvanceVoyageNextDeciderUserId(string currentlevel, bool? isLongerThanOneDay = false, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false)
+        {
+            int deciderUserId = 0;
+            switch (currentlevel)
+            {
+                case "MG":
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("FM");
+                    break;
+
+                case "FM":
+                    if (isReturnedToTRbyFM == true)
+                    {
+                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR"); /* in case FM returns it to TR */
+                        break;
+                    }
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("GD");
+                    break;
+
+                case "GD":
+                    if (isLongerThanOneDay == true)
+                    {
+                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("VP");
+                        break;
+                    }
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
+                    break;
+
+                case "VP":
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
+                    break;
+
+                case "TR":
+                    if (isReturnedToFMByTR == true)
+                    {
+                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("FM"); /* In case TR returns it to FM */
+                        break;
+                    }
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
+                    break;
+            }
+
+            return deciderUserId;
+        }
+
+        
         public async Task<List<AvanceVoyageTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderRole)
         {
             List<AvanceVoyage> avanceVoyages = await GetAvancesVoyageByStatusAsync(deciderRole - 1); //See oneNote sketches to understand why it is role-1
             List<AvanceVoyageTableDTO> mappedAvanceVoyages = _mapper.Map<List<AvanceVoyageTableDTO>>(avanceVoyages);
             return mappedAvanceVoyages;
         }
-
 
         public async Task<List<AvanceVoyage>> GetAvancesVoyageByStatusAsync(int status)
         {
@@ -82,12 +128,13 @@ namespace OTAS.Repository
             return result;
         }
 
-        public async Task <ServiceResult> UpdateAvanceVoyageStatusAsync(int avanceVoyageId, int status)
+        public async Task <ServiceResult> UpdateAvanceVoyageStatusAsync(int avanceVoyageId, int status, int nextDeciderUserId)
         {
             ServiceResult result = new();
 
             AvanceVoyage updatedAvanceVoyage  = await GetAvanceVoyageByIdAsync(avanceVoyageId);
             updatedAvanceVoyage.LatestStatus = status;
+            updatedAvanceVoyage.NextDeciderUserId = nextDeciderUserId;
             _context.AvanceVoyages.Update(updatedAvanceVoyage);
 
             result.Success = await SaveAsync();

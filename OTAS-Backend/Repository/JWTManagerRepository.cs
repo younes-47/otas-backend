@@ -14,10 +14,10 @@ namespace OTAS.Repository
         {
             _configuration = Iconfiguration;
         }
-        public Tokens CreateToken(string username, string role)
+        public Tokens CreateToken(string username, string role, string preferredLanguage)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var tokenKey = Encoding.UTF8.GetBytes(_configuration["JWT:Key"]);
+            var tokenKey = Encoding.UTF8.GetBytes(_configuration["JWT:Key"]) ;
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
@@ -29,7 +29,7 @@ namespace OTAS.Repository
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(tokenKey), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
-            return new Tokens { Token = tokenHandler.WriteToken(token), Role = role };
+            return new Tokens { Token = tokenHandler.WriteToken(token), Role = role, PreferredLanguage = preferredLanguage};
         }
     }
 }

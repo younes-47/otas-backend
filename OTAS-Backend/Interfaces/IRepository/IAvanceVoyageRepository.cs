@@ -12,6 +12,7 @@ namespace OTAS.Interfaces.IRepository
         Task<List<AvanceVoyageTableDTO>> GetAvancesVoyageByUserIdAsync(int userId);
         Task<List<AvanceVoyage>> GetAvancesVoyageByStatusAsync(int status);
         Task<List<AvanceVoyage>> GetAvancesVoyageByOrdreMissionIdAsync(int ordreMissionId);
+        Task<int> GetAvanceVoyageNextDeciderUserId(string currentlevel, bool? isLongerThanOneDay = false, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false);
 
         // This method should probably be in a service rather than the repo (like AC) but whatever
         Task<List<AvanceVoyageTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderRole);
@@ -21,7 +22,7 @@ namespace OTAS.Interfaces.IRepository
         Task<bool> SaveAsync();
 
         //Put Methods
-        Task<ServiceResult> UpdateAvanceVoyageStatusAsync(int avanceVoyageId, int status);
+        Task<ServiceResult> UpdateAvanceVoyageStatusAsync(int avanceVoyageId, int status, int nextDeciderUserId);
         Task<ServiceResult> UpdateAvanceVoyageAsync(AvanceVoyage avanceVoyage);
     }
 }
