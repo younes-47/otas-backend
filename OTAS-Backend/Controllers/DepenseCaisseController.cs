@@ -183,11 +183,41 @@ namespace OTAS.Controllers
         ////Requester
         //[HttpGet("{ordreMissionId}/View")]
 
-        //// Decider
-        //[HttpGet("DecideOnRequests/Table")]
 
-        ////Decider
-        //[HttpPut("Decide")]
+        [Authorize(Roles = "decider")]
+        [HttpGet("DecideOnRequests/Table")]
+        public async Task<IActionResult> ShowDepenseCaisseDecideTable()
+        {
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+
+            List<DepenseCaisseDTO> DCs = await _depenseCaisseRepository.GetDepenseCaissesForDeciderTable(user.Id);
+
+            return Ok(DCs);
+        }
+
+        [Authorize(Roles = "decider")]
+        [HttpPut("Decide")]
+        public async Task<IActionResult> DecideOnDepenseCaisse(DecisionOnRequestPostDTO decision)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (await _depenseCaisseRepository.FindDepenseCaisseAsync(decision.RequestId) == null) return NotFound("DepenseCaisse is not found!");
+            if (await _userRepository.FindUserByUserIdAsync(decision.DeciderUserId) == null) return NotFound("Decider is not found");
+
+            bool isDecisionValid = decision.DecisionString.ToLower() != "approve" && decision.DecisionString.ToLower() != "return" && decision.DecisionString.ToLower() != "reject";
+            if (!isDecisionValid) return BadRequest("Decision is invalid!");
+
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+
+            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
+            if (deciderRole != 3) return BadRequest("You are not authorized to decide upon requests!");
+
+            ServiceResult result = await _depenseCaisseService.DecideOnDepenseCaisse(decision);
+            if (!result.Success) return BadRequest(result.Message);
+            return Ok(result.Message);
+        }
+
 
     }
 }

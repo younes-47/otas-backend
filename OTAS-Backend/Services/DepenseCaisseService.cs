@@ -365,6 +365,72 @@ namespace OTAS.Services
             return result;
         }
 
+        public async Task<ServiceResult> DecideOnDepenseCaisse(DecisionOnRequestPostDTO decision)
+        {
+            ServiceResult result = new();
+            DepenseCaisse decidedDepenseCaisse = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(decision.RequestId);
+
+            // test if the decider is the one who is supposed to decide upon it
+            if (decidedDepenseCaisse.NextDeciderUserId != decision.DeciderUserId)
+            {
+                result.Success = false;
+                result.Message = "You can't decide on this request in this state! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
+                return result;
+            }
+
+            // CASE: REJECTION / RETURN
+            if (decision.DecisionString == "return" || decision.DecisionString == "reject")
+            {
+                var transaction = _context.Database.BeginTransaction();
+                try
+                {
+                    decidedDepenseCaisse.DeciderComment = decision.DeciderComment;
+                    decidedDepenseCaisse.DeciderUserId = decision.DeciderUserId;
+                    if (decision.ReturnedToFMByTR)
+                    {
+                        decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("TR", decision.ReturnedToFMByTR, null);
+                        decidedDepenseCaisse.LatestStatus = 14; /* Returned to finance dept for missing info */
+                    }
+                    else if (decision.ReturnedToTRByFM)
+                    {
+                        decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("FM", null, decision.ReturnedToTRByFM);
+                        decidedDepenseCaisse.LatestStatus = 13; /* pending TR validation */
+                    }
+                    else
+                    {
+                        decidedDepenseCaisse.NextDeciderUserId = null; /* next decider is set to null if returned or rejected by deciders other than TR */
+                        decidedDepenseCaisse.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97; /* returned normaly or rejected */
+                    }
+                    result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(decidedDepenseCaisse);
+                    if (!result.Success) return result;
+
+                    StatusHistory decidedAvanceCaisse_SH = new()
+                    {
+                        DepenseCaisseId = decision.RequestId,
+                        DeciderUserId = decision.DeciderUserId,
+                        DeciderComment = decision.DeciderComment,
+                        Total = decidedDepenseCaisse.Total,
+                        Status = decision.DecisionString.ToLower() == "return" ? 98 : 97,
+                        NextDeciderUserId = decidedDepenseCaisse.NextDeciderUserId,
+                    };
+                    result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);
+                    if (!result.Success) return result;
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception exception)
+                {
+                    result.Success = false;
+                    result.Message = exception.Message;
+                    return result;
+                }
+                
+            }
+
+            result.Success = true;
+            result.Message = "OrdreMission is decided upon successfully";
+            return result;
+        }
         public decimal CalculateExpensesEstimatedTotal(List<Expense> expenses)
         {
             decimal estimatedTotal = 0;

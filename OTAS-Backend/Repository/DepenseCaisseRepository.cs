@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using OTAS.Services;
 using Azure.Core;
 using OTAS.DTO.Get;
+using AutoMapper;
 
 namespace OTAS.Repository
 {
@@ -12,9 +13,14 @@ namespace OTAS.Repository
     {
         //Inject datacontext in the constructor
         private readonly OtasContext _context;
-        public DepenseCaisseRepository(OtasContext context)
+        private readonly IMapper _mapper;
+        private readonly IDeciderRepository _deciderRepository;
+
+        public DepenseCaisseRepository(OtasContext context, IMapper mapper, IDeciderRepository deciderRepository)
         {
             _context = context;
+            _mapper = mapper;
+            _deciderRepository = deciderRepository;
         }
 
         public async Task<DepenseCaisse?> FindDepenseCaisseAsync(int depenseCaisseId)
@@ -89,6 +95,46 @@ namespace OTAS.Repository
         public async Task<List<DepenseCaisse>> GetDepensesCaisseByStatus(int status)
         {
             return await _context.DepenseCaisses.Where(dc => dc.LatestStatus == status).ToListAsync();
+        }
+
+        public async Task<List<DepenseCaisseDTO>> GetDepenseCaissesForDeciderTable(int deciderUserId)
+        {
+            return _mapper.Map<List<DepenseCaisseDTO>>(await _context.DepenseCaisses.Where(dc => dc.NextDeciderUserId == deciderUserId).ToListAsync());
+        }
+
+        public async Task<int> GetDepenseCaisseNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false)
+        {
+            int deciderUserId = 0; 
+            switch (currentlevel)
+            {
+                case "MG":
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("FM");
+                    break;
+
+                case "FM":
+                    if (isReturnedToTRbyFM == true)
+                    {
+                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR"); /* in case FM returns it to TR */
+                        break;
+                    }
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("GD");
+                    break;
+
+                case "GD":
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
+                    break;
+
+                case "TR":
+                    if (isReturnedToFMByTR == true)
+                    {
+                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("FM"); /* In case TR returns it to FM */
+                        break;
+                    }
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR"); /* In case TR aprroves it, the next decider is still TR*/
+                    break;
+            }
+
+            return deciderUserId;
         }
 
         public async Task<bool> SaveAsync()

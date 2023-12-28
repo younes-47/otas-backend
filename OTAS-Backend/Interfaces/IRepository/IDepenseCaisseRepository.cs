@@ -14,6 +14,8 @@ namespace OTAS.Interfaces.IRepository
         Task<ServiceResult> DeleteDepenseCaisseAync(DepenseCaisse depenseCaisse);
         Task<List<DepenseCaisse>> GetDepensesCaisseByStatus(int status);
         Task<List<DepenseCaisseDTO>> GetDepensesCaisseByUserIdAsync(int userId);
+        Task<List<DepenseCaisseDTO>> GetDepenseCaissesForDeciderTable(int deciderUserId);
+        Task<int> GetDepenseCaisseNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false);
         Task<bool> SaveAsync();
     }
 }

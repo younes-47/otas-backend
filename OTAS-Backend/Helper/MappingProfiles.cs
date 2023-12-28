@@ -9,7 +9,7 @@ namespace OTAS.Helper
     {
         public MappingProfiles()
         {
-            // When we handle get methods
+            // Mapping from post objects
             CreateMap<OrdreMission, OrdreMissionDTO>().ReverseMap();
             CreateMap<OrdreMission, OrdreMissionFullDetailsDTO>()
                 .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User))
@@ -44,7 +44,7 @@ namespace OTAS.Helper
             CreateMap<User, UserDTO>().ReverseMap();
             CreateMap<ActualRequester, ActualRequesterDTO>().ReverseMap();
 
-            // When we handle post methods
+            // Mapping from put objects
             CreateMap<OrdreMissionPostDTO, OrdreMission>()
                 .ForMember(dest => dest.ActualRequester, opt => opt.Ignore());
 
