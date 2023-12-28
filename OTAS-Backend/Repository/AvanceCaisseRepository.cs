@@ -43,7 +43,6 @@ namespace OTAS.Repository
         public async Task<List<AvanceCaisseDTO>> GetAvanceCaissesForDeciderTable(int deciderUserId)
         {
             return _mapper.Map<List<AvanceCaisseDTO>>(await _context.AvanceCaisses.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
-
         }
 
         public async Task<List<AvanceCaisse>> GetAvancesCaisseByStatusAsync(int status)

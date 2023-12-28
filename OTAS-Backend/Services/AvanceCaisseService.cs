@@ -165,7 +165,7 @@ namespace OTAS.Services
             ServiceResult result = new();
             AvanceCaisse decidedAvanceCaisse = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(decision.RequestId);
 
-            //Test if the request is not on a state where you can't decide upon (99, 98, 97)
+            // test if the decider is the one who is supposed to decide upon it
             if (decidedAvanceCaisse.NextDeciderUserId != decision.DeciderUserId)
             {
                 result.Success = false;
@@ -181,6 +181,7 @@ namespace OTAS.Services
                 {
                     decidedAvanceCaisse.DeciderComment = decision.DeciderComment;
                     decidedAvanceCaisse.DeciderUserId = decision.DeciderUserId;
+                    decidedAvanceCaisse.NextDeciderUserId = null;
                     decidedAvanceCaisse.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97;
                     result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(decidedAvanceCaisse);
                     if (!result.Success) return result;
@@ -191,6 +192,7 @@ namespace OTAS.Services
                         DeciderUserId = decision.DeciderUserId,
                         DeciderComment = decision.DeciderComment,
                         Total = decidedAvanceCaisse.EstimatedTotal,
+                        NextDeciderUserId = decidedAvanceCaisse.NextDeciderUserId,
                         Status = decision.DecisionString.ToLower() == "return" ? 98 : 97,
                     };
                     result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);

@@ -180,9 +180,6 @@ namespace OTAS.Controllers
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
 
-            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
-            if (deciderRole == 1 || deciderRole == 0) return BadRequest("You are not authorized to decide upon requests!");
-
             List<OrdreMissionDTO> ordreMissions = await _ordreMissionRepository.GetOrdreMissionsForDecider(user.Id);
             return Ok(ordreMissions);
         }
@@ -193,6 +190,12 @@ namespace OTAS.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(decision.RequestId) == null) return NotFound("OrdreMission is not found!");
+
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+
+            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
+            if (deciderRole != 3) return BadRequest("You are not authorized to decide upon requests!");
 
             ServiceResult result = await _ordreMissionService.DecideOnOrdreMission(decision);
             if (!result.Success) return BadRequest(result.Message);

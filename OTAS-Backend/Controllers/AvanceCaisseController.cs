@@ -160,9 +160,6 @@ namespace OTAS.Controllers
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
 
-            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
-            if (deciderRole == 1 || deciderRole == 0) return BadRequest("You are not authorized to decide upon requests!");
-
             List<AvanceCaisseDTO> ACs = await _avanceCaisseRepository.GetAvanceCaissesForDeciderTable(user.Id);
 
             return Ok(ACs);
@@ -178,6 +175,12 @@ namespace OTAS.Controllers
 
             bool isDecisionValid = decision.DecisionString.ToLower() != "approve" && decision.DecisionString.ToLower() != "return" && decision.DecisionString.ToLower() != "reject";
             if (!isDecisionValid) return BadRequest("Decision is invalid!");
+
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+
+            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
+            if (deciderRole != 3) return BadRequest("You are not authorized to decide upon requests!");
 
             ServiceResult result = await _avanceCaisseService.DecideOnAvanceCaisse(decision);
             if (!result.Success) return BadRequest(result.Message);
