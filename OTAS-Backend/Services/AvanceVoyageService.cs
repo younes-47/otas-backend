@@ -72,21 +72,8 @@ namespace OTAS.Services
                 {
                     decidedAvanceVoyage.DeciderComment = decision.DeciderComment;
                     decidedAvanceVoyage.DeciderUserId = decision.DeciderUserId;
-                    if (decision.ReturnedToFMByTR)
-                    {
-                        decidedAvanceVoyage.NextDeciderUserId = await _avanceVoyageRepository.GetAvanceVoyageNextDeciderUserId("TR", null, decision.ReturnedToFMByTR, null);
-                        decidedAvanceVoyage.LatestStatus = 14; /* Returned to finance dept for missing info */
-                    } 
-                    else if (decision.ReturnedToTRByFM)
-                    {
-                        decidedAvanceVoyage.NextDeciderUserId = await _avanceVoyageRepository.GetAvanceVoyageNextDeciderUserId("FM", null, null, decision.ReturnedToTRByFM);
-                        decidedAvanceVoyage.LatestStatus = 6; /* pending TR decision */
-                    }
-                    else
-                    {
-                        decidedAvanceVoyage.NextDeciderUserId = null; /* next decider is set to null if returned or rejected by deciders other than TR */
-                        decidedAvanceVoyage.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97; /* returned normaly or rejected */
-                    }
+                    decidedAvanceVoyage.NextDeciderUserId = null;
+                    decidedAvanceVoyage.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97;
                     result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(decidedAvanceVoyage);
                     if (!result.Success) return result;
 
