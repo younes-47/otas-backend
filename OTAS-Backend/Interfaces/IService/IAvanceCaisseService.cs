@@ -1,5 +1,6 @@
 ﻿using OTAS.DTO.Get;
 using OTAS.DTO.Post;
+using OTAS.DTO.Put;
 using OTAS.Services;
 
 namespace OTAS.Interfaces.IService
@@ -11,6 +12,6 @@ namespace OTAS.Interfaces.IService
         Task<AvanceCaisseFullDetailsDTO> GetAvanceCaisseFullDetailsById(int avanceCaisseId);
         Task<ServiceResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision);
         Task<ServiceResult> SubmitAvanceCaisse(int ordreMissionId);
-        Task<ServiceResult> ModifyAvanceCaisse(AvanceCaissePostDTO avanceCaisse, string action);
+        Task<ServiceResult> ModifyAvanceCaisse(AvanceCaissePutDTO avanceCaisse);
     }
 }

@@ -2,8 +2,6 @@
 {
     public class AvanceCaissePostDTO
     {
-        public int Id { get; set; } //Need Id when resubmitting in case of modification
-
         public bool OnBehalf { get; set; }
 
         public string Currency { get; set; } = null!;

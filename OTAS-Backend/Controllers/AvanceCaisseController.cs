@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
+using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
@@ -58,18 +59,18 @@ namespace OTAS.Controllers
 
         [Authorize(Roles = "requester , decider")]
         [HttpPut("Modify")]
-        public async Task<IActionResult> ModifyAvanceCaisse([FromBody] AvanceCaissePostDTO avanceCaisse, [FromQuery] string action)
+        public async Task<IActionResult> ModifyAvanceCaisse([FromBody] AvanceCaissePutDTO avanceCaisse)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (await _avanceCaisseRepository.FindAvanceCaisseAsync(avanceCaisse.Id) == null) return NotFound("AvanceCaisse is not found");
 
-            bool isActionValid = action.ToLower() == "submit" || action.ToLower() == "save";
+            bool isActionValid = avanceCaisse.Action.ToLower() == "submit" || avanceCaisse.Action.ToLower() == "save";
             if (!isActionValid) return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
 
             var AC = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisse.Id);
-            if (action.ToLower() == "save" && (AC.LatestStatus == 98 || AC.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
+            if (avanceCaisse.Action.ToLower() == "save" && (AC.LatestStatus == 98 || AC.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
 
-            ServiceResult result = await _avanceCaisseService.ModifyAvanceCaisse(avanceCaisse, action);
+            ServiceResult result = await _avanceCaisseService.ModifyAvanceCaisse(avanceCaisse);
 
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Message);

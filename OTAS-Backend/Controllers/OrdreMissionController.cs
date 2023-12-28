@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
+using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
@@ -72,15 +73,15 @@ namespace OTAS.Controllers
 
         [Authorize(Roles = "requester , decider")]
         [HttpPut("Modify")]
-        public async Task<IActionResult> ModifyOrdreMission([FromBody] OrdreMissionPostDTO ordreMission, [FromQuery] string action)
+        public async Task<IActionResult> ModifyOrdreMission([FromBody] OrdreMissionPutDTO ordreMission)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(ordreMission.Id) == null) return NotFound("OrdreMission not found");
 
-            bool isActionValid = action.ToLower() != "save" || action.ToLower() != "submit";
+            bool isActionValid = ordreMission.Action.ToLower() != "save" || ordreMission.Action.ToLower() != "submit";
             if (!isActionValid) return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
             var OM = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMission.Id);
-            if (action.ToLower() != "save" && (OM.LatestStatus == 98 || OM.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
+            if (ordreMission.Action.ToLower() != "save" && (OM.LatestStatus == 98 || OM.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
 
             if (ordreMission.Abroad == false)
             {
@@ -94,7 +95,7 @@ namespace OTAS.Controllers
                 }
             }
 
-            ServiceResult result = await _ordreMissionService.ModifyOrdreMissionWithAvanceVoyage(ordreMission, action);
+            ServiceResult result = await _ordreMissionService.ModifyOrdreMissionWithAvanceVoyage(ordreMission);
 
             if (!result.Success) return BadRequest(result.Message);
 

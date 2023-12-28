@@ -6,15 +6,11 @@ namespace OTAS.DTO.Post
     {
         public int Id { get; set; } 
 
-        public int UserId { get; set; }
-
         public bool OnBehalf { get; set; }
 
         public string Description { get; set; } = null!;
 
         public string Currency { get; set; } = null!;
-
-        public int LatestStatus { get; set; }
 
         public Byte[] ReceiptsFile { get; set; } = null!;
 

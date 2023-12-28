@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OTAS.Data;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
+using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
@@ -294,7 +295,7 @@ namespace OTAS.Services
 
         }
 
-        public async Task<ServiceResult> ModifyAvanceCaisse(AvanceCaissePostDTO avanceCaisse, string action) // action is either 99 OR 1 ; 99 -> save as draft again, 1 -> submit
+        public async Task<ServiceResult> ModifyAvanceCaisse(AvanceCaissePutDTO avanceCaisse)
         {
             var transaction = _context.Database.BeginTransaction();
             ServiceResult result = new();
@@ -316,7 +317,7 @@ namespace OTAS.Services
                     return result;
                 }
 
-                if(action.ToLower() == "save" && avanceCaisse_DB.LatestStatus == 98)
+                if(avanceCaisse.Action.ToLower() == "save" && avanceCaisse_DB.LatestStatus == 98)
                 {
                     result.Success = false;
                     result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
@@ -384,14 +385,14 @@ namespace OTAS.Services
                 // Map the fetched AC from the DB with the new values and update it
                 avanceCaisse_DB.DeciderComment = null;
                 avanceCaisse_DB.DeciderUserId = null;
-                avanceCaisse_DB.LatestStatus = action.ToLower() == "save" ? 99 : 1;
+                avanceCaisse_DB.LatestStatus = avanceCaisse.Action.ToLower() == "save" ? 99 : 1;
                 avanceCaisse_DB.Description = avanceCaisse.Description;
                 avanceCaisse_DB.Currency = avanceCaisse.Currency;
                 avanceCaisse_DB.OnBehalf = avanceCaisse.OnBehalf;
                 avanceCaisse_DB.EstimatedTotal = CalculateExpensesEstimatedTotal(mappedExpenses);
 
                 //Insert new status history in case of a submit or re submit action
-                if (action.ToLower() == "submit")
+                if (avanceCaisse.Action.ToLower() == "submit")
                 {
                     var managerUserId = await _deciderRepository.GetManagerUserIdByUserIdAsync(avanceCaisse_DB.UserId);
                     avanceCaisse_DB.NextDeciderUserId = managerUserId;
@@ -428,7 +429,7 @@ namespace OTAS.Services
                 return result;
             }
 
-            if (action.ToLower() == "submit")
+            if (avanceCaisse.Action.ToLower() == "submit")
             {
                 result.Success = true;
                 result.Message = "AvanceCaisse is resubmitted successfully";

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Query.Internal;
 using OTAS.Data;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
+using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
@@ -325,7 +326,7 @@ namespace OTAS.Services
 
         }
 
-        public async Task<ServiceResult> ModifyOrdreMissionWithAvanceVoyage(OrdreMissionPostDTO ordreMission, string action) // action = save || submit
+        public async Task<ServiceResult> ModifyOrdreMissionWithAvanceVoyage(OrdreMissionPutDTO ordreMission) // action = save || submit
         {
             ServiceResult result = new();
             var transaction = _context.Database.BeginTransaction();
@@ -334,7 +335,7 @@ namespace OTAS.Services
                 OrdreMission updatedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMission.Id);
 
                 /*Validations*/
-                if( action.ToLower() != "save" && action.ToLower() != "submit")
+                if( ordreMission.Action.ToLower() != "save" && ordreMission.Action.ToLower() != "submit")
                 {
                     result.Success = false;
                     result.Message = "Invalid action! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
@@ -355,7 +356,7 @@ namespace OTAS.Services
                     return result;
                 }
 
-                if (action.ToLower() != "save" && updatedOrdreMission.LatestStatus == 98)
+                if (ordreMission.Action.ToLower() != "save" && updatedOrdreMission.LatestStatus == 98)
                 {
                     result.Success = false;
                     result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
@@ -407,7 +408,7 @@ namespace OTAS.Services
 
                 updatedOrdreMission.DeciderComment = null;
                 updatedOrdreMission.DeciderUserId = null;
-                updatedOrdreMission.LatestStatus = action.ToLower() != "save" ? 99 : 1;
+                updatedOrdreMission.LatestStatus = ordreMission.Action.ToLower() != "save" ? 99 : 1;
                 updatedOrdreMission.Description = ordreMission.Description;
                 updatedOrdreMission.Abroad = ordreMission.Abroad;
 
@@ -429,7 +430,7 @@ namespace OTAS.Services
 
                 updatedOrdreMission.OnBehalf = ordreMission.OnBehalf;
 
-                if (action.ToLower() != "save")
+                if (ordreMission.Action.ToLower() != "save")
                 {
                     if(updatedOrdreMission.NextDeciderUserId != null)
                     {
@@ -476,7 +477,7 @@ namespace OTAS.Services
                 if (!result.Success) return result;
                 
                 // Call the function in AV Service which will take care of the rest
-                result = await _avanceVoyageService.ModifyAvanceVoyagesForEachCurrency(updatedOrdreMission, DB_AvanceVoyages, ordreMission.Trips, ordreMission.Expenses, action);
+                result = await _avanceVoyageService.ModifyAvanceVoyagesForEachCurrency(updatedOrdreMission, DB_AvanceVoyages, ordreMission.Trips, ordreMission.Expenses, ordreMission.Action);
                 if(!result.Success) return result;
 
 
@@ -490,7 +491,7 @@ namespace OTAS.Services
                 return result;
             }
 
-            if (action.ToLower() != "save")
+            if (ordreMission.Action.ToLower() != "save")
             {
                 result.Success = true;
                 result.Message = "OrdreMission is resubmitted successfully";

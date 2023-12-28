@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Hosting;
 using OTAS.Data;
 using OTAS.DTO.Post;
+using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
@@ -145,7 +146,7 @@ namespace OTAS.Services
             return result;
         }
 
-        public async Task<ServiceResult> ModifyDepenseCaisse(DepenseCaissePostDTO depenseCaisse, string action)
+        public async Task<ServiceResult> ModifyDepenseCaisse(DepenseCaissePutDTO depenseCaisse)
         {
             var transaction = _context.Database.BeginTransaction();
             ServiceResult result = new();
@@ -167,7 +168,7 @@ namespace OTAS.Services
                     return result;
                 }
 
-                if (action.ToLower() == "save" && depenseCaisse_DB.LatestStatus == 98)
+                if (depenseCaisse.Action.ToLower() == "save" && depenseCaisse_DB.LatestStatus == 98)
                 {
                     result.Success = false;
                     result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
@@ -234,7 +235,7 @@ namespace OTAS.Services
                 //Map the fetched DP from the DB with the new values and update it
                 depenseCaisse_DB.DeciderComment = null;
                 depenseCaisse_DB.DeciderUserId = null;
-                depenseCaisse_DB.LatestStatus = action.ToLower() == "save" ? 99 : 1;
+                depenseCaisse_DB.LatestStatus = depenseCaisse.Action.ToLower() == "save" ? 99 : 1;
                 depenseCaisse_DB.Description = depenseCaisse.Description;
                 depenseCaisse_DB.Currency = depenseCaisse.Currency;
                 depenseCaisse_DB.OnBehalf = depenseCaisse.OnBehalf;
@@ -258,7 +259,7 @@ namespace OTAS.Services
 
 
                 //Insert new status history in case of a submit action
-                if (action.ToLower() == "save")
+                if (depenseCaisse.Action.ToLower() == "save")
                 {
                     var managerUserId = await _deciderRepository.GetManagerUserIdByUserIdAsync(depenseCaisse_DB.UserId);
                     depenseCaisse_DB.NextDeciderUserId = managerUserId;
@@ -291,7 +292,7 @@ namespace OTAS.Services
                 return result;
             }
 
-            if (action.ToLower() == "save")
+            if (depenseCaisse.Action.ToLower() == "save")
             {
                 result.Success = true;
                 result.Message = "depenseCaisse is resubmitted successfully";
