@@ -33,12 +33,12 @@ namespace OTAS.Controllers
         }
 
         [Authorize(Roles = "requester , decider")]
-        [HttpGet("{avanceVoyageId}/View")]
-        public async Task<IActionResult> ShowAvanceVoyageDetailsPage(int avanceVoyageId)
+        [HttpGet("View")]
+        public async Task<IActionResult> ShowAvanceVoyageDetailsPage(int Id)
         {
-            if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(avanceVoyageId) == null)
+            if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(Id) == null)
                 return NotFound("AvanceVoyage is not found");
-            var AV = await _avanceVoyageRepository.GetAvanceVoyageByIdAsync(avanceVoyageId);
+            var AV = await _avanceVoyageRepository.GetAvanceVoyageByIdAsync(Id);
             var mappedAV = _mapper.Map<AvanceVoyageTableDTO>(AV);
             return Ok(mappedAV);
         }
@@ -61,18 +61,12 @@ namespace OTAS.Controllers
         public async Task<IActionResult> ShowAvanceVoyageDecideTable()
         {
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
-
-            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) 
-                return BadRequest("User not found!");
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
 
             int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
+            if (deciderRole == 1 || deciderRole == 0) return BadRequest("You are not authorized to decide upon requests!");
 
-            if (deciderRole == 1 || deciderRole == 0) 
-                return BadRequest("You are not authorized to decide upon requests!");
-
-            List<AvanceVoyageTableDTO> AVs = await _avanceVoyageRepository.GetAvanceVoyagesForDeciderTable(deciderRole);
-            if (AVs.Count <= 0) 
-                return NotFound("No AvanceVoyage to decide upon!");
+            List<AvanceVoyageTableDTO> AVs = await _avanceVoyageRepository.GetAvanceVoyagesForDeciderTable(user.Id);
 
             return Ok(AVs);
         }

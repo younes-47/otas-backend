@@ -45,15 +45,32 @@ namespace OTAS.Controllers
 
         [Authorize(Roles = "requester , decider")]
         [HttpPost("Create")]
-        public async Task<IActionResult> AddAvanceCaisse([FromBody] AvanceCaissePostDTO avanceCaisseRequest)
+        public async Task<IActionResult> AddAvanceCaisse([FromBody] AvanceCaissePostDTO avanceCaisse)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+            ServiceResult result = new();
+            if (avanceCaisse.Expenses.Count < 1)
+            {
+                result.Success = false;
+                result.Message = "AvanceCaisse must have at least one expense! You can't request an AvanceCaisse with no expense.";
+                return BadRequest(result);
+            }
+            if (avanceCaisse.Currency != "MAD" && avanceCaisse.Currency != "EUR")
+            {
+                result.Success = false;
+                result.Message = "Invalid currency! Please choose suitable currency from the dropdownmenu!";
+                return BadRequest(result);
+            }
+            if (avanceCaisse.OnBehalf == true && avanceCaisse.ActualRequester == null)
+            {
+                result.Success = false;
+                result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
+                return BadRequest(result);
+            }
             var user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
-            ServiceResult avResult = await _avanceCaisseService.CreateAvanceCaisseAsync(avanceCaisseRequest, user.Id);
-
-            if (!avResult.Success) return Ok(avResult.Message);
-
-            return Ok(avResult.Message);
+            result = await _avanceCaisseService.CreateAvanceCaisseAsync(avanceCaisse, user.Id);
+            if (!result.Success) return Ok(result.Message);
+            return Ok(result.Message);
         }
 
 
@@ -61,14 +78,26 @@ namespace OTAS.Controllers
         [HttpPut("Modify")]
         public async Task<IActionResult> ModifyAvanceCaisse([FromBody] AvanceCaissePutDTO avanceCaisse)
         {
+            // VALIDATIONS
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(avanceCaisse.Id) == null) return NotFound("AvanceCaisse is not found");
+            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(avanceCaisse.Id) == null) 
+                return NotFound("AvanceCaisse is not found");
 
             bool isActionValid = avanceCaisse.Action.ToLower() == "submit" || avanceCaisse.Action.ToLower() == "save";
-            if (!isActionValid) return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
+            if (!isActionValid) 
+                return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
 
-            var AC = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisse.Id);
-            if (avanceCaisse.Action.ToLower() == "save" && (AC.LatestStatus == 98 || AC.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
+            var avanceCaisse_DB = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisse.Id);
+
+            if (avanceCaisse.Action.ToLower() == "save" && avanceCaisse_DB.LatestStatus == 98) 
+                return BadRequest("You cannot modify and save a returned request as a draft!");
+            if (avanceCaisse_DB.LatestStatus != 98 && avanceCaisse_DB.LatestStatus != 99) 
+                return BadRequest("The AvanceCaisse is not modifiable in this state! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system.");
+            if (avanceCaisse.Expenses.Count < 1) 
+                return BadRequest("AvanceCaisse must have at least one expense! You can't request a Cash advance with no expense.");
+            if (avanceCaisse.OnBehalf == true && avanceCaisse.ActualRequester == null)
+                return BadRequest("You must fill actual requester's info in case you are filing this request on behalf of someone");
+
 
             ServiceResult result = await _avanceCaisseService.ModifyAvanceCaisse(avanceCaisse);
 
@@ -78,45 +107,68 @@ namespace OTAS.Controllers
 
         [Authorize(Roles = "requester , decider")]
         [HttpPut("Submit")]
-        public async Task<IActionResult> SubmitAvanceCaisse(int avanceCaisseId)
+        public async Task<IActionResult> SubmitAvanceCaisse(int Id)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(avanceCaisseId) == null) return NotFound("AvanceCaisse is not found!");
+            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null) return NotFound("AvanceCaisse is not found!");
+       
+            AvanceCaisse avanceCaisse_DB = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(Id);
+            if (avanceCaisse_DB.LatestStatus != 99)
+                return BadRequest("Action denied! The request is not in a suitable state where you can submit it.");
+            if (avanceCaisse_DB.LatestStatus == 1)
+                return BadRequest("You've already submitted this request!");
 
-            ServiceResult result = await _avanceCaisseService.SubmitAvanceCaisse(avanceCaisseId);
+            ServiceResult result = await _avanceCaisseService.SubmitAvanceCaisse(avanceCaisse_DB);
             if (!result.Success) return BadRequest(result.Message);
 
             return Ok(result.Message);
         }
 
         [Authorize(Roles = "requester , decider")]
-        [HttpGet("{avanceCaisseId}/View")]
-        public async Task<IActionResult> GetAvanceCaisseById(int avanceCaisseId)
+        [HttpGet("View")]
+        public async Task<IActionResult> GetAvanceCaisseById(int Id)
         {
-            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(avanceCaisseId) == null) return NotFound("AvanceCaisse is not found");
-            var avanceCaisseDetails = await _avanceCaisseService.GetAvanceCaisseFullDetailsById(avanceCaisseId);
+            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null) return NotFound("AvanceCaisse is not found");
+            var avanceCaisseDetails = await _avanceCaisseService.GetAvanceCaisseFullDetailsById(Id);
 
             return Ok(avanceCaisseDetails);
         }
 
+        [Authorize(Roles = "requester , decider")]
+        [HttpDelete("Delete")]
+        public async Task<IActionResult> DeleteDraftedAvanceCaisse(int Id) // Id = avanceCaisseId
+        {
+            ServiceResult result = new();
+            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null) return NotFound("AvanceCaisse not found!");
+            AvanceCaisse avanceCaisse = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(Id);
+
+            if (avanceCaisse.LatestStatus != 99)
+            {
+                result.Success = false;
+                result.Message = "The request is not in a draft. You cannot delete requests in a different status than draft.";
+                return BadRequest(result);
+            }
+
+            result = await _avanceCaisseService.DeleteDraftedAvanceCaisse(avanceCaisse);
+            return Ok(result.Message);
+        }
+
         [Authorize(Roles = "decider")]
         [HttpGet("DecideOnRequests/Table")]
-        public async Task<IActionResult> GetAvancesCaisseByUserId()
+        public async Task<IActionResult> ShowAvanceCaisseDecideTable()
         {
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
-
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+
             int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
-            if (deciderRole == 1 || deciderRole == 0) 
-                return BadRequest("You are not authorized to decide upon requests!");
-            List<AvanceCaisseDTO> ACs = await _avanceCaisseService.GetAvanceCaissesForDeciderTable(deciderRole);
-            if (ACs.Count <= 0) 
-                return NotFound("No AvanceCaisse to decide upon!");
+            if (deciderRole == 1 || deciderRole == 0) return BadRequest("You are not authorized to decide upon requests!");
+
+            List<AvanceCaisseDTO> ACs = await _avanceCaisseRepository.GetAvanceCaissesForDeciderTable(user.Id);
 
             return Ok(ACs);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "decider")]
         [HttpPut("Decide")]
         public async Task<IActionResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision)
         {

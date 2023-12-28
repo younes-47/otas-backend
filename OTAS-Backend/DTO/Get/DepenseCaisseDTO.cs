@@ -14,7 +14,7 @@
 
         public decimal Total { get; set; }
 
-        public string ReceiptsFilePath { get; set; } = null!;
+        public string ReceiptsFileName { get; set; } = null!;
 
         public string LatestStatus { get; set; } = null!;
 

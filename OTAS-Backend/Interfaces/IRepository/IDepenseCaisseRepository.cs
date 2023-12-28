@@ -11,6 +11,7 @@ namespace OTAS.Interfaces.IRepository
         Task<ServiceResult> UpdateDepenseCaisseAsync(DepenseCaisse depenseCaisse);
         Task<ServiceResult> AddDepenseCaisseAsync(DepenseCaisse depenseCaisse);
         Task<ServiceResult> UpdateDepenseCaisseStatusAsync(int depesneCaisseId, int status);
+        Task<ServiceResult> DeleteDepenseCaisseAync(DepenseCaisse depenseCaisse);
         Task<List<DepenseCaisse>> GetDepensesCaisseByStatus(int status);
         Task<List<DepenseCaisseDTO>> GetDepensesCaisseByUserIdAsync(int userId);
         Task<bool> SaveAsync();

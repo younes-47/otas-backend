@@ -59,38 +59,6 @@ namespace OTAS.Services
             using var transaction = _context.Database.BeginTransaction();
             ServiceResult result = new();
 
-            // Bad requests handling
-            if (ordreMission.Trips.Count < 2)
-            {
-                result.Success = false;
-                result.Message = "OrdreMission must have at least two trips!";
-                return result;
-            }
-
-            var sortedTrips = ordreMission.Trips.OrderBy(trip => trip.DepartureDate).ToList();
-            for( int i = 0; i< sortedTrips.Count; i++)
-            {
-                if (sortedTrips[i].DepartureDate > sortedTrips[i].ArrivalDate)
-                {
-                    result.Success = false;
-                    result.Message = "One of the trips has a departure date bigger than its arrival date!";
-                    return result;
-                }
-                if (sortedTrips[i].DepartureDate > sortedTrips[i].ArrivalDate)
-                {
-                    result.Success = false;
-                    result.Message = "One of the trips has a departure date bigger than its arrival date!";
-                    return result;
-                }
-                if (i == sortedTrips.Count - 1) break; // prevent out of range index exception
-                if (sortedTrips[i].ArrivalDate > sortedTrips[i + 1].DepartureDate)
-                {
-                    result.Success = false;
-                    result.Message = "Trips dates don't make sense! You can't start another trip before you arrive from the previous one.";
-                    return result;
-                }
-            }
-
             try
             {
                 var mappedOM = _mapper.Map<OrdreMission>(ordreMission);
@@ -130,13 +98,6 @@ namespace OTAS.Services
                 // Handle Actual Requester Info (if exists)
                 if (ordreMission.OnBehalf == true)
                 {
-                    if (ordreMission.ActualRequester == null)
-                    {
-                        result.Success = false;
-                        result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
-                        return result;
-                    }
-
                     ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(ordreMission.ActualRequester);
                     mappedActualRequester.OrdreMissionId = mappedOM.Id;
                     mappedActualRequester.OrderingUserId = mappedOM.UserId;
@@ -334,52 +295,9 @@ namespace OTAS.Services
             {
                 OrdreMission updatedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMission.Id);
 
-                /*Validations*/
-                if( ordreMission.Action.ToLower() != "save" && ordreMission.Action.ToLower() != "submit")
-                {
-                    result.Success = false;
-                    result.Message = "Invalid action! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
-                    return result;
-                }
-
-                if (updatedOrdreMission.LatestStatus == 97)
-                {
-                    result.Success = false;
-                    result.Message = "You can't modify or resubmit a rejected request!";
-                    return result;
-                }
-
-                if (updatedOrdreMission.LatestStatus != 98 && updatedOrdreMission.LatestStatus != 99)
-                {
-                    result.Success = false;
-                    result.Message = "The OrdreMission you are trying to modify is not a draft nor returned! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
-                    return result;
-                }
-
-                if (ordreMission.Action.ToLower() != "save" && updatedOrdreMission.LatestStatus == 98)
-                {
-                    result.Success = false;
-                    result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
-                    return result;
-                }
-
-                if(ordreMission.Trips.Count < 1)
-                {
-                    result.Success = false;
-                    result.Message = "OrdreMission must have at least one trip! You can't request an OrdreMission with no trip.";
-                    return result;
-                }
-
                 // Handle Onbehalf case
                 if (ordreMission.OnBehalf == true)
                 {
-                    if (ordreMission.ActualRequester == null)
-                    {
-                        result.Success = false;
-                        result.Message = "You must fill actual requester's info in case you are filling this request on behalf of someone";
-                        return result;
-                    }
-
                     //Delete actualrequester info first regardless
                     ActualRequester? actualRequester = await _actualRequesterRepository.FindActualrequesterInfoByOrdreMissionIdAsync(ordreMission.Id);
                     if (actualRequester != null)
@@ -430,7 +348,7 @@ namespace OTAS.Services
 
                 updatedOrdreMission.OnBehalf = ordreMission.OnBehalf;
 
-                if (ordreMission.Action.ToLower() != "save")
+                if (ordreMission.Action.ToLower() != "submit")
                 {
                     if(updatedOrdreMission.NextDeciderUserId != null)
                     {
@@ -491,7 +409,7 @@ namespace OTAS.Services
                 return result;
             }
 
-            if (ordreMission.Action.ToLower() != "save")
+            if (ordreMission.Action.ToLower() != "submit")
             {
                 result.Success = true;
                 result.Message = "OrdreMission is resubmitted successfully";
@@ -503,14 +421,68 @@ namespace OTAS.Services
             return result;
         }
 
-        public async Task<List<OrdreMissionDTO>> GetOrdreMissionsForDeciderTable(int userId)
-        {
-            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(userId);
-            List<OrdreMission> ordreMissions = await _ordreMissionRepository.GetOrdresMissionByStatusAsync(deciderRole - 1); //See oneNote sketches to understand why it is role-1
-            List<OrdreMissionDTO> mappedOrdreMissions = _mapper.Map<List<OrdreMissionDTO>>(ordreMissions);
-            return mappedOrdreMissions;
-        }
+        
 
+        public async Task<ServiceResult> DeleteDraftedOrdreMissionWithAvanceVoyages(OrdreMission ordreMission)
+        {
+            ServiceResult result = new();
+            var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                var avanceVoyages = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMission.Id);
+                
+                // Delete trips & expenses & Status History related to AvanceVoayage
+                foreach(AvanceVoyage avanceVoyage in avanceVoyages)
+                {
+                    var trips = await _tripRepository.GetAvanceVoyageTripsByAvIdAsync(avanceVoyage.Id);
+                    var expenses = await _expenseRepository.GetAvanceVoyageExpensesByAvIdAsync(avanceVoyage.Id);
+                    var statusHistories = await _statusHistoryRepository.GetAvanceVoyageStatusHistory(avanceVoyage.Id);
+
+                    result = await _tripRepository.DeleteTrips(trips);
+                    if(!result.Success) return result;
+
+                    result = await _expenseRepository.DeleteExpenses(expenses);
+                    if (!result.Success) return result;
+
+                    result = await _statusHistoryRepository.DeleteStatusHistories(statusHistories);
+                    if (!result.Success) return result;
+                }
+
+                // Delete Status History related to AvanceVoyage
+                var OM_SH = await _statusHistoryRepository.GetOrdreMissionStatusHistory(ordreMission.Id);
+                result = await _statusHistoryRepository.DeleteStatusHistories(OM_SH);
+                if (!result.Success) return result;
+
+                if(ordreMission.OnBehalf == true)
+                {
+                    ActualRequester actualRequester = await _actualRequesterRepository.FindActualrequesterInfoByOrdreMissionIdAsync(ordreMission.Id);
+                    result = await _actualRequesterRepository.DeleteActualRequesterInfoAsync(actualRequester);
+                    if (!result.Success) return result;
+                }
+
+                // delete AV
+                result = await _avanceVoyageRepository.DeleteAvanceVoyagesRangeAsync(avanceVoyages);
+                if(!result.Success) return result;
+
+                // delete AV
+                result = await _ordreMissionRepository.DeleteOrdreMissionAsync(ordreMission);
+                if (!result.Success) return result;
+
+
+                await transaction.CommitAsync();
+
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                result.Success = false;
+                result.Message = ex.Message;
+                return result;
+            }
+            result.Success = true;
+            result.Message = "\"OrdreMission\" has been deleted successfully";
+            return result;
+        }
 
     }
 }

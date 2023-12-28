@@ -194,7 +194,7 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.DeciderComment).HasMaxLength(350);
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
-            entity.Property(e => e.ReceiptsFilePath)
+            entity.Property(e => e.ReceiptsFileName)
                 .HasMaxLength(500)
                 .IsUnicode(false);
             entity.Property(e => e.Total).HasColumnType("decimal(10, 2)");

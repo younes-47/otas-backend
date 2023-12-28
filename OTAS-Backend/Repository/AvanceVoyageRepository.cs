@@ -65,13 +65,11 @@ namespace OTAS.Repository
 
             return deciderUserId;
         }
-
-        
-        public async Task<List<AvanceVoyageTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderRole)
+   
+        public async Task<List<AvanceVoyageTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderUserId)
         {
-            List<AvanceVoyage> avanceVoyages = await GetAvancesVoyageByStatusAsync(deciderRole - 1); //See oneNote sketches to understand why it is role-1
-            List<AvanceVoyageTableDTO> mappedAvanceVoyages = _mapper.Map<List<AvanceVoyageTableDTO>>(avanceVoyages);
-            return mappedAvanceVoyages;
+            return _mapper.Map<List<AvanceVoyageTableDTO>>(await _context.AvanceVoyages.Where(av => av.NextDeciderUserId == deciderUserId).ToListAsync());
+
         }
 
         public async Task<List<AvanceVoyage>> GetAvancesVoyageByStatusAsync(int status)
@@ -142,6 +140,15 @@ namespace OTAS.Repository
 
            return result;
 
+        }
+
+        public async Task<ServiceResult> DeleteAvanceVoyagesRangeAsync(List<AvanceVoyage> avanceVoyages)
+        {
+            ServiceResult result = new();
+            _context.RemoveRange(avanceVoyages);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "AvanceVoyages has been deleted successfully" : "Something went wrong while deleting the AvanceVoyages.";
+            return result;
         }
 
         public async Task<bool> SaveAsync()

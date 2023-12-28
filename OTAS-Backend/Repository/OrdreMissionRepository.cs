@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 using OTAS.Data;
 using OTAS.DTO.Get;
 using OTAS.Interfaces.IRepository;
@@ -15,14 +16,20 @@ namespace OTAS.Repository
         private readonly OtasContext _context;
         private readonly IMapper _mapper;
         private readonly IDeciderRepository _deciderRepository;
+        private readonly IUserRepository _userRepository;
 
-        public OrdreMissionRepository(OtasContext context, IMapper mapper, IDeciderRepository deciderRepository)
+        public OrdreMissionRepository(OtasContext context, IMapper mapper, IDeciderRepository deciderRepository, IUserRepository userRepository)
         {
             _context = context;
             _mapper = mapper;
             _deciderRepository = deciderRepository;
+            _userRepository = userRepository;
         }
 
+        public async Task<List<OrdreMissionDTO>> GetOrdreMissionsForDecider(int deciderUserId)
+        {
+            return _mapper.Map<List<OrdreMissionDTO>>(await _context.OrdreMissions.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
+        }
 
         public async Task<OrdreMissionFullDetailsDTO> GetOrdreMissionFullDetailsById(int ordreMissionId)
         {
@@ -168,6 +175,14 @@ namespace OTAS.Repository
             return result;
         }
 
+        public async Task<ServiceResult> DeleteOrdreMissionAsync(OrdreMission ordreMission)
+        {
+            ServiceResult result = new();
+            _context.Remove(ordreMission);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "OrdreMission has been deleted successfully" : "Something went wrong while deleting the OrdreMission.";
+            return result;
+        }
 
         public async Task<bool> SaveAsync()
         {

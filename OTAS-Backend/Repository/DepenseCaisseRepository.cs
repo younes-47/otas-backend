@@ -54,6 +54,14 @@ namespace OTAS.Repository
             return result;
         }
 
+        public async Task<ServiceResult> DeleteDepenseCaisseAync(DepenseCaisse depenseCaisse)
+        {
+            ServiceResult result = new();
+            _context.Remove(depenseCaisse);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "DepenseCaisse has been deleted successfully" : "Something went wrong while deleting the DepenseCaisse.";
+            return result;
+        }
 
         public async Task<DepenseCaisse> GetDepenseCaisseByIdAsync(int depenseCaisseId)
         {
@@ -71,7 +79,7 @@ namespace OTAS.Repository
                     Description = dc.Description,
                     Currency = dc.Currency,
                     Total = dc.Total,
-                    ReceiptsFilePath = dc.ReceiptsFilePath,
+                    ReceiptsFileName = dc.ReceiptsFileName,
                     LatestStatus = dc.LatestStatusNavigation.StatusString,
                     CreateDate = dc.CreateDate,
                 })

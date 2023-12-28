@@ -13,11 +13,13 @@ namespace OTAS.Repository
     {
         private readonly OtasContext _context;
         private readonly IDeciderRepository _deciderRepository;
+        private readonly IMapper _mapper;
 
-        public AvanceCaisseRepository(OtasContext context, IDeciderRepository deciderRepository)
+        public AvanceCaisseRepository(OtasContext context, IDeciderRepository deciderRepository, IMapper mapper)
         {
             _context = context;
             _deciderRepository = deciderRepository;
+            _mapper = mapper;
         }
 
         public async Task<ServiceResult> AddAvanceCaisseAsync(AvanceCaisse avanceCaisse)
@@ -37,6 +39,11 @@ namespace OTAS.Repository
         public async Task<AvanceCaisse> GetAvanceCaisseByIdAsync(int avanceCaisseId)
         {
             return await _context.AvanceCaisses.Where(ac => ac.Id == avanceCaisseId).FirstAsync();
+        }
+        public async Task<List<AvanceCaisseDTO>> GetAvanceCaissesForDeciderTable(int deciderUserId)
+        {
+            return _mapper.Map<List<AvanceCaisseDTO>>(await _context.AvanceCaisses.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
+
         }
 
         public async Task<List<AvanceCaisse>> GetAvancesCaisseByStatusAsync(int status)
@@ -127,6 +134,14 @@ namespace OTAS.Repository
             return deciderUserId;
         }
 
+        public async Task<ServiceResult> DeleteAvanceCaisseAync(AvanceCaisse avanceCaisse)
+        {
+            ServiceResult result = new();
+            _context.Remove(avanceCaisse);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "AvanceCaisse has been deleted successfully" : "Something went wrong while deleting the AvanceCaisse.";
+            return result;
+        }
 
         public async Task<string?> DecodeStatusAsync(int statusCode)
         {

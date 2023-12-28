@@ -87,6 +87,16 @@ namespace OTAS.Repository
             return result;
         }
 
+        public async Task<ServiceResult> DeleteStatusHistories(List<StatusHistory> statusHistories)
+        {
+            ServiceResult result = new();
+            _context.RemoveRange(statusHistories);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "StatusHistories deleted successfully" : "Something went wrong while deleting the StatusHistories.";
+            return result;
+        }
+
+
         //
         public async Task<ServiceResult> AddStatusAsync(StatusHistory status)
         {

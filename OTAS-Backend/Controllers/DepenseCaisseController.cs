@@ -57,18 +57,34 @@ namespace OTAS.Controllers
         public async Task<IActionResult> AddDepenseCaisse([FromBody] DepenseCaissePostDTO depenseCaisse)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            string uniqueReceiptsFileName;
+            if (depenseCaisse.ReceiptsFile == null || depenseCaisse.ReceiptsFile.Length == 0 || depenseCaisse.ReceiptsFile.ToString() == "") 
+                return BadRequest("No file uploaded!");
 
-            if (depenseCaisse.ReceiptsFile != null && depenseCaisse.ReceiptsFile.Length > 0 && depenseCaisse.ReceiptsFile.ToString() != "") 
-                return BadRequest("No file uploaded");
+            ServiceResult result = new();
 
-            //File has been uploaded and a unique name has been generated now deal with the json
+            if (depenseCaisse.Expenses.Count < 1)
+            {
+                result.Success = false;
+                result.Message = "DepenseCaisse must contain at least one expense! You can't request a DepenseCaisse with no expense.";
+                return BadRequest(result);
+            }
+            if (depenseCaisse.Currency != "MAD" && depenseCaisse.Currency != "EUR")
+            {
+                result.Success = false;
+                result.Message = "Invalid currency! Please choose suitable currency from the dropdownmenu!";
+                return BadRequest(result);
+            }
+            if (depenseCaisse.OnBehalf == true && depenseCaisse.ActualRequester == null)
+            {
+                result.Success = false;
+                result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
+                return BadRequest(result);
+            }
 
             var user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            result = await _depenseCaisseService.AddDepenseCaisse(depenseCaisse, user.Id);
 
-            ServiceResult result = await _depenseCaisseService.AddDepenseCaisse(depenseCaisse, user.Id);
             if (!result.Success) return BadRequest($"{result.Message}");
-
             return Ok(result.Message);
         }
 
@@ -76,38 +92,92 @@ namespace OTAS.Controllers
         [HttpPut("Modify")]
         public async Task<IActionResult> ModifyDepenseCaisse([FromBody] DepenseCaissePutDTO depenseCaisse)
         {
+            // REQUEST VALIDATIONS
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (await _depenseCaisseRepository.FindDepenseCaisseAsync(depenseCaisse.Id) == null) return NotFound("DC is not found");
 
-            if (depenseCaisse.ReceiptsFile != null && depenseCaisse.ReceiptsFile.Length > 0 && depenseCaisse.ReceiptsFile.ToString() != "")
-                return BadRequest("No file uploaded");
-
-            bool isActionValid = depenseCaisse.Action.ToLower() != "save" && depenseCaisse.Action.ToLower() != "submit";
+            bool isActionValid = depenseCaisse.Action.ToLower() == "save" || depenseCaisse.Action.ToLower() == "submit";
             if (!isActionValid) return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
 
+            DepenseCaisse depenseCaisse_DB = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(depenseCaisse.Id);
+            if (depenseCaisse.Action.ToLower() == "save" && (depenseCaisse_DB.LatestStatus == 98 || depenseCaisse_DB.LatestStatus == 97)) 
+                return BadRequest("You cannot save a returned or a rejected request as a draft!");
+            ServiceResult result = new();
+            if (depenseCaisse_DB.LatestStatus == 97)
+            {
+                result.Success = false;
+                result.Message = "You can't modify or resubmit a rejected request!";
+                return BadRequest(result);
+            }
+            if (depenseCaisse_DB.LatestStatus != 98 && depenseCaisse_DB.LatestStatus != 99)
+            {
+                result.Success = false;
+                result.Message = "The DP you are trying to modify is not a draft nor returned! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
+                return BadRequest(result);
+            }
+            if (depenseCaisse.Action.ToLower() == "save" && depenseCaisse_DB.LatestStatus == 98)
+            {
+                result.Success = false;
+                result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
+                return BadRequest(result);
+            }
+            if (depenseCaisse.Expenses.Count < 1)
+            {
+                result.Success = false;
+                result.Message = "DepenseCaisse must have at least one expense! You can't request a DP with no expense.";
+                return BadRequest(result);
+            }
+            if (depenseCaisse.OnBehalf == true && depenseCaisse.ActualRequester == null)
+            {
+                result.Success = false;
+                result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
+                return BadRequest(result);
+            }
 
-            var DC = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(depenseCaisse.Id);
-            if (depenseCaisse.Action.ToLower() == "save" && (DC.LatestStatus == 98 || DC.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
 
-            ServiceResult result = await _depenseCaisseService.ModifyDepenseCaisse(depenseCaisse);
-
+            result = await _depenseCaisseService.ModifyDepenseCaisse(depenseCaisse);
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Message);
         }
 
         [Authorize(Roles = "requester , decider")]
         [HttpPut("Submit")]
-        public async Task<IActionResult> Submit(int depenseCaisseId)
+        public async Task<IActionResult> SubmitDepenseCaisse(int Id)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (await _depenseCaisseRepository.FindDepenseCaisseAsync(depenseCaisseId) == null) return NotFound("DepenseCaisse is not found!");
-
-            ServiceResult result = await _depenseCaisseService.SubmitDepenseCaisse(depenseCaisseId);
+            if (await _depenseCaisseRepository.FindDepenseCaisseAsync(Id) == null) return NotFound("DepenseCaisse is not found!");
+            ServiceResult result = new();
+            var testAC = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(Id);
+            if (testAC.LatestStatus == 1)
+            {
+                result.Success = false;
+                result.Message = "You've already submitted this DepenseCaisse!";
+                return BadRequest(result);
+            }
+            result = await _depenseCaisseService.SubmitDepenseCaisse(Id);
             if (!result.Success) return BadRequest(result.Message);
 
             return Ok(result.Message);
         }
 
+        [Authorize(Roles = "requester , decider")]
+        [HttpDelete("Delete")]
+        public async Task<IActionResult> DeleteDraftedDepenseCaisse(int Id) // Id = depenseCaisseId
+        {
+            ServiceResult result = new();
+            if (await _depenseCaisseRepository.FindDepenseCaisseAsync(Id) == null) return NotFound("DepenseCaisse not found!");
+            DepenseCaisse depenseCaisse = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(Id);
+
+            if (depenseCaisse.LatestStatus != 99)
+            {
+                result.Success = false;
+                result.Message = "The request is not in a draft status. You cannot delete requests in a different status than draft.";
+                return BadRequest(result);
+            }
+
+            result = await _depenseCaisseService.DeleteDraftedDepenseCaisse(depenseCaisse);
+            return Ok(result.Message);
+        }
 
 
         ////Requester

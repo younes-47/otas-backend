@@ -24,6 +24,8 @@ namespace OTAS.Interfaces.IRepository
 
         Task<ServiceResult> UpdateStatusHistoryTotal(int requestId, string requestType, decimal total);
 
+        Task<ServiceResult> DeleteStatusHistories(List<StatusHistory> statusHistories);
+
         Task<ServiceResult> AddStatusAsync(StatusHistory status);
         Task<bool> SaveAsync();
 

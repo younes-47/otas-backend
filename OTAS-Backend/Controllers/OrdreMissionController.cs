@@ -52,12 +52,29 @@ namespace OTAS.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            if (ordreMissionRequest.Trips.Count < 2)
+               return BadRequest("OrdreMission must have at least two trips!");
+            if (ordreMissionRequest.OnBehalf == true && ordreMissionRequest.ActualRequester == null)
+                return BadRequest("You must fill actual requester's info in case you are filling this request on behalf of someone");
+
+            var sortedTrips = ordreMissionRequest.Trips.OrderBy(trip => trip.DepartureDate).ToList();
+            for (int i = 0; i < sortedTrips.Count; i++)
+            {
+                if (ordreMissionRequest.Abroad == false && sortedTrips[i].Unit == "EUR")
+                    return BadRequest("A trip estimated fee cannot be in EUR if your mission is not abroad!");
+                if (sortedTrips[i].DepartureDate > sortedTrips[i].ArrivalDate)
+                    return BadRequest("One of the trips has a departure date bigger than its arrival date!");
+
+                if (sortedTrips[i].DepartureDate > sortedTrips[i].ArrivalDate)
+                    return BadRequest("One of the trips has a departure date bigger than its arrival date!");
+
+                if (i == sortedTrips.Count - 1) break; // prevent out of range index exception
+                if (sortedTrips[i].ArrivalDate > sortedTrips[i + 1].DepartureDate)
+                    return BadRequest("Trips dates don't make sense! You can't start another trip before you arrive from the previous one.");
+
+            }
             if (ordreMissionRequest.Abroad == false)
             {
-                foreach (TripPostDTO trip in ordreMissionRequest.Trips)
-                {
-                    if (trip.Unit == "EUR") return BadRequest("A trip estimated fee cannot be in EUR if your mission is not abroad!");
-                }
                 foreach (ExpensePostDTO expense in ordreMissionRequest.Expenses)
                 {
                     if (expense.Currency == "EUR") return BadRequest("An expense cannot be in EUR if your mission is not abroad!");
@@ -75,13 +92,26 @@ namespace OTAS.Controllers
         [HttpPut("Modify")]
         public async Task<IActionResult> ModifyOrdreMission([FromBody] OrdreMissionPutDTO ordreMission)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(ordreMission.Id) == null) return NotFound("OrdreMission not found");
+            // VALIDATIONS
 
-            bool isActionValid = ordreMission.Action.ToLower() != "save" || ordreMission.Action.ToLower() != "submit";
-            if (!isActionValid) return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
-            var OM = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMission.Id);
-            if (ordreMission.Action.ToLower() != "save" && (OM.LatestStatus == 98 || OM.LatestStatus == 97)) return BadRequest("You cannot save a returned or a rejected request as a draft!");
+            if (!ModelState.IsValid) 
+                return BadRequest(ModelState);
+            if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(ordreMission.Id) == null) 
+                return NotFound("OrdreMission not found");
+
+            bool isActionValid = ordreMission.Action.ToLower() == "save" || ordreMission.Action.ToLower() == "submit";
+            if (!isActionValid) 
+                return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
+
+            var ordreMission_DB = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMission.Id);   
+            if (ordreMission.Action.ToLower() != "save" && ordreMission_DB.LatestStatus == 98) 
+                return BadRequest("You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly");
+            if (ordreMission_DB.LatestStatus != 98 && ordreMission_DB.LatestStatus != 99)
+                return BadRequest("The OrdreMission you are trying to modify is not a draft nor returned! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks");
+            if (ordreMission.Trips.Count < 2)           
+                return BadRequest( "OrdreMission must have at least 2 trips!");
+            if (ordreMission.OnBehalf == true && ordreMission.ActualRequester == null)
+                return BadRequest("You must fill actual requester's info in case you are filling this request on behalf of someone");
 
             if (ordreMission.Abroad == false)
             {
@@ -104,25 +134,44 @@ namespace OTAS.Controllers
 
         [Authorize(Roles = "requester , decider")]
         [HttpPut("Submit")]
-        public async Task<IActionResult> SubmitOrdreMission(int ordreMissionId)
+        public async Task<IActionResult> SubmitOrdreMission(int Id) // Id = ordreMissionId
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(ordreMissionId) == null) return NotFound("OrdreMission is not found!");
+            if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(Id) == null) 
+                return NotFound("OrdreMission is not found!");
 
-            ServiceResult result = await _ordreMissionService.SubmitOrdreMissionWithAvanceVoyage(ordreMissionId);
+            var ordreMission_DB = await _ordreMissionRepository.GetOrdreMissionByIdAsync(Id);
+            if (ordreMission_DB.LatestStatus != 99)
+                return BadRequest("Action denied! You cannot submit the request in this state");
+
+            ServiceResult result = await _ordreMissionService.SubmitOrdreMissionWithAvanceVoyage(Id);
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Message);
         }
 
         [Authorize(Roles = "requester , decider")]
-        [HttpGet("{ordreMissionId}/View")]
-        public async Task<IActionResult> ShowOrdreMissionDetailsPage(int ordreMissionId)
+        [HttpGet("View")]
+        public async Task<IActionResult> ShowOrdreMissionDetailsPage(int Id) // Id = ordreMissionId
         {
-            if(await _ordreMissionRepository.FindOrdreMissionByIdAsync(ordreMissionId) == null) return NotFound("OrdreMission not found!");
-            var ordreMission = await _ordreMissionRepository.GetOrdreMissionFullDetailsById(ordreMissionId);
+            if(await _ordreMissionRepository.FindOrdreMissionByIdAsync(Id) == null) return NotFound("OrdreMission not found!");
+            var ordreMission = await _ordreMissionRepository.GetOrdreMissionFullDetailsById(Id);
             return Ok(ordreMission);
         }
 
+        [Authorize(Roles = "requester , decider")]
+        [HttpDelete("Delete")]
+        public async Task<IActionResult> DeleteDraftedOrdreMission(int Id) // Id = ordreMissionId
+        {
+           
+            if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(Id) == null) return NotFound("OrdreMission not found!");
+            OrdreMission ordreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(Id);
+
+            if (ordreMission.LatestStatus != 99)
+                return BadRequest("The request is not in a draft. You cannot delete requests in a different status than draft.");
+
+            ServiceResult result = await _ordreMissionService.DeleteDraftedOrdreMissionWithAvanceVoyages(ordreMission);
+            return Ok(result.Message);
+        }
 
         [Authorize(Roles ="decider")]
         [HttpGet("DecideOnRequests/Table")]
@@ -130,12 +179,13 @@ namespace OTAS.Controllers
         {
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
-            List<OrdreMissionDTO> ordreMissions = await _ordreMissionService.GetOrdreMissionsForDeciderTable(user.Id);
-            if (ordreMissions.Count <= 0) return NotFound("User has no \"OrdreMission\" to decide upon!");
 
+            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
+            if (deciderRole == 1 || deciderRole == 0) return BadRequest("You are not authorized to decide upon requests!");
+
+            List<OrdreMissionDTO> ordreMissions = await _ordreMissionRepository.GetOrdreMissionsForDecider(user.Id);
             return Ok(ordreMissions);
         }
-
 
         [Authorize(Roles = "decider")]
         [HttpPut("Decide")]

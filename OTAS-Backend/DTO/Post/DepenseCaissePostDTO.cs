@@ -4,8 +4,6 @@ namespace OTAS.DTO.Post
 {
     public class DepenseCaissePostDTO
     {
-        public int Id { get; set; } 
-
         public bool OnBehalf { get; set; }
 
         public string Description { get; set; } = null!;

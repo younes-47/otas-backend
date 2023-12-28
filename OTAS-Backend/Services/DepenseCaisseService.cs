@@ -19,6 +19,7 @@ namespace OTAS.Services
         private readonly IExpenseRepository _expenseRepository;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IDeciderRepository _deciderRepository;
+        private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
         private readonly OtasContext _context;
 
@@ -28,6 +29,7 @@ namespace OTAS.Services
             IExpenseRepository expenseRepository,
             IWebHostEnvironment webHostEnvironment,
             IDeciderRepository deciderRepository,
+            IUserRepository userRepository,
             IMapper mapper,
             OtasContext context)
         {
@@ -37,6 +39,7 @@ namespace OTAS.Services
             _expenseRepository = expenseRepository;
             _webHostEnvironment = webHostEnvironment;
             _deciderRepository = deciderRepository;
+            _userRepository = userRepository;
             _mapper = mapper;
             _context = context;
         }
@@ -48,20 +51,6 @@ namespace OTAS.Services
             var transaction = _context.Database.BeginTransaction();
             try
             {
-                if (depenseCaisse.Expenses.Count < 1)
-                {
-                    result.Success = false;
-                    result.Message = "DepenseCaisse must contain at least one expense! You can't request a DepenseCaisse with no expense.";
-                    return result;
-                }
-
-                if (depenseCaisse.Currency != "MAD" && depenseCaisse.Currency != "EUR")
-                {
-                    result.Success = false;
-                    result.Message = "Invalid currency! Please choose suitable currency from the dropdownmenu!";
-                    return result;
-                }
-
                 //Automatic mapping
                 List<Expense> mappedExpenses = _mapper.Map<List<Expense>>(depenseCaisse.Expenses);
                 DepenseCaisse mappedDepenseCaisse = _mapper.Map<DepenseCaisse>(depenseCaisse);
@@ -76,15 +65,15 @@ namespace OTAS.Services
                     Directory.CreateDirectory(uploadsFolderPath);
                 }
                 /* Create file name by concatenating a uuid + DC + username + .pdf extension */
-                string uniqueReceiptsFileName = Guid.NewGuid() + "_DC_" + userId + ".pdf";
+                var user = await _userRepository.GetUserByUserIdAsync(userId);
+                string uniqueReceiptsFileName = Guid.NewGuid() + "_DC_" + user.Username + ".pdf";
                 /* Combine the folder path with the file name to create full path */
                 var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
-                /* Create the file */
-                await System.IO.File.WriteAllBytesAsync(filePath, depenseCaisse.ReceiptsFile);
-
+                /* The creation of the file occurs after the commitment of DB changes */
+               
 
                 mappedDepenseCaisse.Total = CalculateExpensesEstimatedTotal(mappedExpenses);
-                mappedDepenseCaisse.ReceiptsFilePath = uniqueReceiptsFileName;
+                mappedDepenseCaisse.ReceiptsFileName = uniqueReceiptsFileName;
                 mappedDepenseCaisse.UserId = userId;
 
                 result = await _depenseCaisseRepository.AddDepenseCaisseAsync(mappedDepenseCaisse);
@@ -107,14 +96,7 @@ namespace OTAS.Services
 
                 // Handle Actual Requester Info (if exists)
                 if (depenseCaisse.OnBehalf == true)
-                {
-                    if (depenseCaisse.ActualRequester == null)
-                    {
-                        result.Success = false;
-                        result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
-                        return result;
-                    }
-
+                {              
                     ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(depenseCaisse.ActualRequester);
                     mappedActualRequester.DepenseCaisseId = mappedDepenseCaisse.Id;
                     mappedActualRequester.OrderingUserId = mappedDepenseCaisse.UserId;
@@ -133,6 +115,8 @@ namespace OTAS.Services
 
                 await transaction.CommitAsync();
 
+                /* Create the file if everything went as expected*/
+                await System.IO.File.WriteAllBytesAsync(filePath, depenseCaisse.ReceiptsFile);
             }
             catch (Exception ex)
             {
@@ -154,44 +138,10 @@ namespace OTAS.Services
             {
                 DepenseCaisse depenseCaisse_DB = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(depenseCaisse.Id);
 
-                if (depenseCaisse_DB.LatestStatus == 97)
-                {
-                    result.Success = false;
-                    result.Message = "You can't modify or resubmit a rejected request!";
-                    return result;
-                }
-
-                if (depenseCaisse_DB.LatestStatus != 98 && depenseCaisse_DB.LatestStatus != 99)
-                {
-                    result.Success = false;
-                    result.Message = "The DP you are trying to modify is not a draft nor returned! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
-                    return result;
-                }
-
-                if (depenseCaisse.Action.ToLower() == "save" && depenseCaisse_DB.LatestStatus == 98)
-                {
-                    result.Success = false;
-                    result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
-                    return result;
-                }
-
-                if (depenseCaisse.Expenses.Count < 1)
-                {
-                    result.Success = false;
-                    result.Message = "DP must have at least one expense! You can't request a DP with no expense.";
-                    return result;
-                }
 
                 // Handle Onbehalf case
                 if (depenseCaisse.OnBehalf == true)
                 {
-                    if (depenseCaisse.ActualRequester == null)
-                    {
-                        result.Success = false;
-                        result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
-                        return result;
-                    }
-
                     //Delete actualrequester info first regardless
                     ActualRequester? actualRequester = await _actualRequesterRepository.FindActualrequesterInfoByDepenseCaisseIdAsync(depenseCaisse.Id);
                     if (actualRequester != null)
@@ -240,26 +190,35 @@ namespace OTAS.Services
                 depenseCaisse_DB.Currency = depenseCaisse.Currency;
                 depenseCaisse_DB.OnBehalf = depenseCaisse.OnBehalf;
 
-                
-                /* _webHostEnvironment.WebRootPath == wwwroot\ (the default folder to store files) */
-                var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Depense-Caisse-Receipts");
-                if (!Directory.Exists(uploadsFolderPath))
+                //CHECK IF THE MODIFICATION REQUEST HAS A NEW FILE UPLOADED => DELETE OLD ONE AND CREATE NEW ONE
+                String newFilePath = "";
+                String oldFilePath = "";
+                if (depenseCaisse.ReceiptsFile != null)
                 {
-                    Directory.CreateDirectory(uploadsFolderPath);
-                }
-                /* concatenate a uuid + DC + username + .pdf extension */
-                string uniqueReceiptsFileName = Guid.NewGuid() + "_DC_" + depenseCaisse_DB.UserId + ".pdf";
-                /* combine the folder path with the file name */
-                var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
-                /* Create the file */
-                await System.IO.File.WriteAllBytesAsync(filePath, depenseCaisse.ReceiptsFile);
+                    /* _webHostEnvironment.WebRootPath == wwwroot\ (the default folder to store files) */
+                    var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Depense-Caisse-Receipts");
+                    if (!Directory.Exists(uploadsFolderPath))
+                    {
+                        Directory.CreateDirectory(uploadsFolderPath);
+                    }
+                    /* concatenate a uuid + DC + username + .pdf extension */
+                    var user = await _userRepository.GetUserByUserIdAsync(depenseCaisse_DB.UserId);
+                    string uniqueReceiptsFileName = Guid.NewGuid() + "_DC_" + user.Username + ".pdf";
+                    /* combine the folder path with the file name */
+                    newFilePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
+                    /* Find the old file */
+                    oldFilePath = Path.Combine(uploadsFolderPath, depenseCaisse_DB.ReceiptsFileName);
 
-                depenseCaisse_DB.ReceiptsFilePath = uniqueReceiptsFileName;
+                    /* Deletion and creation of the file occur after the commitment of DB changes */
+
+                    depenseCaisse_DB.ReceiptsFileName = uniqueReceiptsFileName;
+                }
+
                 depenseCaisse_DB.Total = CalculateExpensesEstimatedTotal(mappedExpenses);
 
 
                 //Insert new status history in case of a submit action
-                if (depenseCaisse.Action.ToLower() == "save")
+                if (depenseCaisse.Action.ToLower() == "submit")
                 {
                     var managerUserId = await _deciderRepository.GetManagerUserIdByUserIdAsync(depenseCaisse_DB.UserId);
                     depenseCaisse_DB.NextDeciderUserId = managerUserId;
@@ -284,6 +243,15 @@ namespace OTAS.Services
                 }
 
                 await transaction.CommitAsync();
+
+                if(depenseCaisse.ReceiptsFile != null)
+                {
+                    /* Delete old file */
+                    System.IO.File.Delete(oldFilePath);
+                    /* Create the new file */
+                    await System.IO.File.WriteAllBytesAsync(newFilePath, depenseCaisse.ReceiptsFile);
+                }
+           
             }
             catch (Exception exception)
             {
@@ -295,7 +263,7 @@ namespace OTAS.Services
             if (depenseCaisse.Action.ToLower() == "save")
             {
                 result.Success = true;
-                result.Message = "depenseCaisse is resubmitted successfully";
+                result.Message = "DepenseCaisse is resubmitted successfully";
                 return result;
             }
 
@@ -311,24 +279,17 @@ namespace OTAS.Services
 
             try
             {
-                var testAC = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(depenseCaisseId);
-                if (testAC.LatestStatus == 1)
-                {
-                    result.Success = false;
-                    result.Message = "You've already submitted this DepenseCaisse!";
-                    return result;
-                }
-
-                result = await _depenseCaisseRepository.UpdateDepenseCaisseStatusAsync(depenseCaisseId, 1);
-                if (!result.Success) return result;
-
-                DepenseCaisse dc = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(depenseCaisseId);
-
+                DepenseCaisse depenseCaisse_DB = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(depenseCaisseId);
+                var nextDeciderUserId = await _deciderRepository.GetManagerUserIdByUserIdAsync(depenseCaisse_DB.UserId);
+                depenseCaisse_DB.NextDeciderUserId = nextDeciderUserId;
+                depenseCaisse_DB.LatestStatus = 1;
+                result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(depenseCaisse_DB);
                 StatusHistory newOM_Status = new()
                 {
-                    Total = dc.Total,
+                    Total = depenseCaisse_DB.Total,
                     DepenseCaisseId = depenseCaisseId,
                     Status = 1,
+                    NextDeciderUserId = nextDeciderUserId,
                 };
                 result = await _statusHistoryRepository.AddStatusAsync(newOM_Status);
                 if (!result.Success)
@@ -352,6 +313,57 @@ namespace OTAS.Services
 
         }
 
+        public async Task<ServiceResult> DeleteDraftedDepenseCaisse(DepenseCaisse depenseCaisse)
+        {
+            ServiceResult result = new();
+            var transaction = _context.Database.BeginTransaction();
+            try
+            {
+
+                // Delete expenses & status History
+                var expenses = await _expenseRepository.GetDepenseCaisseExpensesByAvIdAsync(depenseCaisse.Id);
+                var statusHistories = await _statusHistoryRepository.GetDepenseCaisseStatusHistory(depenseCaisse.Id);
+
+                result = await _expenseRepository.DeleteExpenses(expenses);
+                if (!result.Success) return result;
+
+                result = await _statusHistoryRepository.DeleteStatusHistories(statusHistories);
+                if (!result.Success) return result;
+
+
+                if (depenseCaisse.OnBehalf == true)
+                {
+                    ActualRequester actualRequester = await _actualRequesterRepository.FindActualrequesterInfoByDepenseCaisseIdAsync(depenseCaisse.Id);
+                    result = await _actualRequesterRepository.DeleteActualRequesterInfoAsync(actualRequester);
+                    if (!result.Success) return result;
+                }
+
+                // Delete the file from the system
+                /* _webHostEnvironment.WebRootPath == wwwroot\ (the default folder to store files) */
+                var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Depense-Caisse-Receipts");
+                /* Find the file */
+                var filePath = Path.Combine(uploadsFolderPath, depenseCaisse.ReceiptsFileName);
+                
+                // delete DC
+                result = await _depenseCaisseRepository.DeleteDepenseCaisseAync(depenseCaisse);
+                if (!result.Success) return result;
+
+                await transaction.CommitAsync();
+
+                /* Delete old file */
+                System.IO.File.Delete(filePath);
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                result.Success = false;
+                result.Message = ex.Message;
+                return result;
+            }
+            result.Success = true;
+            result.Message = "\"DepenseCaisse\" has been deleted successfully";
+            return result;
+        }
 
         public decimal CalculateExpensesEstimatedTotal(List<Expense> expenses)
         {

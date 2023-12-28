@@ -14,8 +14,8 @@ namespace OTAS.DTO.Put
 
         public string Currency { get; set; } = null!;
 
-        public Byte[] ReceiptsFile { get; set; } = null!;
-
+        public Byte[]? ReceiptsFile { get; set; } // receipts file is not required during modification
+       
         public virtual ActualRequesterPostDTO? ActualRequester { get; set; }
 
         public virtual List<ExpenseNoCurrencyPostDTO> Expenses { get; set; } = new List<ExpenseNoCurrencyPostDTO>();

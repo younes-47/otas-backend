@@ -50,20 +50,7 @@ namespace OTAS.Services
             ServiceResult result = new();
             try
             {
-                if (avanceCaisse.Expenses.Count < 1)
-                {
-                    result.Success = false;
-                    result.Message = "AvanceCaisse must have at least one expense! You can't request an AvanceCaisse with no expense.";
-                    return result;
-                }
-
-                if (avanceCaisse.Currency != "MAD" && avanceCaisse.Currency != "EUR")
-                {
-                    result.Success = false;
-                    result.Message = "Invalid currency! Please choose suitable currency from the dropdownmenu!";
-                    return result;
-                }
-
+                
                 var mappedAC = _mapper.Map<AvanceCaisse>(avanceCaisse);
                 List<Expense> expenses = _mapper.Map<List<Expense>>(avanceCaisse.Expenses);
                 mappedAC.EstimatedTotal = CalculateExpensesEstimatedTotal(expenses);
@@ -87,13 +74,6 @@ namespace OTAS.Services
                 // Handle Actual Requester Info (if exists)
                 if (avanceCaisse.OnBehalf == true)
                 {
-                    if (avanceCaisse.ActualRequester == null)
-                    {
-                        result.Success = false;
-                        result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
-                        return result;
-                    }
-
                     ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(avanceCaisse.ActualRequester);
                     mappedActualRequester.AvanceCaisseId = mappedAC.Id;
                     mappedActualRequester.OrderingUserId = mappedAC.UserId;
@@ -124,21 +104,13 @@ namespace OTAS.Services
 
         }
 
-        public async Task<ServiceResult> SubmitAvanceCaisse(int avanceCaisseId)
+        public async Task<ServiceResult> SubmitAvanceCaisse(AvanceCaisse avanceCaisse_DB)
         {
             ServiceResult result = new();
             var transaction = _context.Database.BeginTransaction();
 
             try
             {
-                AvanceCaisse avanceCaisse_DB = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisseId);
-                if(avanceCaisse_DB.LatestStatus == 1)
-                {
-                    result.Success = false;
-                    result.Message = "You've already submitted this AvanceCaisse!";
-                    return result;
-                }
-
                 var nextDeciderUserId = await _deciderRepository.GetManagerUserIdByUserIdAsync(avanceCaisse_DB.UserId);
                 avanceCaisse_DB.NextDeciderUserId = nextDeciderUserId;
                 avanceCaisse_DB.LatestStatus = 1;
@@ -148,7 +120,7 @@ namespace OTAS.Services
                 StatusHistory newOM_Status = new()
                 {
                     Total = avanceCaisse_DB.EstimatedTotal,
-                    AvanceCaisseId = avanceCaisseId,
+                    AvanceCaisseId = avanceCaisse_DB.Id,
                     Status = 1,
                     NextDeciderUserId = nextDeciderUserId,
                 };
@@ -185,13 +157,6 @@ namespace OTAS.Services
             avanceCaisse.User = _mapper.Map<UserDTO>(await _context.Users.Where(user => user.Id == avanceCaisse.UserId).FirstAsync());
 
             return avanceCaisse;
-        }
-
-        public async Task<List<AvanceCaisseDTO>> GetAvanceCaissesForDeciderTable(int deciderRole)
-        {
-            List<AvanceCaisse> avanceCaisses = await _avanceCaisseRepository.GetAvancesCaisseByStatusAsync(deciderRole - 1); //See oneNote sketches to understand why it is role-1
-            List<AvanceCaisseDTO> mappedAvanceCaisses = _mapper.Map<List<AvanceCaisseDTO>>(avanceCaisses);
-            return mappedAvanceCaisses;
         }
 
         public async Task<ServiceResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision)
@@ -303,45 +268,9 @@ namespace OTAS.Services
             {
                 AvanceCaisse avanceCaisse_DB = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisse.Id);
 
-                if (avanceCaisse_DB.LatestStatus == 97)
-                {
-                    result.Success = false;
-                    result.Message = "You can't modify or resubmit a rejected request!";
-                    return result;
-                }
-
-                if (avanceCaisse_DB.LatestStatus != 98 && avanceCaisse_DB.LatestStatus != 99)
-                {
-                    result.Success = false;
-                    result.Message = "The AvanceCaisse you are trying to modify is not a draft nor returned! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
-                    return result;
-                }
-
-                if(avanceCaisse.Action.ToLower() == "save" && avanceCaisse_DB.LatestStatus == 98)
-                {
-                    result.Success = false;
-                    result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
-                    return result;
-                }
-
-                if (avanceCaisse.Expenses.Count < 1)
-                {
-                    result.Success = false;
-                    result.Message = "AvanceCaisse must have at least one expense! You can't request an AvanceCaisse with no expense.";
-                    return result;
-                }
-
-
                 // Handle Onbehalf case
                 if (avanceCaisse.OnBehalf == true)
                 {
-                    if (avanceCaisse.ActualRequester == null)
-                    {
-                        result.Success = false;
-                        result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
-                        return result;
-                    }
-
                     //Delete actualrequester info first regardless
                     ActualRequester? actualRequester = await _actualRequesterRepository.FindActualrequesterInfoByAvanceCaisseIdAsync(avanceCaisse.Id);
                     if(actualRequester != null)
@@ -441,6 +370,51 @@ namespace OTAS.Services
             return result;
 
         }
+
+        public async Task<ServiceResult> DeleteDraftedAvanceCaisse(AvanceCaisse avanceCaisse)
+        {
+            ServiceResult result = new();
+            var transaction = _context.Database.BeginTransaction();
+            try
+            {
+
+                // Delete expenses & status History
+                var expenses = await _expenseRepository.GetAvanceCaisseExpensesByAvIdAsync(avanceCaisse.Id);
+                var statusHistories = await _statusHistoryRepository.GetAvanceCaisseStatusHistory(avanceCaisse.Id);
+
+                result = await _expenseRepository.DeleteExpenses(expenses);
+                if (!result.Success) return result;
+
+                result = await _statusHistoryRepository.DeleteStatusHistories(statusHistories);
+                if (!result.Success) return result;
+                
+
+                if (avanceCaisse.OnBehalf == true)
+                {
+                    ActualRequester actualRequester = await _actualRequesterRepository.FindActualrequesterInfoByAvanceCaisseIdAsync(avanceCaisse.Id);
+                    result = await _actualRequesterRepository.DeleteActualRequesterInfoAsync(actualRequester);
+                    if (!result.Success) return result;
+                }
+
+                // delete AC
+                result = await _avanceCaisseRepository.DeleteAvanceCaisseAync(avanceCaisse);
+                if (!result.Success) return result;
+
+                await transaction.CommitAsync();
+
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                result.Success = false;
+                result.Message = ex.Message;
+                return result;
+            }
+            result.Success = true;
+            result.Message = "\"AvanceCaisse\" has been deleted successfully";
+            return result;
+        }
+
 
         public decimal CalculateExpensesEstimatedTotal(List<Expense> expenses)
         {
