@@ -22,9 +22,9 @@ namespace OTAS.Repository
         }
 
 
-        public async Task<int> GetAvanceVoyageNextDeciderUserId(string currentlevel, bool? isLongerThanOneDay = false, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false)
+        public async Task<int> GetAvanceVoyageNextDeciderUserId(string currentlevel, bool? isLongerThanOneDay = false)
         {
-            int deciderUserId = 0;
+            int deciderUserId;
             switch (currentlevel)
             {
                 case "MG":
@@ -32,11 +32,6 @@ namespace OTAS.Repository
                     break;
 
                 case "FM":
-                    if (isReturnedToTRbyFM == true)
-                    {
-                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR"); /* in case FM returns it to TR */
-                        break;
-                    }
                     deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("GD");
                     break;
 
@@ -54,11 +49,10 @@ namespace OTAS.Repository
                     break;
 
                 case "TR":
-                    if (isReturnedToFMByTR == true)
-                    {
-                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("FM"); /* In case TR returns it to FM */
-                        break;
-                    }
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
+                    break;
+
+                default:
                     deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
                     break;
             }
@@ -68,8 +62,18 @@ namespace OTAS.Repository
    
         public async Task<List<AvanceVoyageTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderUserId)
         {
-            return _mapper.Map<List<AvanceVoyageTableDTO>>(await _context.AvanceVoyages.Where(av => av.NextDeciderUserId == deciderUserId).ToListAsync());
+            /* Get the records that needs to be decided upon now */
+            List<AvanceVoyageTableDTO> avanceVoyages = _mapper.Map<List<AvanceVoyageTableDTO>>
+                (await _context.AvanceVoyages.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
 
+            /* Get the records that have been already decided upon and add it to the previous list */
+            avanceVoyages.AddRange(_mapper.Map<List<AvanceVoyageTableDTO>>
+                (await _context.StatusHistories
+                .Where(sh => sh.DeciderUserId == deciderUserId)
+                .Select(sh => sh.AvanceVoyage)
+                .ToListAsync()));
+
+            return avanceVoyages;
         }
 
         public async Task<List<AvanceVoyage>> GetAvancesVoyageByStatusAsync(int status)

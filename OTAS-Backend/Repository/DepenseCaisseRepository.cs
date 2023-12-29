@@ -99,12 +99,24 @@ namespace OTAS.Repository
 
         public async Task<List<DepenseCaisseDTO>> GetDepenseCaissesForDeciderTable(int deciderUserId)
         {
-            return _mapper.Map<List<DepenseCaisseDTO>>(await _context.DepenseCaisses.Where(dc => dc.NextDeciderUserId == deciderUserId).ToListAsync());
+            /* Get the records that needs to be decided upon now */
+            List<DepenseCaisseDTO> depenseCaisses = _mapper.Map<List<DepenseCaisseDTO>>
+                (await _context.DepenseCaisses.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
+
+            /* Get the records that have been already decided upon and add it to the previous list */
+            depenseCaisses.AddRange(_mapper.Map<List<DepenseCaisseDTO>>
+                (await _context.StatusHistories
+                .Where(sh => sh.DeciderUserId == deciderUserId)
+                .Select(sh => sh.DepenseCaisse)
+                .ToListAsync()));
+
+            return depenseCaisses;
+
         }
 
         public async Task<int> GetDepenseCaisseNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false)
         {
-            int deciderUserId = 0; 
+            int deciderUserId; 
             switch (currentlevel)
             {
                 case "MG":
@@ -131,6 +143,9 @@ namespace OTAS.Repository
                         break;
                     }
                     deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR"); /* In case TR aprroves it, the next decider is still TR*/
+                    break;
+                default:
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
                     break;
             }
 

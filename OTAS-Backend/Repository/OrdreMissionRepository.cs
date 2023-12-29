@@ -28,7 +28,18 @@ namespace OTAS.Repository
 
         public async Task<List<OrdreMissionDTO>> GetOrdreMissionsForDecider(int deciderUserId)
         {
-            return _mapper.Map<List<OrdreMissionDTO>>(await _context.OrdreMissions.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
+            /* Get the records that needs to be decided upon now */
+            List<OrdreMissionDTO> ordreMissions = _mapper.Map<List<OrdreMissionDTO>>
+                (await _context.OrdreMissions.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
+
+            /* Get the records that have been already decided upon and add it to the previous list */
+            ordreMissions.AddRange(_mapper.Map<List<OrdreMissionDTO>>
+                (await _context.StatusHistories
+                .Where(sh => sh.DeciderUserId == deciderUserId)
+                .Select(sh => sh.OrdreMission)
+                .ToListAsync()));
+
+            return ordreMissions;
         }
 
         public async Task<OrdreMissionFullDetailsDTO> GetOrdreMissionFullDetailsById(int ordreMissionId)
@@ -86,7 +97,7 @@ namespace OTAS.Repository
 
         public async Task<int> GetOrdreMissionNextDeciderUserId(string currentlevel, bool? isLongerThanOneDay = false)
         {
-            int deciderUserId = 0;
+            int deciderUserId;
             switch(currentlevel)
             {
                 case "MG":
@@ -111,6 +122,10 @@ namespace OTAS.Repository
                     break;
 
                 case "VP":
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("VP");
+                    break;
+
+                default:
                     deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("VP");
                     break;
             }

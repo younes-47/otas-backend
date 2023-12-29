@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
@@ -20,18 +21,27 @@ namespace OTAS.Controllers
         private readonly IAvanceCaisseRepository _avanceCaisseRepository;
         private readonly IAvanceCaisseService _avanceCaisseService;
         private readonly IUserRepository _userRepository;
+        private readonly IDeciderRepository _deciderRepository;
         private readonly IMapper _mapper;
 
         public AvanceCaisseController(IAvanceCaisseRepository avanceCaisseRepository,
             IAvanceCaisseService avanceCaisseService,
             IUserRepository userRepository,
+            IDeciderRepository deciderRepository,
             IMapper mapper)
         {
             _avanceCaisseRepository = avanceCaisseRepository;
             _avanceCaisseService = avanceCaisseService;
             _userRepository = userRepository;
+            _deciderRepository = deciderRepository;
             _mapper = mapper;
         }
+
+        /*
+         
+        REQUESTER
+         
+         */
 
         [Authorize(Roles = "requester , decider")]
         [HttpGet("Requests/Table")]
@@ -72,7 +82,6 @@ namespace OTAS.Controllers
             if (!result.Success) return Ok(result.Message);
             return Ok(result.Message);
         }
-
 
         [Authorize(Roles = "requester , decider")]
         [HttpPut("Modify")]
@@ -153,6 +162,12 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
+        /*
+         
+        DECIDER
+         
+         */
+
         [Authorize(Roles = "decider")]
         [HttpGet("DecideOnRequests/Table")]
         public async Task<IActionResult> ShowAvanceCaisseDecideTable()
@@ -169,22 +184,90 @@ namespace OTAS.Controllers
         [HttpPut("Decide")]
         public async Task<IActionResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(decision.RequestId) == null) return NotFound("AvanceCaisse is not found!");
-            if (await _userRepository.FindUserByUserIdAsync(decision.DeciderUserId) == null) return NotFound("Decider is not found");
-
-            bool isDecisionValid = decision.DecisionString.ToLower() != "approve" && decision.DecisionString.ToLower() != "return" && decision.DecisionString.ToLower() != "reject";
-            if (!isDecisionValid) return BadRequest("Decision is invalid!");
-
+            if (!ModelState.IsValid) 
+                return BadRequest(ModelState);
+            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(decision.RequestId) == null) 
+                return NotFound("AvanceCaisse is not found!");
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
-            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
 
-            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
-            if (deciderRole != 3) return BadRequest("You are not authorized to decide upon requests!");
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) 
+                return NotFound("Decider is not found");
+            bool isDecisionValid = decision.DecisionString.ToLower() != "approve" && decision.DecisionString.ToLower() != "return" && decision.DecisionString.ToLower() != "reject";
+            if (!isDecisionValid) 
+                return BadRequest("Decision is invalid!");
 
-            ServiceResult result = await _avanceCaisseService.DecideOnAvanceCaisse(decision);
-            if (!result.Success) return BadRequest(result.Message);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) 
+                return BadRequest("User not found!");
+
+            if (await _userRepository.GetUserRoleByUserIdAsync(user.Id) != 3) 
+                return BadRequest("You are not authorized to decide upon requests!");
+
+            ServiceResult result = await _avanceCaisseService.DecideOnAvanceCaisse(decision, user.Id);
+            if (!result.Success) 
+                return BadRequest(result.Message);
+
             return Ok(result.Message);
         }
+
+        [Authorize(Roles = "decider")]
+        [HttpPut("Decide/Funds/Choose")]
+        public async Task<IActionResult> MarkFundsAsPrepared([FromBody] int Id, [FromBody] string advanceOption) // Only TR
+        {
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if(await _userRepository.FindUserByUserIdAsync(user.Id) == null)
+                return BadRequest("User not found!");
+
+            if (await _userRepository.GetUserRoleByUserIdAsync(user.Id) != 3)
+                return BadRequest("You are not authorized to decide upon requests!");
+
+            if(await _deciderRepository.GetDeciderLevelByUserId(user.Id) != "TR")
+                return BadRequest("You are not authorized to do this action!");
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            //if (advanceOption.ToLower() != "" && advanceOption.ToLower() != "")
+            //    return BadRequest("Invalid Advance choice!");
+
+            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null)
+                return BadRequest("Request is not found");
+
+            ServiceResult result = await _avanceCaisseService.MarkFundsAsPrepared(Id, advanceOption, user.Id);
+            if (!result.Success)
+                return BadRequest(result.Message);
+
+            return Ok(result.Message);
+
+        }
+
+        [Authorize(Roles = "decider")]
+        [HttpPut("Decide/Funds/Confirm")]
+        public async Task<IActionResult> ConfirmFundsDelivery([FromBody] int Id, [FromBody] int confirmationNumber) // Only TR
+        {
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null)
+                return BadRequest("User not found!");
+
+            if (await _userRepository.GetUserRoleByUserIdAsync(user.Id) != 3)
+                return BadRequest("You are not authorized to decide upon requests!");
+
+            if (await _deciderRepository.GetDeciderLevelByUserId(user.Id) != "TR")
+                return BadRequest("You are not authorized to do this action!");
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null)
+                return BadRequest("Request is not found");
+
+            ServiceResult result = await _avanceCaisseService.ConfirmFundsDelivery(Id, confirmationNumber);
+            if (!result.Success)
+                return Forbid(result.Message);
+
+            return Ok(result.Message);
+        }
+
+
+
     }
 }

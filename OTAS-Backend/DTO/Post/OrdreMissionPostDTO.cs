@@ -10,7 +10,7 @@ namespace OTAS.DTO.Post
 
         public bool OnBehalf { get; set; }
 
-        public List<TripPostDTO> Trips { get; set; } = new List<TripPostDTO>();
+        public List<TripPostDTO> Trips { get; set; } = null!;
 
         public List<ExpensePostDTO> Expenses { get; set; } = new List<ExpensePostDTO>();
 

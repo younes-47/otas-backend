@@ -109,6 +109,8 @@ namespace OTAS
             services.AddScoped<IAvanceVoyageService, AvanceVoyageService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<ILdapAuthenticationService, LdapAuthenticationService>();
+            services.AddScoped<IMiscService, MiscService>();
+
 
             /* Inject Automapper */
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());

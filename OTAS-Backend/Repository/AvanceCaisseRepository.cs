@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using AutoMapper.QueryableExtensions;
 using OTAS.DTO.Get;
 using AutoMapper;
+using System.Collections.Generic;
 
 namespace OTAS.Repository
 {
@@ -42,7 +43,18 @@ namespace OTAS.Repository
         }
         public async Task<List<AvanceCaisseDTO>> GetAvanceCaissesForDeciderTable(int deciderUserId)
         {
-            return _mapper.Map<List<AvanceCaisseDTO>>(await _context.AvanceCaisses.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
+            /* Get the records that needs to be decided upon now */
+            List<AvanceCaisseDTO> avanceCaisses = _mapper.Map<List<AvanceCaisseDTO>>
+                (await _context.AvanceCaisses.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
+
+            /* Get the records that have been already decided upon and add it to the previous list */
+            avanceCaisses.AddRange(_mapper.Map<List<AvanceCaisseDTO>>
+                (await _context.StatusHistories
+                .Where(sh => sh.DeciderUserId == deciderUserId)
+                .Select(sh => sh.AvanceCaisse)
+                .ToListAsync()));
+
+            return avanceCaisses;
         }
 
         public async Task<List<AvanceCaisse>> GetAvancesCaisseByStatusAsync(int status)
@@ -100,7 +112,7 @@ namespace OTAS.Repository
 
         public async Task<int> GetAvanceCaisseNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false)
         {
-            int deciderUserId = 0;
+            int deciderUserId;
             switch (currentlevel)
             {
                 case "MG":
@@ -108,11 +120,6 @@ namespace OTAS.Repository
                     break;
 
                 case "FM":
-                    if (isReturnedToTRbyFM == true)
-                    {
-                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR"); /* in case FM returns it to TR */
-                        break;
-                    }
                     deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("GD");
                     break;
 
@@ -120,13 +127,8 @@ namespace OTAS.Repository
                     deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
                     break;
 
-                case "TR":
-                    if (isReturnedToFMByTR == true)
-                    {
-                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("FM"); /* In case TR returns it to FM */
-                        break;
-                    }
-                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR"); /* In case TR aprroves it, the next decider is still TR*/
+                default:
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
                     break;
             }
 

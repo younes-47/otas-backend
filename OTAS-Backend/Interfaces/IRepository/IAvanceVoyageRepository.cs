@@ -12,7 +12,7 @@ namespace OTAS.Interfaces.IRepository
         Task<List<AvanceVoyageTableDTO>> GetAvancesVoyageByUserIdAsync(int userId);
         Task<List<AvanceVoyage>> GetAvancesVoyageByStatusAsync(int status);
         Task<List<AvanceVoyage>> GetAvancesVoyageByOrdreMissionIdAsync(int ordreMissionId);
-        Task<int> GetAvanceVoyageNextDeciderUserId(string currentlevel, bool? isLongerThanOneDay = false, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false);
+        Task<int> GetAvanceVoyageNextDeciderUserId(string currentlevel, bool? isLongerThanOneDay = false);
         Task<List<AvanceVoyageTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderRole);
 
         //Post Methods

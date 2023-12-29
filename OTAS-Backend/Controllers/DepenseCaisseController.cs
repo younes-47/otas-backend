@@ -200,24 +200,30 @@ namespace OTAS.Controllers
         [HttpPut("Decide")]
         public async Task<IActionResult> DecideOnDepenseCaisse(DecisionOnRequestPostDTO decision)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (await _depenseCaisseRepository.FindDepenseCaisseAsync(decision.RequestId) == null) return NotFound("DepenseCaisse is not found!");
-            if (await _userRepository.FindUserByUserIdAsync(decision.DeciderUserId) == null) return NotFound("Decider is not found");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            if (await _depenseCaisseRepository.FindDepenseCaisseAsync(decision.RequestId) == null) 
+                return NotFound("DepenseCaisse is not found!");
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) 
+                return NotFound("Decider is not found");
 
-            bool isDecisionValid = decision.DecisionString.ToLower() != "approve" && decision.DecisionString.ToLower() != "return" && decision.DecisionString.ToLower() != "reject";
+            bool isDecisionValid = decision.DecisionString.ToLower() != "apSprove" && decision.DecisionString.ToLower() != "return" && decision.DecisionString.ToLower() != "reject";
             if (!isDecisionValid) return BadRequest("Decision is invalid!");
 
-            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
-            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+            
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) 
+                return BadRequest("User not found!");
 
             int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
-            if (deciderRole != 3) return BadRequest("You are not authorized to decide upon requests!");
+            if (deciderRole != 3) 
+                return BadRequest("You are not authorized to decide upon requests!");
 
-            ServiceResult result = await _depenseCaisseService.DecideOnDepenseCaisse(decision);
-            if (!result.Success) return BadRequest(result.Message);
+            ServiceResult result = await _depenseCaisseService.DecideOnDepenseCaisse(decision, user.Id);
+            if (!result.Success) 
+                return BadRequest(result.Message);
             return Ok(result.Message);
         }
-
 
     }
 }

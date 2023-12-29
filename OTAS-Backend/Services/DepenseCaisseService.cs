@@ -20,6 +20,7 @@ namespace OTAS.Services
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IDeciderRepository _deciderRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IMiscService _miscService;
         private readonly IMapper _mapper;
         private readonly OtasContext _context;
 
@@ -30,6 +31,7 @@ namespace OTAS.Services
             IWebHostEnvironment webHostEnvironment,
             IDeciderRepository deciderRepository,
             IUserRepository userRepository,
+            IMiscService miscService,
             IMapper mapper,
             OtasContext context)
         {
@@ -40,6 +42,7 @@ namespace OTAS.Services
             _webHostEnvironment = webHostEnvironment;
             _deciderRepository = deciderRepository;
             _userRepository = userRepository;
+            _miscService = miscService;
             _mapper = mapper;
             _context = context;
         }
@@ -64,15 +67,15 @@ namespace OTAS.Services
                 {
                     Directory.CreateDirectory(uploadsFolderPath);
                 }
-                /* Create file name by concatenating a uuid + DC + username + .pdf extension */
+                /* Create file name by concatenating a random string + DC + username + .pdf extension */
                 var user = await _userRepository.GetUserByUserIdAsync(userId);
-                string uniqueReceiptsFileName = Guid.NewGuid() + "_DC_" + user.Username + ".pdf";
+                string uniqueReceiptsFileName = _miscService.GenerateRandomString(10) + "_DC_" + user.Username + ".pdf";
                 /* Combine the folder path with the file name to create full path */
                 var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
                 /* The creation of the file occurs after the commitment of DB changes */
                
 
-                mappedDepenseCaisse.Total = CalculateExpensesEstimatedTotal(mappedExpenses);
+                mappedDepenseCaisse.Total = _miscService.CalculateExpensesEstimatedTotal(mappedExpenses);
                 mappedDepenseCaisse.ReceiptsFileName = uniqueReceiptsFileName;
                 mappedDepenseCaisse.UserId = userId;
 
@@ -201,9 +204,9 @@ namespace OTAS.Services
                     {
                         Directory.CreateDirectory(uploadsFolderPath);
                     }
-                    /* concatenate a uuid + DC + username + .pdf extension */
+                    /* concatenate a random string + DC + username + .pdf extension */
                     var user = await _userRepository.GetUserByUserIdAsync(depenseCaisse_DB.UserId);
-                    string uniqueReceiptsFileName = Guid.NewGuid() + "_DC_" + user.Username + ".pdf";
+                    string uniqueReceiptsFileName = _miscService.GenerateRandomString(10) + "_DC_" + user.Username + ".pdf";
                     /* combine the folder path with the file name */
                     newFilePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
                     /* Find the old file */
@@ -214,7 +217,7 @@ namespace OTAS.Services
                     depenseCaisse_DB.ReceiptsFileName = uniqueReceiptsFileName;
                 }
 
-                depenseCaisse_DB.Total = CalculateExpensesEstimatedTotal(mappedExpenses);
+                depenseCaisse_DB.Total = _miscService.CalculateExpensesEstimatedTotal(mappedExpenses);
 
 
                 //Insert new status history in case of a submit action
@@ -365,13 +368,13 @@ namespace OTAS.Services
             return result;
         }
 
-        public async Task<ServiceResult> DecideOnDepenseCaisse(DecisionOnRequestPostDTO decision)
+        public async Task<ServiceResult> DecideOnDepenseCaisse(DecisionOnRequestPostDTO decision, int deciderUserId)
         {
             ServiceResult result = new();
             DepenseCaisse decidedDepenseCaisse = await _depenseCaisseRepository.GetDepenseCaisseByIdAsync(decision.RequestId);
 
             // test if the decider is the one who is supposed to decide upon it
-            if (decidedDepenseCaisse.NextDeciderUserId != decision.DeciderUserId)
+            if (decidedDepenseCaisse.NextDeciderUserId != deciderUserId)
             {
                 result.Success = false;
                 result.Message = "You can't decide on this request in this state! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
@@ -385,7 +388,7 @@ namespace OTAS.Services
                 try
                 {
                     decidedDepenseCaisse.DeciderComment = decision.DeciderComment;
-                    decidedDepenseCaisse.DeciderUserId = decision.DeciderUserId;
+                    decidedDepenseCaisse.DeciderUserId = deciderUserId;
                     if (decision.ReturnedToFMByTR)
                     {
                         decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("TR", decision.ReturnedToFMByTR, null);
@@ -407,7 +410,7 @@ namespace OTAS.Services
                     StatusHistory decidedAvanceCaisse_SH = new()
                     {
                         DepenseCaisseId = decision.RequestId,
-                        DeciderUserId = decision.DeciderUserId,
+                        DeciderUserId = deciderUserId,
                         DeciderComment = decision.DeciderComment,
                         Total = decidedDepenseCaisse.Total,
                         Status = decision.DecisionString.ToLower() == "return" ? 98 : 97,
@@ -426,20 +429,60 @@ namespace OTAS.Services
                 }
                 
             }
-
-            result.Success = true;
-            result.Message = "OrdreMission is decided upon successfully";
-            return result;
-        }
-        public decimal CalculateExpensesEstimatedTotal(List<Expense> expenses)
-        {
-            decimal estimatedTotal = 0;
-            foreach (Expense expense in expenses)
+            // CASE: APPROVE
+            else
             {
-                estimatedTotal += expense.EstimatedFee;
+                var transaction = _context.Database.BeginTransaction();
+                try
+                {
+                    decidedDepenseCaisse.DeciderUserId = deciderUserId;
+                    var deciderLevel = await _deciderRepository.GetDeciderLevelByUserId(deciderUserId);
+                    switch (deciderLevel)
+                    {
+                        case "MG":
+                            decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("MG");
+                            decidedDepenseCaisse.LatestStatus = 3;
+                            break;
+                        case "FM":
+                            decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("FM", null, decision.ReturnedToTRByFM);
+                            decidedDepenseCaisse.LatestStatus = decision.ReturnedToTRByFM ? 13 : 4; 
+                            break;
+                        case "GD":
+                            decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("GD");
+                            decidedDepenseCaisse.LatestStatus = 13;
+                            break;
+                        case "TR":
+                            decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("TR", decision.ReturnedToFMByTR);
+                            if (decision.ReturnedToFMByTR)
+                            {
+                                decidedDepenseCaisse.LatestStatus = 14;
+                                break;
+                            }
+                            else if (decision.ReturnedToRequesterByTR)
+                            {
+                                decidedDepenseCaisse.LatestStatus = 15;
+                                break;
+                            }
+                            else
+                            {
+                                decidedDepenseCaisse.LatestStatus = 8;
+                            }
+                            break;
+                    }
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception exception)
+                {
+                    result.Success = false;
+                    result.Message = exception.Message;
+                    return result;
+                }
             }
 
-            return estimatedTotal;
+            result.Success = true;
+            result.Message = "DepenseCaisse is decided upon successfully";
+            return result;
         }
 
 

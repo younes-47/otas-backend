@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
+using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
@@ -18,16 +19,19 @@ namespace OTAS.Controllers
     {
         private readonly IAvanceVoyageRepository _avanceVoyageRepository;
         private readonly IAvanceVoyageService _avanceVoyageService;
+        private readonly IDeciderRepository _deciderRepository;
         private readonly IMapper _mapper;
         private readonly IUserRepository _userRepository;
 
         public AvanceVoyageController(IAvanceVoyageRepository avanceVoyageRepository,
             IAvanceVoyageService avanceVoyageService,
+            IDeciderRepository deciderRepository,
             IMapper mapper,
             IUserRepository userRepository)
         {
             _avanceVoyageRepository = avanceVoyageRepository;
             _avanceVoyageService = avanceVoyageService;
+            _deciderRepository = deciderRepository;
             _mapper = mapper;
             _userRepository = userRepository;
         }
@@ -81,11 +85,68 @@ namespace OTAS.Controllers
             int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
             if (deciderRole != 3) return BadRequest("You are not authorized to decide upon requests!");
 
-            ServiceResult result = await _avanceVoyageService.DecideOnAvanceVoyage(decision);
+            ServiceResult result = await _avanceVoyageService.DecideOnAvanceVoyage(decision, user.Id);
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Message);
         }
 
+        [Authorize(Roles = "decider")]
+        [HttpPut("Decide/Funds")]
+        public async Task<IActionResult> MarkFundsAsPrepared([FromBody] int Id, [FromBody] string advanceOption) // Only TR
+        {
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null)
+                return BadRequest("User not found!");
+
+            if (await _userRepository.GetUserRoleByUserIdAsync(user.Id) != 3)
+                return BadRequest("You are not authorized to decide upon requests!");
+
+            if (await _deciderRepository.GetDeciderLevelByUserId(user.Id) != "TR")
+                return BadRequest("You are not authorized to do this action!");
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            //if (advanceOption.ToLower() != "" && advanceOption.ToLower() != "")
+            //    return BadRequest("Invalid Advance choice!");
+
+            if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(Id) == null)
+                return BadRequest("Request is not found");
+
+            ServiceResult result = await _avanceVoyageService.MarkFundsAsPrepared(Id, advanceOption, user.Id);
+            if (!result.Success)
+                return BadRequest(result.Message);
+
+            return Ok(result.Message);
+
+        }
+
+        [Authorize(Roles = "decider")]
+        [HttpPut("Decide/Funds/Confirm")]
+        public async Task<IActionResult> ConfirmFundsDelivery([FromBody] int Id, [FromBody] int confirmationNumber) // Only TR
+        {
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null)
+                return BadRequest("User not found!");
+
+            if (await _userRepository.GetUserRoleByUserIdAsync(user.Id) != 3)
+                return BadRequest("You are not authorized to decide upon requests!");
+
+            if (await _deciderRepository.GetDeciderLevelByUserId(user.Id) != "TR")
+                return BadRequest("You are not authorized to do this action!");
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(Id) == null)
+                return BadRequest("Request is not found");
+
+            ServiceResult result = await _avanceVoyageService.ConfirmFundsDelivery(Id, confirmationNumber);
+            if (!result.Success)
+                return Forbid(result.Message);
+
+            return Ok(result.Message);
+        }
 
     }
 }

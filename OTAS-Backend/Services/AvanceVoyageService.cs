@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using OTAS.Data;
 using OTAS.DTO.Post;
+using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
@@ -18,6 +19,7 @@ namespace OTAS.Services
         private readonly IStatusHistoryRepository _statusHistoryRepository;
         private readonly ITripRepository _tripRepository;
         private readonly IExpenseRepository _expenseRepository;
+        private readonly IMiscService _miscService;
         private readonly OtasContext _context;
         private readonly IMapper _mapper;
 
@@ -28,6 +30,7 @@ namespace OTAS.Services
             IStatusHistoryRepository statusHistoryRepository,
             ITripRepository tripRepository,
             IExpenseRepository expenseRepository,
+            IMiscService miscService,
             OtasContext context, 
             IMapper mapper)
         {
@@ -38,6 +41,7 @@ namespace OTAS.Services
             _statusHistoryRepository = statusHistoryRepository;
             _tripRepository = tripRepository;
             _expenseRepository = expenseRepository;
+            _miscService = miscService;
             _context = context;
             _mapper = mapper;
         }
@@ -45,14 +49,14 @@ namespace OTAS.Services
 
 
 
-        public async Task<ServiceResult> DecideOnAvanceVoyage(DecisionOnRequestPostDTO decision)
+        public async Task<ServiceResult> DecideOnAvanceVoyage(DecisionOnRequestPostDTO decision, int deciderUserId)
         {
             ServiceResult result = new();
 
             AvanceVoyage decidedAvanceVoyage = await _avanceVoyageRepository.GetAvanceVoyageByIdAsync(decision.RequestId);
 
             //Test if the request is on a state where the decider is not supposed to decide upon it
-            if (decidedAvanceVoyage.NextDeciderUserId != decision.DeciderUserId)
+            if (decidedAvanceVoyage.NextDeciderUserId != deciderUserId)
             {
                 result.Success = false;
                 result.Message = "You can't decide on this request in this state! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
@@ -71,7 +75,7 @@ namespace OTAS.Services
                 try
                 {
                     decidedAvanceVoyage.DeciderComment = decision.DeciderComment;
-                    decidedAvanceVoyage.DeciderUserId = decision.DeciderUserId;
+                    decidedAvanceVoyage.DeciderUserId = deciderUserId;
                     decidedAvanceVoyage.NextDeciderUserId = null;
                     decidedAvanceVoyage.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97;
                     result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(decidedAvanceVoyage);
@@ -80,7 +84,7 @@ namespace OTAS.Services
                     StatusHistory decidedAvanceVoyage_SH = new()
                     {
                         AvanceVoyageId = decision.RequestId,
-                        DeciderUserId = decision.DeciderUserId,
+                        DeciderUserId = deciderUserId,
                         DeciderComment = decision.DeciderComment,
                         Status = decidedAvanceVoyage.LatestStatus,
                         NextDeciderUserId = decidedAvanceVoyage.NextDeciderUserId,
@@ -106,9 +110,9 @@ namespace OTAS.Services
                 var transaction = _context.Database.BeginTransaction();
                 try
                 {
-                    decidedAvanceVoyage.DeciderUserId = decision.DeciderUserId;
+                    decidedAvanceVoyage.DeciderUserId = deciderUserId;
 
-                    var deciderLevel = await _deciderRepository.GetDeciderLevelByUserId(decision.DeciderUserId);
+                    var deciderLevel = await _deciderRepository.GetDeciderLevelByUserId(deciderUserId);
                     switch (deciderLevel)
                     {
                         case "MG":
@@ -135,7 +139,7 @@ namespace OTAS.Services
                     StatusHistory decidedAvanceVoyage_SH = new()
                     {
                         AvanceVoyageId = decision.RequestId,
-                        DeciderUserId = decision.DeciderUserId,
+                        DeciderUserId = deciderUserId,
                         DeciderComment = decision.DeciderComment,
                         Status = decidedAvanceVoyage.LatestStatus,
                         NextDeciderUserId = decidedAvanceVoyage.NextDeciderUserId,
@@ -221,6 +225,18 @@ namespace OTAS.Services
 
                         if (action.ToLower() != "save") avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
                         result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[0]);
+                        if (!result.Success)
+                        {
+                            result.Message += " (MAD)";
+                            return result;
+                        }
+                        result = await _statusHistoryRepository.UpdateStatusHistoryTotal(avanceVoyages[0].Id, "AV", avanceVoyages[0].EstimatedTotal);
+                        if (!result.Success)
+                        {
+                            result.Message += " Status History (MAD)";
+                            return result;
+                        }
+
                         if (action.ToLower() != "save")
                         {
                             StatusHistory AV_statusHistory = new()
@@ -233,11 +249,6 @@ namespace OTAS.Services
                             result = await _statusHistoryRepository.AddStatusAsync(AV_statusHistory);
                             if (!result.Success) return result;
                         }
-                        if (!result.Success)
-                        {
-                            result.Message += " (MAD)";
-                            return result;
-                        }
                     }
                     if (avanceVoyages.Count == 2)
                     {
@@ -246,6 +257,17 @@ namespace OTAS.Services
                             avanceVoyages[1].EstimatedTotal = 0.0m;
                             if (action.ToLower() != "save") avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
                             result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[1]);
+                            if (!result.Success)
+                            {
+                                result.Message += " (MAD)";
+                                return result;
+                            }
+                            result = await _statusHistoryRepository.UpdateStatusHistoryTotal(avanceVoyages[1].Id, "AV", avanceVoyages[1].EstimatedTotal);
+                            if (!result.Success)
+                            {
+                                result.Message += " Status History (MAD)";
+                                return result;
+                            }
                             if (action.ToLower() != "save")
                             {
                                 StatusHistory AV_statusHistory = new()
@@ -257,11 +279,6 @@ namespace OTAS.Services
                                 };
                                 result = await _statusHistoryRepository.AddStatusAsync(AV_statusHistory);
                                 if (!result.Success) return result;
-                            }
-                            if (!result.Success)
-                            {
-                                result.Message += " (MAD)";
-                                return result;
                             }
                         }
                     }
@@ -277,6 +294,18 @@ namespace OTAS.Services
                         avanceVoyages[0].EstimatedTotal = 0.0m;
                         if (action.ToLower() != "save") avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
                         result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[0]);
+                        if (!result.Success)
+                        {
+                            result.Message += " (EUR)";
+                            return result;
+                        }
+                        result = await _statusHistoryRepository.UpdateStatusHistoryTotal(avanceVoyages[0].Id, "AV", avanceVoyages[0].EstimatedTotal);
+                        if (!result.Success)
+                        {
+                            result.Message += " Status History (MAD)";
+                            return result;
+                        }
+
                         if (action.ToLower() != "save")
                         {
                             StatusHistory AV_statusHistory = new()
@@ -288,12 +317,7 @@ namespace OTAS.Services
                             };
                             result = await _statusHistoryRepository.AddStatusAsync(AV_statusHistory);
                             if (!result.Success) return result;
-                        }
-                        if (!result.Success)
-                        {
-                            result.Message += " (EUR)";
-                            return result;
-                        }
+                        }                      
                     }
                     if (avanceVoyages.Count == 2)
                     {
@@ -302,6 +326,17 @@ namespace OTAS.Services
                             avanceVoyages[1].EstimatedTotal = 0.0m;
                             if (action.ToLower() != "save") avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
                             result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[1]);
+                            if (!result.Success)
+                            {
+                                result.Message += " (EUR)";
+                                return result;
+                            }
+                            result = await _statusHistoryRepository.UpdateStatusHistoryTotal(avanceVoyages[1].Id, "AV", avanceVoyages[1].EstimatedTotal);
+                            if (!result.Success)
+                            {
+                                result.Message += " Status History (MAD)";
+                                return result;
+                            }
                             if (action.ToLower() != "save")
                             {
                                 StatusHistory AV_statusHistory = new()
@@ -313,11 +348,6 @@ namespace OTAS.Services
                                 };
                                 result = await _statusHistoryRepository.AddStatusAsync(AV_statusHistory);
                                 if (!result.Success) return result;
-                            }
-                            if (!result.Success)
-                            {
-                                result.Message += " (EUR)";
-                                return result;
                             }
                         }
                     }
@@ -341,7 +371,7 @@ namespace OTAS.Services
                     // Factoring in total fees of the trip(s) in the estimated total of the whole "AvanceVoyage" in MAD
                     foreach (TripPostDTO trip in trips_in_mad)
                     {
-                        estm_total_mad += CalculateTripEstimatedFee(_mapper.Map<Trip>(trip));
+                        estm_total_mad += _miscService.CalculateTripEstimatedFee(_mapper.Map<Trip>(trip));
                     }
                 }
 
@@ -360,6 +390,18 @@ namespace OTAS.Services
                     avanceVoyages[0].EstimatedTotal = estm_total_mad;
                     if (action.ToLower() != "save") avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
                     result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[0]);
+                    if (!result.Success)
+                    {
+                        result.Message += " (MAD)";
+                        return result;
+                    }
+                    result = await _statusHistoryRepository.UpdateStatusHistoryTotal(avanceVoyages[0].Id, "AV", avanceVoyages[0].EstimatedTotal);
+                    if (!result.Success)
+                    {
+                        result.Message += " Status History (MAD)";
+                        return result;
+                    }
+
                     if (action.ToLower() != "save")
                     {
                         StatusHistory AV_statusHistory = new()
@@ -372,11 +414,7 @@ namespace OTAS.Services
                         result = await _statusHistoryRepository.AddStatusAsync(AV_statusHistory);
                         if (!result.Success) return result;
                     }
-                    if (!result.Success)
-                    {
-                        result.Message += " (MAD)";
-                        return result;
-                    }
+                    
                 }
                 // In case of AV in mad is already existant in index 1
                 else if (avanceVoyages.Count == 2)
@@ -386,6 +424,19 @@ namespace OTAS.Services
                         avanceVoyages[1].EstimatedTotal = estm_total_mad;
                         if (action.ToLower() != "save") avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
                         result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[1]);
+                        if (!result.Success)
+                        {
+                            result.Message += " (MAD)";
+                            return result;
+                        }
+
+                        result = await _statusHistoryRepository.UpdateStatusHistoryTotal(avanceVoyages[1].Id, "AV", avanceVoyages[1].EstimatedTotal);
+                        if (!result.Success)
+                        {
+                            result.Message += " Status History (MAD)";
+                            return result;
+                        }
+
                         if (action.ToLower() != "save")
                         {
                             StatusHistory AV_statusHistory = new()
@@ -397,11 +448,6 @@ namespace OTAS.Services
                             };
                             result = await _statusHistoryRepository.AddStatusAsync(AV_statusHistory);
                             if (!result.Success) return result;
-                        }
-                        if (!result.Success)
-                        {
-                            result.Message += " (MAD)";
-                            return result;
                         }
                     }
                 }
@@ -462,7 +508,7 @@ namespace OTAS.Services
                         {
                             mappedTrip.AvanceVoyageId = avanceVoyage_in_mad.Id;
                         }
-                        mappedTrip.EstimatedFee = CalculateTripEstimatedFee(mappedTrip);
+                        mappedTrip.EstimatedFee = _miscService.CalculateTripEstimatedFee(mappedTrip);
                     }
                     result = await _tripRepository.AddTripsAsync(mappedTrips);
                     if (!result.Success)
@@ -517,7 +563,7 @@ namespace OTAS.Services
                     // Factoring in total fees of the trip(s) in the estimated total of the whole "AvanceVoyage" in EUR
                     foreach (TripPostDTO trip in trips_in_eur)
                     {
-                        estm_total_eur += CalculateTripEstimatedFee(_mapper.Map<Trip>(trip));
+                        estm_total_eur += _miscService.CalculateTripEstimatedFee(_mapper.Map<Trip>(trip));
                     }
                 }
 
@@ -536,6 +582,17 @@ namespace OTAS.Services
                     avanceVoyages[0].EstimatedTotal = estm_total_eur;
                     if (action.ToLower() != "save") avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
                     result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[0]);
+                    if (!result.Success)
+                    {
+                        result.Message += " (EUR)";
+                        return result;
+                    }
+                    result = await _statusHistoryRepository.UpdateStatusHistoryTotal(avanceVoyages[0].Id, "AV", avanceVoyages[0].EstimatedTotal);
+                    if (!result.Success)
+                    {
+                        result.Message += " Status History (MAD)";
+                        return result;
+                    }
                     if (action.ToLower() != "save")
                     {
                         StatusHistory AV_statusHistory = new()
@@ -548,11 +605,6 @@ namespace OTAS.Services
                         result = await _statusHistoryRepository.AddStatusAsync(AV_statusHistory);
                         if (!result.Success) return result;
                     }
-                    if (!result.Success)
-                    {
-                        result.Message += " (EUR)";
-                        return result;
-                    }
                 }
                 // In case of AV in eur is already existant in index 1
                 else if (avanceVoyages.Count == 2)
@@ -561,6 +613,20 @@ namespace OTAS.Services
                     {
                         avanceVoyages[1].EstimatedTotal = estm_total_eur;
                         if (action.ToLower() != "save") avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
+                        result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[1]);
+                        if (!result.Success)
+                        {
+                            result.Message += " (EUR)";
+                            return result;
+                        }
+
+                        result = await _statusHistoryRepository.UpdateStatusHistoryTotal(avanceVoyages[1].Id, "AV", avanceVoyages[1].EstimatedTotal);
+                        if (!result.Success)
+                        {
+                            result.Message += " Status History (MAD)";
+                            return result;
+                        }
+
                         if (action.ToLower() != "save")
                         {
                             StatusHistory AV_statusHistory = new()
@@ -573,12 +639,7 @@ namespace OTAS.Services
                             result = await _statusHistoryRepository.AddStatusAsync(AV_statusHistory);
                             if (!result.Success) return result;
                         }
-                        result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[1]);
-                        if (!result.Success)
-                        {
-                            result.Message += " (EUR)";
-                            return result;
-                        }
+                        
                     }
                 }
                 // In case of AV in eur doesn't exist in DB -> we insert the already initiated one with new Statushistory
@@ -640,7 +701,7 @@ namespace OTAS.Services
                         {
                             mappedTrip.AvanceVoyageId = avanceVoyage_in_eur.Id;
                         }
-                        mappedTrip.EstimatedFee = CalculateTripEstimatedFee(mappedTrip);
+                        mappedTrip.EstimatedFee = _miscService.CalculateTripEstimatedFee(mappedTrip);
                     }
                     result = await _tripRepository.AddTripsAsync(mappedTrips);
                     if (!result.Success)
@@ -685,7 +746,7 @@ namespace OTAS.Services
             }
 
             result.Success = true;
-            result.Message = "Avance de voyage has been submitted successfully";
+            result.Message = "Avance de voyage has been updated successfully";
             return result;
         }
 
@@ -747,7 +808,7 @@ namespace OTAS.Services
                     // Factoring in total fees of the trip(s) in the estimated total of the whole "AvanceVoyage" in MAD
                     foreach (TripPostDTO trip in trips_in_mad)
                     {
-                        estm_total_mad += CalculateTripEstimatedFee(_mapper.Map<Trip>(trip));
+                        estm_total_mad += _miscService.CalculateTripEstimatedFee(_mapper.Map<Trip>(trip));
                     }
                 }
 
@@ -799,7 +860,7 @@ namespace OTAS.Services
                     foreach (Trip mappedTrip in mappedTrips)
                     {
                         mappedTrip.AvanceVoyageId = avanceVoyage_in_mad.Id;
-                        mappedTrip.EstimatedFee = CalculateTripEstimatedFee(mappedTrip);
+                        mappedTrip.EstimatedFee = _miscService.CalculateTripEstimatedFee(mappedTrip);
                     }
                     result = await _tripRepository.AddTripsAsync(mappedTrips);
                     if (!result.Success)
@@ -842,7 +903,7 @@ namespace OTAS.Services
                     // Factoring in total fees of the trip(s) in the estimated total of the whole "AvanceVoyage" in EUR
                     foreach (TripPostDTO trip in trips_in_eur)
                     {
-                        estm_total_eur += CalculateTripEstimatedFee(_mapper.Map<Trip>(trip));
+                        estm_total_eur += _miscService.CalculateTripEstimatedFee(_mapper.Map<Trip>(trip));
                     }
                 }
 
@@ -895,7 +956,7 @@ namespace OTAS.Services
                         if (mappedTrip.Unit == "EUR")
                         {
                             mappedTrip.AvanceVoyageId = avanceVoyage_in_eur.Id;
-                            mappedTrip.EstimatedFee = CalculateTripEstimatedFee(mappedTrip);
+                            mappedTrip.EstimatedFee = _miscService.CalculateTripEstimatedFee(mappedTrip);
                         }
                     }
                     result = await _tripRepository.AddTripsAsync(mappedTrips);
@@ -972,54 +1033,102 @@ namespace OTAS.Services
 
         }
 
-
-        // These functions should be in their respective services but whatever
-        public decimal CalculateTripEstimatedFee(Trip trip)
+        public async Task<ServiceResult> MarkFundsAsPrepared(int avanceVoyageId, string advanceOption, int deciderUserId)
         {
-            decimal estimatedFee = 0;
-            const decimal MILEAGE_ALLOWANCE = 2.5m; // 2.5DH PER KM
-            if (trip.Unit == "KM")
-            {
-                estimatedFee += trip.HighwayFee + (trip.Value * MILEAGE_ALLOWANCE);
-            }
-            else
-            {
-                estimatedFee += trip.Value;
-            }
+            ServiceResult result = new();
+            AvanceVoyage decidedAvanceVoyage = await _avanceVoyageRepository.GetAvanceVoyageByIdAsync(avanceVoyageId);
 
-
-            return estimatedFee;
-        }
-
-        public decimal CalculateTripsEstimatedTotal(List<Trip> trips)
-        {
-            decimal estimatedTotal = 0;
-            const decimal MILEAGE_ALLOWANCE = 2.5m; // 2.5DH PER KM
-            foreach (Trip trip in trips)
+            var transaction = _context.Database.BeginTransaction();
+            try
             {
-                if (trip.Unit == "KM")
+                decidedAvanceVoyage.AdvanceOption = advanceOption;
+                decidedAvanceVoyage.DeciderUserId = deciderUserId;
+                decidedAvanceVoyage.LatestStatus = 9;
+
+                /*
+                    Generates a random number of 8-9 digits (8 => case 0 at the beginning)
+                    CAUTION: DO NOT EXCEED 10 IN LENGTH AS THIS WILL CAUSE AN OVERFLOW EXCEPTION
+                 */
+                decidedAvanceVoyage.ConfirmationNumber = _miscService.GenerateRandomNumber(9); //  
+                result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(decidedAvanceVoyage);
+                if (!result.Success) return result;
+
+                StatusHistory decidedAvanceVoyage_SH = new()
                 {
-                    estimatedTotal += trip.HighwayFee + (trip.Value * MILEAGE_ALLOWANCE);
-                }
-                else
-                {
-                    estimatedTotal += trip.Value;
-                }
+                    AvanceVoyageId = decidedAvanceVoyage.Id,
+                    DeciderUserId = decidedAvanceVoyage.DeciderUserId,
+                    Total = decidedAvanceVoyage.EstimatedTotal,
+                    NextDeciderUserId = decidedAvanceVoyage.NextDeciderUserId,
+                    Status = decidedAvanceVoyage.LatestStatus,
+                };
+                result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceVoyage_SH);
+                if (!result.Success) return result;
+
+                await transaction.CommitAsync();
             }
-
-            return estimatedTotal;
-        }
-
-        public decimal CalculateExpensesEstimatedTotal(List<Expense> expenses)
-        {
-            decimal estimatedTotal = 0;
-            foreach (Expense expense in expenses)
+            catch (Exception exception)
             {
-                estimatedTotal += expense.EstimatedFee;
+                result.Success = false;
+                result.Message = exception.Message;
+                return result;
             }
 
-            return estimatedTotal;
+
+            result.Success = true;
+            result.Message = "AvanceVoyage has been decided upon successfully";
+            return result;
         }
+
+        public async Task<ServiceResult> ConfirmFundsDelivery(int avanceVoyageId, int confirmationNumber)
+        {
+            ServiceResult result = new();
+            var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                AvanceVoyage avanceVoyage_DB = await _avanceVoyageRepository.GetAvanceVoyageByIdAsync(avanceVoyageId);
+
+                if (avanceVoyage_DB.ConfirmationNumber != confirmationNumber)
+                {
+                    result.Success = false;
+                    result.Message = "Wrong number!";
+                    return result;
+                }
+
+                avanceVoyage_DB.NextDeciderUserId = null;
+                avanceVoyage_DB.DeciderUserId = null;
+                avanceVoyage_DB.LatestStatus = 10;
+
+                result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyage_DB);
+                if (!result.Success) return result;
+
+                StatusHistory decidedAvanceVoyage_SH = new()
+                {
+                    AvanceVoyageId = avanceVoyage_DB.Id,
+                    DeciderUserId = avanceVoyage_DB.DeciderUserId,
+                    Total = avanceVoyage_DB.EstimatedTotal,
+                    NextDeciderUserId = avanceVoyage_DB.NextDeciderUserId,
+                    Status = avanceVoyage_DB.LatestStatus,
+                };
+                result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceVoyage_SH);
+                if (!result.Success) return result;
+
+
+                await transaction.CommitAsync();
+            }
+            catch (Exception exception)
+            {
+                result.Success = false;
+                result.Message = exception.Message;
+                return result;
+            }
+
+            result.Success = true;
+            result.Message = "AvanceVoyage funds has been confirmed as collected!";
+            return result;
+        }
+
+
+
 
     }
 }

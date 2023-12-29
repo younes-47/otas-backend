@@ -4,11 +4,7 @@
     {
         public int RequestId { get; set; }
 
-        public int DeciderUserId { get; set; }
-
         public string? DeciderComment { get; set; }
-
-        public string? AdvanceOption { get; set; }
 
         public string DecisionString { get; set; } = null!;
 

@@ -2,7 +2,7 @@
 {
     public class ExpensePostDTO
     {
-        public int Id { get; set; } //Need Id when resubmitting in case of return
+        //public int Id { get; set; } //Need Id when resubmitting in case of return
 
         public decimal EstimatedFee { get; set; }
 

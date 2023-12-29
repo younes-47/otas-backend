@@ -59,6 +59,9 @@ namespace OTAS.Services
             using var transaction = _context.Database.BeginTransaction();
             ServiceResult result = new();
 
+            
+
+
             try
             {
                 var mappedOM = _mapper.Map<OrdreMission>(ordreMission);
@@ -171,14 +174,14 @@ namespace OTAS.Services
 
         }
 
-        public async Task<ServiceResult> DecideOnOrdreMission(DecisionOnRequestPostDTO decision)
+        public async Task<ServiceResult> DecideOnOrdreMission(DecisionOnRequestPostDTO decision, int deciderUserId)
         {
 
             ServiceResult result = new();
             OrdreMission tempOM = await _ordreMissionRepository.GetOrdreMissionByIdAsync(decision.RequestId);
 
             //Test if the request is on a state where the decider is not supposed to decide upon it
-            if (tempOM.NextDeciderUserId != decision.DeciderUserId)
+            if (tempOM.NextDeciderUserId != deciderUserId)
             {
                 result.Success = false;
                 result.Message = "You can't decide on this request in this state! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
@@ -196,7 +199,7 @@ namespace OTAS.Services
                 {
                     var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(decision.RequestId);
                     decidedOrdreMission.DeciderComment = decision.DeciderComment;
-                    decidedOrdreMission.DeciderUserId = decision.DeciderUserId;
+                    decidedOrdreMission.DeciderUserId = deciderUserId;
                     decidedOrdreMission.NextDeciderUserId = null; /* next decider is set to null if returned or rejected for OM */
                     decidedOrdreMission.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97 ;
                     result = await _ordreMissionRepository.UpdateOrdreMission(decidedOrdreMission);
@@ -205,7 +208,7 @@ namespace OTAS.Services
                     StatusHistory decidedOrdreMission_SH = new()
                     {
                         OrdreMissionId = decision.RequestId,
-                        DeciderUserId = decision.DeciderUserId,
+                        DeciderUserId = deciderUserId,
                         DeciderComment = decision.DeciderComment,
                         Status = decision.DecisionString.ToLower() == "return" ? 98 : 97,
                         NextDeciderUserId = decidedOrdreMission.NextDeciderUserId
@@ -230,9 +233,9 @@ namespace OTAS.Services
                 try
                 {
                     var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(decision.RequestId);
-                    decidedOrdreMission.DeciderUserId = decision.DeciderUserId;
+                    decidedOrdreMission.DeciderUserId = deciderUserId;
 
-                    var deciderLevel = await _deciderRepository.GetDeciderLevelByUserId(decision.DeciderUserId);
+                    var deciderLevel = await _deciderRepository.GetDeciderLevelByUserId(deciderUserId);
                     switch (deciderLevel)
                     {
                         case "MG":
@@ -262,7 +265,7 @@ namespace OTAS.Services
                     StatusHistory decidedOrdreMission_SH = new()
                     {
                         OrdreMissionId = decision.RequestId,
-                        DeciderUserId = decision.DeciderUserId,
+                        DeciderUserId = deciderUserId,
                         DeciderComment = decision.DeciderComment,
                         Status = decidedOrdreMission.LatestStatus,
                         NextDeciderUserId = decidedOrdreMission.NextDeciderUserId,
@@ -326,7 +329,7 @@ namespace OTAS.Services
 
                 updatedOrdreMission.DeciderComment = null;
                 updatedOrdreMission.DeciderUserId = null;
-                updatedOrdreMission.LatestStatus = ordreMission.Action.ToLower() != "save" ? 99 : 1;
+                updatedOrdreMission.LatestStatus = ordreMission.Action.ToLower() == "save" ? 99 : 1;
                 updatedOrdreMission.Description = ordreMission.Description;
                 updatedOrdreMission.Abroad = ordreMission.Abroad;
 
@@ -348,7 +351,7 @@ namespace OTAS.Services
 
                 updatedOrdreMission.OnBehalf = ordreMission.OnBehalf;
 
-                if (ordreMission.Action.ToLower() != "submit")
+                if (ordreMission.Action.ToLower() == "submit")
                 {
                     if(updatedOrdreMission.NextDeciderUserId != null)
                     {
@@ -409,7 +412,7 @@ namespace OTAS.Services
                 return result;
             }
 
-            if (ordreMission.Action.ToLower() != "submit")
+            if (ordreMission.Action.ToLower() == "submit")
             {
                 result.Success = true;
                 result.Message = "OrdreMission is resubmitted successfully";
@@ -434,15 +437,21 @@ namespace OTAS.Services
                 // Delete trips & expenses & Status History related to AvanceVoayage
                 foreach(AvanceVoyage avanceVoyage in avanceVoyages)
                 {
-                    var trips = await _tripRepository.GetAvanceVoyageTripsByAvIdAsync(avanceVoyage.Id);
-                    var expenses = await _expenseRepository.GetAvanceVoyageExpensesByAvIdAsync(avanceVoyage.Id);
-                    var statusHistories = await _statusHistoryRepository.GetAvanceVoyageStatusHistory(avanceVoyage.Id);
+                    List<Trip> trips = await _tripRepository.GetAvanceVoyageTripsByAvIdAsync(avanceVoyage.Id);
+                    List<Expense> expenses = await _expenseRepository.GetAvanceVoyageExpensesByAvIdAsync(avanceVoyage.Id);
+                    List<StatusHistory> statusHistories = await _statusHistoryRepository.GetAvanceVoyageStatusHistory(avanceVoyage.Id);
 
-                    result = await _tripRepository.DeleteTrips(trips);
-                    if(!result.Success) return result;
+                    if(trips.Count > 0)
+                    {
+                        result = await _tripRepository.DeleteTrips(trips);
+                        if (!result.Success) return result;
+                    }
 
-                    result = await _expenseRepository.DeleteExpenses(expenses);
-                    if (!result.Success) return result;
+                    if(expenses.Count > 0)
+                    {
+                        result = await _expenseRepository.DeleteExpenses(expenses);
+                        if (!result.Success) return result;
+                    }
 
                     result = await _statusHistoryRepository.DeleteStatusHistories(statusHistories);
                     if (!result.Success) return result;

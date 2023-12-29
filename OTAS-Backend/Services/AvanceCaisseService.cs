@@ -10,6 +10,7 @@ using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
 using System;
+using System.Text;
 
 
 namespace OTAS.Services
@@ -22,6 +23,7 @@ namespace OTAS.Services
         private readonly IExpenseRepository _expenseRepository;
         private readonly IDeciderRepository _deciderRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IMiscService _miscService;
         private readonly OtasContext _context;
         private readonly IMapper _mapper;
 
@@ -31,6 +33,7 @@ namespace OTAS.Services
             IExpenseRepository expenseRepository,
             IDeciderRepository deciderRepository,
             IUserRepository userRepository,
+            IMiscService miscService,
             OtasContext context,
             IMapper mapper)
         {
@@ -40,6 +43,7 @@ namespace OTAS.Services
             _expenseRepository = expenseRepository;
             _deciderRepository = deciderRepository;
             _userRepository = userRepository;
+            _miscService = miscService;
             _context = context;
             _mapper = mapper;
         }
@@ -53,7 +57,7 @@ namespace OTAS.Services
                 
                 var mappedAC = _mapper.Map<AvanceCaisse>(avanceCaisse);
                 List<Expense> expenses = _mapper.Map<List<Expense>>(avanceCaisse.Expenses);
-                mappedAC.EstimatedTotal = CalculateExpensesEstimatedTotal(expenses);
+                mappedAC.EstimatedTotal = _miscService.CalculateExpensesEstimatedTotal(expenses);
                 mappedAC.UserId = userId;
                 result = await _avanceCaisseRepository.AddAvanceCaisseAsync(mappedAC);
                 if (!result.Success) return result;
@@ -159,14 +163,14 @@ namespace OTAS.Services
             return avanceCaisse;
         }
 
-        public async Task<ServiceResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision)
+        public async Task<ServiceResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision, int deciderUserId)
         {
 
             ServiceResult result = new();
             AvanceCaisse decidedAvanceCaisse = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(decision.RequestId);
 
             // test if the decider is the one who is supposed to decide upon it
-            if (decidedAvanceCaisse.NextDeciderUserId != decision.DeciderUserId)
+            if (decidedAvanceCaisse.NextDeciderUserId != deciderUserId)
             {
                 result.Success = false;
                 result.Message = "You can't decide on this request in this state! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
@@ -180,7 +184,7 @@ namespace OTAS.Services
                 try
                 {
                     decidedAvanceCaisse.DeciderComment = decision.DeciderComment;
-                    decidedAvanceCaisse.DeciderUserId = decision.DeciderUserId;
+                    decidedAvanceCaisse.DeciderUserId = deciderUserId;
                     decidedAvanceCaisse.NextDeciderUserId = null;
                     decidedAvanceCaisse.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97;
                     result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(decidedAvanceCaisse);
@@ -189,7 +193,7 @@ namespace OTAS.Services
                     StatusHistory decidedAvanceCaisse_SH = new()
                     {
                         AvanceCaisseId = decision.RequestId,
-                        DeciderUserId = decision.DeciderUserId,
+                        DeciderUserId = deciderUserId,
                         DeciderComment = decision.DeciderComment,
                         Total = decidedAvanceCaisse.EstimatedTotal,
                         NextDeciderUserId = decidedAvanceCaisse.NextDeciderUserId,
@@ -213,9 +217,9 @@ namespace OTAS.Services
                 var transaction = _context.Database.BeginTransaction();
                 try
                 {
-                    decidedAvanceCaisse.DeciderUserId = decision.DeciderUserId;
+                    decidedAvanceCaisse.DeciderUserId = deciderUserId;
 
-                    var deciderLevel = await _deciderRepository.GetDeciderLevelByUserId(decision.DeciderUserId);
+                    var deciderLevel = await _deciderRepository.GetDeciderLevelByUserId(deciderUserId);
                     switch (deciderLevel)
                     {
                         case "MG":
@@ -260,6 +264,100 @@ namespace OTAS.Services
             result.Message = "AvanceCaisse has been decided upon successfully";
             return result;
 
+        }
+
+        public async Task<ServiceResult> MarkFundsAsPrepared(int avanceCaisseId, string advanceOption, int deciderUserId)
+        {
+            ServiceResult result = new();
+            AvanceCaisse decidedAvanceCaisse = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisseId);
+
+            var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                decidedAvanceCaisse.AdvanceOption = advanceOption;
+                decidedAvanceCaisse.DeciderUserId = deciderUserId;
+                decidedAvanceCaisse.LatestStatus = 9;
+
+                /*
+                    Generates a random number of 8-9 digits (8 => case 0 at the beginning)
+                    CAUTION: DO NOT EXCEED 10 IN LENGTH AS THIS WILL CAUSE AN OVERFLOW EXCEPTION
+                 */
+                decidedAvanceCaisse.ConfirmationNumber = _miscService.GenerateRandomNumber(9); //  
+                result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(decidedAvanceCaisse);
+                if(!result.Success) return result;
+
+                StatusHistory decidedAvanceCaisse_SH = new()
+                {
+                    AvanceCaisseId = decidedAvanceCaisse.Id,
+                    DeciderUserId = decidedAvanceCaisse.DeciderUserId,
+                    Total = decidedAvanceCaisse.EstimatedTotal,
+                    NextDeciderUserId = decidedAvanceCaisse.NextDeciderUserId,
+                    Status = decidedAvanceCaisse.LatestStatus,
+                };
+                result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);
+                if (!result.Success) return result;
+
+                await transaction.CommitAsync();
+            }
+            catch (Exception exception)
+            {
+                result.Success = false;
+                result.Message = exception.Message;
+                return result;
+            }
+        
+
+            result.Success = true;
+            result.Message = "AvanceCaisse has been decided upon successfully";
+            return result;
+        }
+
+        public async Task<ServiceResult> ConfirmFundsDelivery(int avanceCaisseId, int confirmationNumber)
+        {
+            ServiceResult result = new();
+            var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                AvanceCaisse avanceCaisse_DB = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisseId);
+
+                if( avanceCaisse_DB.ConfirmationNumber != confirmationNumber)
+                {
+                    result.Success = false;
+                    result.Message = "Wrong number!";
+                    return result;
+                }
+
+                avanceCaisse_DB.NextDeciderUserId = null;
+                avanceCaisse_DB.DeciderUserId = null;
+                avanceCaisse_DB.LatestStatus = 10;
+
+                result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(avanceCaisse_DB);
+                if(!result.Success) return result;
+
+                StatusHistory decidedAvanceCaisse_SH = new()
+                {
+                    AvanceCaisseId = avanceCaisse_DB.Id,
+                    DeciderUserId = avanceCaisse_DB.DeciderUserId,
+                    Total = avanceCaisse_DB.EstimatedTotal,
+                    NextDeciderUserId = avanceCaisse_DB.NextDeciderUserId,
+                    Status = avanceCaisse_DB.LatestStatus,
+                };
+                result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);
+                if (!result.Success) return result;
+
+
+                await transaction.CommitAsync();
+            }
+            catch (Exception exception)
+            {
+                result.Success = false;
+                result.Message = exception.Message;
+                return result;
+            }
+
+            result.Success = true;
+            result.Message = "AvanceCaisse funds has been confirmed as collected!";
+            return result;
         }
 
         public async Task<ServiceResult> ModifyAvanceCaisse(AvanceCaissePutDTO avanceCaisse)
@@ -320,7 +418,7 @@ namespace OTAS.Services
                 avanceCaisse_DB.Description = avanceCaisse.Description;
                 avanceCaisse_DB.Currency = avanceCaisse.Currency;
                 avanceCaisse_DB.OnBehalf = avanceCaisse.OnBehalf;
-                avanceCaisse_DB.EstimatedTotal = CalculateExpensesEstimatedTotal(mappedExpenses);
+                avanceCaisse_DB.EstimatedTotal = _miscService.CalculateExpensesEstimatedTotal(mappedExpenses);
 
                 //Insert new status history in case of a submit or re submit action
                 if (avanceCaisse.Action.ToLower() == "submit")
@@ -418,16 +516,6 @@ namespace OTAS.Services
         }
 
 
-        public decimal CalculateExpensesEstimatedTotal(List<Expense> expenses)
-        {
-            decimal estimatedTotal = 0;
-            foreach (Expense expense in expenses)
-            {
-                estimatedTotal += expense.EstimatedFee;
-            }
-
-            return estimatedTotal;
-        }
 
     }
 }

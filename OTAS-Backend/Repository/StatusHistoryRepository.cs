@@ -43,17 +43,17 @@ namespace OTAS.Repository
 
         public async Task<StatusHistory> GetLatestAvanceCaisseStatusHistroyById(int acId)
         {
-            return await _context.StatusHistories.Where(sh => sh.AvanceCaisseId == acId).OrderByDescending(sh => sh.CreateDate).FirstAsync();
+            return await _context.StatusHistories.Where(sh => sh.AvanceCaisseId == acId).FirstAsync();
         }
 
         public async Task<StatusHistory> GetLatestAvanceVoyageStatusHistroyById(int avId)
         {
-            return await _context.StatusHistories.Where(sh => sh.AvanceVoyageId == avId).OrderByDescending(sh => sh.CreateDate).FirstAsync();
+            return await _context.StatusHistories.Where(sh => sh.AvanceVoyageId == avId).FirstAsync();
         }
 
         public async Task<StatusHistory> GetLatestDepenseCaisseStatusHistroyById(int dcId)
         {
-            return await _context.StatusHistories.Where(sh => sh.DepenseCaisseId == dcId).OrderByDescending(sh => sh.CreateDate).FirstAsync();
+            return await _context.StatusHistories.Where(sh => sh.DepenseCaisseId == dcId).FirstAsync();
         }
 
         public async Task<ServiceResult> UpdateStatusHistoryTotal(int requestId, string requestType, decimal total)

@@ -8,7 +8,7 @@
 
         public string Description { get; set; } = null!;
 
-        public List<ExpenseNoCurrencyPostDTO> Expenses { get; set; } = new List<ExpenseNoCurrencyPostDTO>();
+        public List<ExpenseNoCurrencyPostDTO> Expenses { get; set; } = null!;
 
         public ActualRequesterPostDTO? ActualRequester { get; set; }
     }

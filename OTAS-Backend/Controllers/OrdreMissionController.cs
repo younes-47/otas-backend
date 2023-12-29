@@ -71,7 +71,6 @@ namespace OTAS.Controllers
                 if (i == sortedTrips.Count - 1) break; // prevent out of range index exception
                 if (sortedTrips[i].ArrivalDate > sortedTrips[i + 1].DepartureDate)
                     return BadRequest("Trips dates don't make sense! You can't start another trip before you arrive from the previous one.");
-
             }
             if (ordreMissionRequest.Abroad == false)
             {
@@ -80,6 +79,7 @@ namespace OTAS.Controllers
                     if (expense.Currency == "EUR") return BadRequest("An expense cannot be in EUR if your mission is not abroad!");
                 }
             }
+
             var user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             ServiceResult omResult = await _ordreMissionService.CreateOrdreMissionWithAvanceVoyageAsDraft(ordreMissionRequest, user.Id);
 
@@ -197,7 +197,7 @@ namespace OTAS.Controllers
             int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
             if (deciderRole != 3) return BadRequest("You are not authorized to decide upon requests!");
 
-            ServiceResult result = await _ordreMissionService.DecideOnOrdreMission(decision);
+            ServiceResult result = await _ordreMissionService.DecideOnOrdreMission(decision,user.Id);
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Message);
         }

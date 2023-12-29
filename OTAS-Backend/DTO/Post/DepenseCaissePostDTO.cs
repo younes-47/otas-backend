@@ -14,7 +14,7 @@ namespace OTAS.DTO.Post
 
         public virtual ActualRequesterPostDTO? ActualRequester { get; set; }
 
-        public virtual List<ExpenseNoCurrencyPostDTO> Expenses { get; set; } = new List<ExpenseNoCurrencyPostDTO>();
+        public virtual List<ExpenseNoCurrencyPostDTO> Expenses { get; set; } = null!;
 
     }
 }
