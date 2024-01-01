@@ -43,6 +43,11 @@ namespace OTAS.Repository
             return await _context.Trips.FindAsync(tripId);
         }
 
+        public async Task<Trip> GetTripAsync(int tripId)
+        {
+            return await _context.Trips.Where(trip => trip.Id == tripId).FirstAsync();
+        }
+
         public async Task<ServiceResult> AddTripsAsync(List<Trip> trips)
         {
             ServiceResult result = new();

@@ -37,6 +37,11 @@ namespace OTAS.Repository
             return await _context.Expenses.FindAsync(expenseId);
         }
 
+        public async Task<Expense> GetExpenseAsync(int expenseId)
+        {
+            return await _context.Expenses.Where(expense => expense.Id == expenseId).FirstAsync();
+        }
+
         //Post Methods
         public async Task<ServiceResult> AddExpensesAsync(List<Expense> expenses)
         {

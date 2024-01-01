@@ -107,6 +107,7 @@ namespace OTAS
             services.AddScoped<IAvanceCaisseService, AvanceCaisseService>();
             services.AddScoped<IDepenseCaisseService, DepenseCaisseService>();
             services.AddScoped<IAvanceVoyageService, AvanceVoyageService>();
+            services.AddScoped<ILiquidationService, LiquidationService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<ILdapAuthenticationService, LdapAuthenticationService>();
             services.AddScoped<IMiscService, MiscService>();

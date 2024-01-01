@@ -1,6 +1,9 @@
 ﻿using OTAS.Data;
 using OTAS.Models;
 using OTAS.Interfaces.IRepository;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
+using OTAS.Services;
 
 namespace OTAS.Repository
 {
@@ -12,29 +15,26 @@ namespace OTAS.Repository
             _context = context;
         }
 
-        public ICollection<Liquidation> GetAllLiquidations()
+        public async Task<Liquidation> GetLiquidationByIdAsync(int id)
         {
-            return _context.Liquidations.ToList();
+            return await _context.Liquidations.Where(lq => lq.Id == id).FirstAsync();
         }
 
-        public Liquidation GetLiquidationById(int id)
+        public async Task<ServiceResult> AddLiquidationAsync(Liquidation liquidation)
         {
-            return _context.Liquidations.Where(lq => lq.Id == id).FirstOrDefault();
+            ServiceResult result = new();
+            await _context.AddAsync(liquidation);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "Liquidation has been added successfully" : "Something went wrong while adding the Liquidation";
+            return result;
         }
 
-        public ICollection<Liquidation> GetLiquidationsByAvanceCaisseId(int acId)
+        // Save context state
+        public async Task<bool> SaveAsync()
         {
-            return _context.Liquidations.Where(lq => lq.AvanceCaisseId == acId).ToList();
+            int saved = await _context.SaveChangesAsync();
+            return saved > 0;
         }
 
-        public ICollection<Liquidation> GetLiquidationsByAvanceVoyageId(int avId)
-        {
-            return _context.Liquidations.Where(lq => lq.AvanceVoyageId == avId).ToList();
-        }
-
-        public ICollection<Liquidation> GetLiquidationsByRequesterUsername(int requesterUserId)
-        {
-            return _context.Liquidations.Where(lq => lq.UserId == requesterUserId).ToList();
-        }
     }
 }

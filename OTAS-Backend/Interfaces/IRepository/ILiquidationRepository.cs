@@ -1,12 +1,14 @@
-﻿using OTAS.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using OTAS.Models;
+using OTAS.Services;
 
 namespace OTAS.Interfaces.IRepository
 {
     public interface ILiquidationRepository
     {
-        Liquidation GetLiquidationById(int id);
-        ICollection<Liquidation> GetAllLiquidations();
-        ICollection<Liquidation> GetLiquidationsByAvanceVoyageId(int avId);
-        ICollection<Liquidation> GetLiquidationsByAvanceCaisseId(int acId);
+        Task<Liquidation> GetLiquidationByIdAsync(int id);
+        Task<ServiceResult> AddLiquidationAsync(Liquidation liquidation);
+        Task<bool> SaveAsync();
+
     }
 }

@@ -59,9 +59,6 @@ namespace OTAS.Services
             using var transaction = _context.Database.BeginTransaction();
             ServiceResult result = new();
 
-            
-
-
             try
             {
                 var mappedOM = _mapper.Map<OrdreMission>(ordreMission);
