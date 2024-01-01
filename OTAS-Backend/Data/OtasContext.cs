@@ -97,7 +97,9 @@ public partial class OtasContext : DbContext
 
             entity.ToTable("AvanceCaisse");
 
-            entity.Property(e => e.ActualTotal).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.ActualTotal)
+                .HasDefaultValueSql("((0.00))")
+                .HasColumnType("decimal(10, 2)");
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
@@ -107,7 +109,8 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.DeciderComment).HasMaxLength(350);
             entity.Property(e => e.AdvanceOption).HasMaxLength(50);
             entity.Property(e => e.Description).HasMaxLength(2000);
-            entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.EstimatedTotal)
+                .HasColumnType("decimal(10, 2)");
             entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
 
             entity.HasOne(d => d.LatestStatusNavigation).WithMany(p => p.AvanceCaisses)
@@ -127,7 +130,7 @@ public partial class OtasContext : DbContext
 
             entity.ToTable("AvanceVoyage");
 
-            entity.Property(e => e.ActualTotal).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.ActualTotal).HasDefaultValueSql("((0.00))").HasColumnType("decimal(10, 2)");
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
@@ -217,7 +220,9 @@ public partial class OtasContext : DbContext
 
             entity.ToTable("Expense");
 
-            entity.Property(e => e.ActualFee).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.ActualFee)
+                .HasDefaultValueSql("((0.00))")
+                .HasColumnType("decimal(10, 2)");
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
@@ -225,7 +230,9 @@ public partial class OtasContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false);
             entity.Property(e => e.Description).HasMaxLength(2000);
-            entity.Property(e => e.EstimatedFee).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.EstimatedFee)
+                .HasDefaultValueSql("((0.00))")
+                .HasColumnType("decimal(10, 2)");
             entity.Property(e => e.ExpenseDate).HasColumnType("datetime");
             entity.Property(e => e.UpdateDate).HasColumnType("datetime");
 
@@ -254,7 +261,7 @@ public partial class OtasContext : DbContext
                 .HasColumnType("datetime");
             entity.Property(e => e.DeciderComment).HasMaxLength(350);
             entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
-            entity.Property(e => e.ReceiptsFilePath)
+            entity.Property(e => e.ReceiptsFileName)
                 .HasMaxLength(500)
                 .IsUnicode(false);
 
@@ -378,7 +385,9 @@ public partial class OtasContext : DbContext
 
             entity.ToTable("Trip");
 
-            entity.Property(e => e.ActualFee).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.ActualFee)
+                .HasDefaultValueSql("((0.00))")
+                .HasColumnType("decimal(10, 2)");
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
@@ -390,9 +399,10 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.Destination)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            entity.Property(e => e.EstimatedFee).HasColumnType("decimal(10, 2)");
-            entity.Property(e => e.HighwayFee)
+            entity.Property(e => e.EstimatedFee)
                 .HasDefaultValueSql("((0.00))")
+                .HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.HighwayFee)
                 .HasColumnType("decimal(10, 2)");
             entity.Property(e => e.TransportationMethod)
                 .HasMaxLength(50)

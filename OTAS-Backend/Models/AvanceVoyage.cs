@@ -12,7 +12,7 @@ public partial class AvanceVoyage
 
     public decimal EstimatedTotal { get; set; }
 
-    public decimal? ActualTotal { get; set; }
+    public decimal ActualTotal { get; set; }
 
     public string Currency { get; set; } = null!;
 

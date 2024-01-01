@@ -26,7 +26,7 @@ public partial class Trip
 
     public decimal EstimatedFee { get; set; }
 
-    public decimal? ActualFee { get; set; }
+    public decimal ActualFee { get; set; }
 
     public DateTime CreateDate { get; set; }
 

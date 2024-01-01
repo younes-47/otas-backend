@@ -15,7 +15,7 @@ public partial class Expense
 
     public decimal EstimatedFee { get; set; }
 
-    public decimal? ActualFee { get; set; }
+    public decimal ActualFee { get; set; }
 
     public string Description { get; set; } = null!;
 

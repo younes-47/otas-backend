@@ -15,7 +15,7 @@ public partial class AvanceCaisse
 
     public decimal EstimatedTotal { get; set; }
 
-    public decimal? ActualTotal { get; set; }
+    public decimal ActualTotal { get; set; }
 
     public string? AdvanceOption { get; set; }
 
