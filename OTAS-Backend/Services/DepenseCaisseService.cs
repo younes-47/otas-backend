@@ -172,7 +172,7 @@ namespace OTAS.Services
                 }
 
                 //Delete all expenses from DB (related to this dc!)
-                var expenses_DB = await _expenseRepository.GetDepenseCaisseExpensesByAvIdAsync(depenseCaisse.Id);
+                var expenses_DB = await _expenseRepository.GetDepenseCaisseExpensesByDcIdAsync(depenseCaisse.Id);
                 await _expenseRepository.DeleteExpenses(expenses_DB);
 
                 //Map each expense coming from the request and insert them
@@ -324,7 +324,7 @@ namespace OTAS.Services
             {
 
                 // Delete expenses & status History
-                var expenses = await _expenseRepository.GetDepenseCaisseExpensesByAvIdAsync(depenseCaisse.Id);
+                var expenses = await _expenseRepository.GetDepenseCaisseExpensesByDcIdAsync(depenseCaisse.Id);
                 var statusHistories = await _statusHistoryRepository.GetDepenseCaisseStatusHistory(depenseCaisse.Id);
 
                 result = await _expenseRepository.DeleteExpenses(expenses);

@@ -5,9 +5,9 @@ namespace OTAS.Interfaces.IRepository
 {
     public interface IExpenseRepository
     {
-        Task<List<Expense>> GetAvanceCaisseExpensesByAvIdAsync(int acId);
+        Task<List<Expense>> GetAvanceCaisseExpensesByAcIdAsync(int acId);
         Task<List<Expense>> GetAvanceVoyageExpensesByAvIdAsync(int avId);
-        Task<List<Expense>> GetDepenseCaisseExpensesByAvIdAsync(int dcId);
+        Task<List<Expense>> GetDepenseCaisseExpensesByDcIdAsync(int dcId);
         Task<Expense?> FindExpenseAsync(int expenseId);
         Task<Expense> GetExpenseAsync(int expenseId);
         Task<ServiceResult> AddExpenseAsync(Expense expense);

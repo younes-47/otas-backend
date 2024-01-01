@@ -17,7 +17,7 @@ namespace OTAS.Repository
 
         //Get Methods
 
-        public async Task<List<Expense>> GetAvanceCaisseExpensesByAvIdAsync(int acId)
+        public async Task<List<Expense>> GetAvanceCaisseExpensesByAcIdAsync(int acId)
         {
             return await _context.Expenses.Where(expenses => expenses.AvanceCaisseId == acId).ToListAsync();
         }
@@ -27,7 +27,7 @@ namespace OTAS.Repository
             return await _context.Expenses.Where(expenses => expenses.AvanceVoyageId == avId).ToListAsync();
         }
 
-        public async Task<List<Expense>> GetDepenseCaisseExpensesByAvIdAsync(int dcId)
+        public async Task<List<Expense>> GetDepenseCaisseExpensesByDcIdAsync(int dcId)
         {
             return await _context.Expenses.Where(expenses => expenses.DepenseCaisseId == dcId).ToListAsync();
         }

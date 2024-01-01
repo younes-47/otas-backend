@@ -6,6 +6,7 @@ namespace OTAS.Interfaces.IService
 {
     public interface ILiquidationService
     {
-        Task<ServiceResult> LiquidateAvanceVoyage(List<Trip> tripsDB, List<Expense> expensesDB, AvanceVoyageLiquidationPostDTO avanceVoyageLiquidation, int userId);
+        Task<ServiceResult> LiquidateAvanceVoyage(AvanceVoyage avanceVoyageDB, AvanceVoyageLiquidationPostDTO avanceVoyageLiquidation, int userId);
+        Task<ServiceResult> LiquidateAvanceCaisse(AvanceCaisse avanceCaisseDB, AvanceCaisseLiquidationPostDTO avanceCaisseLiquidation, int userId);
     }
 }

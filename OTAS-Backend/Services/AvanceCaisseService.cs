@@ -398,7 +398,7 @@ namespace OTAS.Services
                 }
 
                 //Delete all expenses from DB (related to this ac!)
-                var expenses_DB = await _expenseRepository.GetAvanceCaisseExpensesByAvIdAsync(avanceCaisse.Id);
+                var expenses_DB = await _expenseRepository.GetAvanceCaisseExpensesByAcIdAsync(avanceCaisse.Id);
                 await _expenseRepository.DeleteExpenses(expenses_DB);
 
                 //Map each expense coming from the request and insert them
@@ -479,7 +479,7 @@ namespace OTAS.Services
             {
 
                 // Delete expenses & status History
-                var expenses = await _expenseRepository.GetAvanceCaisseExpensesByAvIdAsync(avanceCaisse.Id);
+                var expenses = await _expenseRepository.GetAvanceCaisseExpensesByAcIdAsync(avanceCaisse.Id);
                 var statusHistories = await _statusHistoryRepository.GetAvanceCaisseStatusHistory(avanceCaisse.Id);
 
                 result = await _expenseRepository.DeleteExpenses(expenses);
