@@ -399,6 +399,11 @@ namespace OTAS.Services
                         decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("FM", null, decision.ReturnedToTRByFM);
                         decidedDepenseCaisse.LatestStatus = 13; /* pending TR validation */
                     }
+                    else if (decision.ReturnedToRequesterByTR)
+                    {
+                        decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("TR", null, decision.ReturnedToTRByFM);
+                        decidedDepenseCaisse.LatestStatus = 15; /* returned for missing evidences + next decider is still TR */
+                    }
                     else
                     {
                         decidedDepenseCaisse.NextDeciderUserId = null; /* next decider is set to null if returned or rejected by deciders other than TR */
@@ -453,20 +458,7 @@ namespace OTAS.Services
                             break;
                         case "TR":
                             decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("TR", decision.ReturnedToFMByTR);
-                            if (decision.ReturnedToFMByTR)
-                            {
-                                decidedDepenseCaisse.LatestStatus = 14;
-                                break;
-                            }
-                            else if (decision.ReturnedToRequesterByTR)
-                            {
-                                decidedDepenseCaisse.LatestStatus = 15;
-                                break;
-                            }
-                            else
-                            {
-                                decidedDepenseCaisse.LatestStatus = 8;
-                            }
+                            decidedDepenseCaisse.LatestStatus = 8;
                             break;
                     }
 

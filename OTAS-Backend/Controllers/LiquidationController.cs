@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OTAS.DTO.Get;
 using OTAS.DTO.Post;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
+using OTAS.Models;
 using OTAS.Repository;
 using OTAS.Services;
 
@@ -40,7 +42,7 @@ namespace OTAS.Controllers
         }
 
         [Authorize(Roles = "requester, decider")]
-        [HttpGet("Create")]
+        [HttpGet("AvanceVoyage")]
         public async Task<IActionResult> LiquidateAvanceVoyage(AvanceVoyageLiquidationPostDTO avanceVoyageLiquidation)
         {
             if (!ModelState.IsValid) 
@@ -66,7 +68,7 @@ namespace OTAS.Controllers
         }
 
         [Authorize(Roles = "requester, decider")]
-        [HttpGet("Create")]
+        [HttpGet("AvanceCaisse")]
         public async Task<IActionResult> LiquidateAvanceCaisse(AvanceCaisseLiquidationPostDTO avanceCaisseLiquidation)
         {
             if (!ModelState.IsValid)
@@ -89,5 +91,19 @@ namespace OTAS.Controllers
 
             return Ok(result.Message);
         }
+
+        [Authorize(Roles = "requester, decider")]
+        [HttpGet("Table")]
+        public async Task<IActionResult> LiquidationsTable()
+        {
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+
+            List<LiquidationTableDTO> liquidations = await _liquidationRepository.GetLiquidationsTableForRequster(user.Id);
+
+            return Ok(liquidations);
+        }
+
     }
 }

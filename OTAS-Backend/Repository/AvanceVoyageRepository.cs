@@ -99,10 +99,13 @@ namespace OTAS.Repository
         {
             return await _context.AvanceVoyages.Where(av => av.UserId == userId)
                 .Include(av => av.LatestStatusNavigation)
+                .Include(av => av.OrdreMission)
                 .Select(av => new AvanceVoyageTableDTO
                 {
                     Id = av.Id,
                     EstimatedTotal = av.EstimatedTotal,
+                    OrdreMissionId = av.OrdreMission.Id,
+                    OrdreMissionDescription = av.OrdreMission.Description,
                     ActualTotal = av.ActualTotal,
                     Currency = av.Currency,
                     ConfirmationNumber = av.ConfirmationNumber,

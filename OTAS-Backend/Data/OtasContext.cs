@@ -45,6 +45,7 @@ public partial class OtasContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) { }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ActualRequester>(entity =>
@@ -403,6 +404,7 @@ public partial class OtasContext : DbContext
                 .HasDefaultValueSql("((0.00))")
                 .HasColumnType("decimal(10, 2)");
             entity.Property(e => e.HighwayFee)
+                .HasDefaultValueSql("((0.00))")
                 .HasColumnType("decimal(10, 2)");
             entity.Property(e => e.TransportationMethod)
                 .HasMaxLength(50)
@@ -411,7 +413,9 @@ public partial class OtasContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.UpdateDate).HasColumnType("datetime");
-            entity.Property(e => e.Value).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.Value)
+            .HasDefaultValueSql("((0.00))")
+            .HasColumnType("decimal(10, 2)");
 
             entity.HasOne(d => d.AvanceVoyage).WithMany(p => p.Trips)
                 .HasForeignKey(d => d.AvanceVoyageId)
