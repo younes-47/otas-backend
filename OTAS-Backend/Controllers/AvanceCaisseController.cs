@@ -211,7 +211,7 @@ namespace OTAS.Controllers
 
         [Authorize(Roles = "decider")]
         [HttpPut("Decide/Funds/Choose")]
-        public async Task<IActionResult> MarkFundsAsPrepared([FromBody] int Id, [FromBody] string advanceOption) // Only TR
+        public async Task<IActionResult> MarkFundsAsPrepared(MarkFundsAsPreparedPutDTO action) // Only TR
         {
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if(await _userRepository.FindUserByUserIdAsync(user.Id) == null)
@@ -229,10 +229,10 @@ namespace OTAS.Controllers
             //if (advanceOption.ToLower() != "" && advanceOption.ToLower() != "")
             //    return BadRequest("Invalid Advance choice!");
 
-            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null)
+            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(action.RequestId) == null)
                 return BadRequest("Request is not found");
 
-            ServiceResult result = await _avanceCaisseService.MarkFundsAsPrepared(Id, advanceOption, user.Id);
+            ServiceResult result = await _avanceCaisseService.MarkFundsAsPrepared(action.RequestId, action.AdvanceOption, user.Id);
             if (!result.Success)
                 return BadRequest(result.Message);
 
@@ -242,7 +242,7 @@ namespace OTAS.Controllers
 
         [Authorize(Roles = "decider")]
         [HttpPut("Decide/Funds/Confirm")]
-        public async Task<IActionResult> ConfirmFundsDelivery([FromBody] int Id, [FromBody] int confirmationNumber) // Only TR
+        public async Task<IActionResult> ConfirmFundsDelivery(ConfirmFundsDeliveryPutDTO action) // Only TR
         {
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null)
@@ -257,16 +257,15 @@ namespace OTAS.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null)
+            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(action.RequestId) == null)
                 return BadRequest("Request is not found");
 
-            ServiceResult result = await _avanceCaisseService.ConfirmFundsDelivery(Id, confirmationNumber);
+            ServiceResult result = await _avanceCaisseService.ConfirmFundsDelivery(action.RequestId, action.ConfirmationNumber);
             if (!result.Success)
                 return Forbid(result.Message);
 
             return Ok(result.Message);
         }
-
 
 
     }
