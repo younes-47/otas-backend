@@ -32,7 +32,7 @@ namespace OTAS.Controllers
             _mapper = mapper;
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("Requests/Table")]
         public async Task<IActionResult> ShowOrdreMissionRequestsTable()
         {
@@ -46,7 +46,7 @@ namespace OTAS.Controllers
             return Ok(ordreMissions);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpPost("Create")]
         public async Task<IActionResult> AddOrdreMission([FromBody] OrdreMissionPostDTO ordreMissionRequest)
         {
@@ -88,7 +88,7 @@ namespace OTAS.Controllers
             return Ok(omResult.Message);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpPut("Modify")]
         public async Task<IActionResult> ModifyOrdreMission([FromBody] OrdreMissionPutDTO ordreMission)
         {
@@ -132,7 +132,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpPut("Submit")]
         public async Task<IActionResult> SubmitOrdreMission(int Id) // Id = ordreMissionId
         {
@@ -149,7 +149,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("View")]
         public async Task<IActionResult> ShowOrdreMissionDetailsPage(int Id) // Id = ordreMissionId
         {
@@ -158,7 +158,7 @@ namespace OTAS.Controllers
             return Ok(ordreMission);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpDelete("Delete")]
         public async Task<IActionResult> DeleteDraftedOrdreMission(int Id) // Id = ordreMissionId
         {

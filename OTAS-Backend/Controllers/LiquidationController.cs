@@ -41,7 +41,7 @@ namespace OTAS.Controllers
             _userRepository = userRepository;
         }
 
-        [Authorize(Roles = "requester, decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("AvanceVoyage")]
         public async Task<IActionResult> LiquidateAvanceVoyage(AvanceVoyageLiquidationPostDTO avanceVoyageLiquidation)
         {
@@ -67,7 +67,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        [Authorize(Roles = "requester, decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("AvanceCaisse")]
         public async Task<IActionResult> LiquidateAvanceCaisse(AvanceCaisseLiquidationPostDTO avanceCaisseLiquidation)
         {
@@ -92,7 +92,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        [Authorize(Roles = "requester, decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("Table")]
         public async Task<IActionResult> LiquidationsTable()
         {

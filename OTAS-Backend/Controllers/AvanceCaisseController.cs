@@ -43,7 +43,7 @@ namespace OTAS.Controllers
          
          */
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("Requests/Table")]
         public async Task<IActionResult> ShowAvanceCaisseRequestsTable()
         {
@@ -53,7 +53,7 @@ namespace OTAS.Controllers
             return Ok(mappedACs);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpPost("Create")]
         public async Task<IActionResult> AddAvanceCaisse([FromBody] AvanceCaissePostDTO avanceCaisse)
         {
@@ -83,7 +83,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpPut("Modify")]
         public async Task<IActionResult> ModifyAvanceCaisse([FromBody] AvanceCaissePutDTO avanceCaisse)
         {
@@ -114,7 +114,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpPut("Submit")]
         public async Task<IActionResult> SubmitAvanceCaisse(int Id)
         {
@@ -133,7 +133,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("View")]
         public async Task<IActionResult> GetAvanceCaisseById(int Id)
         {
@@ -143,7 +143,7 @@ namespace OTAS.Controllers
             return Ok(avanceCaisseDetails);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpDelete("Delete")]
         public async Task<IActionResult> DeleteDraftedAvanceCaisse(int Id) // Id = avanceCaisseId
         {

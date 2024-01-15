@@ -36,7 +36,7 @@ namespace OTAS.Controllers
             _userRepository = userRepository;
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("View")]
         public async Task<IActionResult> ShowAvanceVoyageDetailsPage(int Id)
         {
@@ -47,7 +47,7 @@ namespace OTAS.Controllers
             return Ok(mappedAV);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("Requests/Table")]
         public async Task<IActionResult> ShowAvanceVoyageRequestsTable()
         {

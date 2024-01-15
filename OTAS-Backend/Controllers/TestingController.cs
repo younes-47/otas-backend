@@ -30,7 +30,6 @@ namespace OTAS.Controllers
             _mapper = mapper;
         }
 
-        [Authorize(Roles = "requester , decider")]
         [HttpGet("OrdreMission/All")]
         public async Task<IActionResult> GetAllOrdreMissions()
         {

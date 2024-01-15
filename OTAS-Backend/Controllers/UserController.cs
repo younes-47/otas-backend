@@ -26,12 +26,17 @@ namespace OTAS.Controllers
             _mapper = mapper;
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("info")]
         public UserInfoDTO GetUserInformation()
         {
             string username = HttpContext.User.Identity.Name;
             var userInfo =  _ldapAuthenticationService.GetUserInformation(username);
+            // Log claims for debugging
+            foreach (var claim in HttpContext.User.Claims)
+            {
+                Console.WriteLine($"{claim.Type}: {claim.Value}");
+            }
             return userInfo;
         }
 

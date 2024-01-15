@@ -37,7 +37,7 @@ namespace OTAS.Controllers
         }
 
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("Requests/Table")]
         public async Task<IActionResult> ShowDepenseCaisseRequestsTable()
         {
@@ -52,7 +52,7 @@ namespace OTAS.Controllers
 
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpPost("Create")]
         public async Task<IActionResult> AddDepenseCaisse([FromBody] DepenseCaissePostDTO depenseCaisse)
         {
@@ -88,7 +88,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpPut("Modify")]
         public async Task<IActionResult> ModifyDepenseCaisse([FromBody] DepenseCaissePutDTO depenseCaisse)
         {
@@ -140,7 +140,7 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
-        [Authorize(Roles = "requester , decider")]
+        [Authorize(Roles = "requester,decider")]
         [HttpPut("Submit")]
         public async Task<IActionResult> SubmitDepenseCaisse(int Id)
         {
