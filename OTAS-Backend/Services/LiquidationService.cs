@@ -146,7 +146,7 @@ namespace OTAS.Services
                 }
                 /* Create file name by concatenating a random string + DC + username + .pdf extension */
                 var user = await _userRepository.GetUserByUserIdAsync(userId);
-                string uniqueReceiptsFileName = _miscService.GenerateRandomString(10) + "_DC_" + user.Username + ".pdf";
+                string uniqueReceiptsFileName = _miscService.GenerateRandomString(10) + "_LQ_" + user.Username + ".pdf";
                 /* Combine the folder path with the file name to create full path */
                 var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
                 /* The creation of the file occurs after the commitment of DB changes */
@@ -241,7 +241,7 @@ namespace OTAS.Services
                 }
                 /* Create file name by concatenating a random string + DC + username + .pdf extension */
                 var user = await _userRepository.GetUserByUserIdAsync(userId);
-                string uniqueReceiptsFileName = _miscService.GenerateRandomString(10) + "_DC_" + user.Username + ".pdf";
+                string uniqueReceiptsFileName = _miscService.GenerateRandomString(10) + "_LQ_" + user.Username + ".pdf";
                 /* Combine the folder path with the file name to create full path */
                 var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
                 /* The creation of the file occurs after the commitment of DB changes */

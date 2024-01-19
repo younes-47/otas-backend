@@ -7,6 +7,7 @@ using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
+using OTAS.Repository;
 using OTAS.Services;
 
 namespace OTAS.Controllers
@@ -19,16 +20,19 @@ namespace OTAS.Controllers
         private readonly IOrdreMissionService _ordreMissionService;
         private readonly IOrdreMissionRepository _ordreMissionRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IActualRequesterRepository _actualRequesterRepository;
         private readonly IMapper _mapper;
 
         public OrdreMissionController(IOrdreMissionService ordreMissionService,
             IOrdreMissionRepository ordreMissionRepository,
             IUserRepository userRepository,
+            IActualRequesterRepository actualRequesterRepository,
             IMapper mapper)
         {
             _ordreMissionService = ordreMissionService;
             _ordreMissionRepository = ordreMissionRepository;
             _userRepository = userRepository;
+            _actualRequesterRepository = actualRequesterRepository;
             _mapper = mapper;
         }
 
@@ -85,7 +89,7 @@ namespace OTAS.Controllers
 
             if (!omResult.Success) return BadRequest(omResult.Message);
 
-            return Ok(omResult.Message);
+            return Ok(omResult.Id);
         }
 
         [Authorize(Roles = "requester,decider")]
@@ -154,7 +158,56 @@ namespace OTAS.Controllers
         public async Task<IActionResult> ShowOrdreMissionDetailsPage(int Id) // Id = ordreMissionId
         {
             if(await _ordreMissionRepository.FindOrdreMissionByIdAsync(Id) == null) return NotFound("OrdreMission not found!");
-            var ordreMission = await _ordreMissionRepository.GetOrdreMissionFullDetailsById(Id);
+            OrdreMissionViewDTO ordreMission = await _ordreMissionRepository.GetOrdreMissionFullDetailsById(Id);
+
+            // if the request is on behalf of someone, get the requester data from the DB
+            if (ordreMission.OnBehalf)
+            {
+                ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByOrdreMissionIdAsync(ordreMission.Id);
+                ordreMission.RequesterInfo = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+
+            }
+
+            // adding those more detailed status that are not in the DB
+            for (int i = ordreMission.StatusHistory.Count - 1; i >= 0; i--)
+            {
+                StatusHistoryDTO statusHistory = ordreMission.StatusHistory[i];
+                StatusHistoryDTO explicitStatusHistory = new();
+                switch (statusHistory.Status)
+                {
+                    case "Pending Manager's Approval":
+                        explicitStatusHistory.Status = "Submitted";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        break;
+                    case "Pending HR's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Finance Department's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending General Director's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Vice President's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    default:
+                        continue;
+                }
+                ordreMission.StatusHistory.Insert(i, explicitStatusHistory);
+            }
             return Ok(ordreMission);
         }
 
@@ -170,7 +223,12 @@ namespace OTAS.Controllers
                 return BadRequest("The request is not in a draft. You cannot delete requests in a different status than draft.");
 
             ServiceResult result = await _ordreMissionService.DeleteDraftedOrdreMissionWithAvanceVoyages(ordreMission);
-            return Ok(result.Message);
+            if(!result.Success) return BadRequest(result.Message);
+
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            var newOrdreMission = await _ordreMissionRepository.GetOrdresMissionByUserIdAsync(user.Id);
+
+            return Ok(newOrdreMission);
         }
 
         [Authorize(Roles ="decider")]

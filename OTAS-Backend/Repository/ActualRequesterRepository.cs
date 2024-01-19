@@ -47,7 +47,9 @@ namespace OTAS.Repository
 
         public async Task<ActualRequester?> FindActualrequesterInfoByOrdreMissionIdAsync(int ordreMissionId)
         {
-            return await _context.ActualRequesters.Where(ar => ar.OrdreMissionId == ordreMissionId).FirstOrDefaultAsync();
+
+            var actualRequester =  await _context.ActualRequesters.Where(ar => ar.OrdreMissionId == ordreMissionId).FirstOrDefaultAsync();
+            return actualRequester;
         }
 
         public async Task<bool> SaveAsync()

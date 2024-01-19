@@ -42,38 +42,48 @@ namespace OTAS.Repository
             return ordreMissions;
         }
 
-        public async Task<OrdreMissionFullDetailsDTO> GetOrdreMissionFullDetailsById(int ordreMissionId)
+        public async Task<OrdreMissionViewDTO> GetOrdreMissionFullDetailsById(int ordreMissionId)
         {
+            return await _context.OrdreMissions
+                .Where(om => om.Id == ordreMissionId)
+                .Include(om => om.LatestStatusString)
+                .Include(om => om.StatusHistories)
+                .Select(om => new OrdreMissionViewDTO
+                {
+                    Id = om.Id,
+                    Description = om.Description,
+                    Abroad = om.Abroad,
+                    DepartureDate = om.DepartureDate,
+                    ReturnDate = om.ReturnDate,
+                    LatestStatus = om.LatestStatusString.StatusString,
+                    CreateDate = om.CreateDate,
+                    StatusHistory = om.StatusHistories.Select(sh => new StatusHistoryDTO
+                    {
+                        Status = sh.StatusNavigation.StatusString,
+                        DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
+                        DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
+                        DeciderComment = sh.DeciderComment,
+                        CreateDate = sh.CreateDate
+                    }).ToList(),
+                    AvanceVoyagesDetails = om.AvanceVoyages.Select(av => new OrdreMissionAvanceDetailsDTO
+                    {
+                        Id = av.Id,
+                        EstimatedTotal = av.EstimatedTotal,
+                        ActualTotal = av.ActualTotal,
+                        Currency = av.Currency,
+                        LatestStatus = av.LatestStatusNavigation.StatusString,
+                        Trips = _mapper.Map<List<TripDTO>>(av.Trips),
+                        Expenses = _mapper.Map<List<ExpenseDTO>>(av.Expenses),
+                    }).ToList(),
+                })
+                .FirstAsync();
+
             //var ordreMission = await _context.OrdreMissions
             //    .Where(om => om.Id == ordreMissionId)
-            //    .Select(om => new OrdreMissionFullDetailsDTO
-            //    {
-            //        Id = om.Id,
-            //        Description = om.Description,
-            //        Abroad = om.Abroad,
-            //        DepartureDate = om.DepartureDate,
-            //        ReturnDate = om.ReturnDate,
-            //        LatestStatus = om.LatestStatus,
-            //        CreateDate = om.CreateDate,
-            //        User = _mapper.Map<UserDTO>(om.User),
-            //        ActualRequester = _mapper.Map<ActualRequesterDTO>(om.ActualRequester),
-            //        AvanceVoyages = om.AvanceVoyages.Select(av => new AvanceVoyageDTO
-            //        {
-            //            Expenses = _mapper.Map<ICollection<ExpenseDTO>>(om.AvanceVoyages.)
-            //        }).ToList(),
-            //        StatusHistories = _mapper.Map<ICollection<StatusHistoryDTO>>(om.StatusHistories)
-            //    })
+            //    .ProjectTo<OrdreMissionViewDTO>(_mapper.ConfigurationProvider)
             //    .FirstOrDefaultAsync();
 
-            var ordreMission = await _context.OrdreMissions
-                .Where(om => om.Id == ordreMissionId)
-                .ProjectTo<OrdreMissionFullDetailsDTO>(_mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync();
-
-            //For some reason Automapper doesn't map the user object
-            ordreMission.User = _mapper.Map<UserDTO>(await _context.Users.Where(user => user.Id == ordreMission.UserId).FirstAsync());
-
-            return ordreMission;
+            //return ordreMission;
         }
 
         public async Task<List<OrdreMissionDTO>?> GetOrdresMissionByUserIdAsync(int userid)

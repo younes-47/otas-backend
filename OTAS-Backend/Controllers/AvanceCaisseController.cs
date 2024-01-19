@@ -159,7 +159,14 @@ namespace OTAS.Controllers
             }
 
             result = await _avanceCaisseService.DeleteDraftedAvanceCaisse(avanceCaisse);
-            return Ok(result.Message);
+
+            if(!result.Success) return BadRequest(result.Message);
+
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+            var mappedACs = await _avanceCaisseRepository.GetAvancesCaisseByUserIdAsync(user.Id);
+
+            return Ok(mappedACs);
         }
 
         /*

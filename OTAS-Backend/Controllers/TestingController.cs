@@ -44,7 +44,7 @@ namespace OTAS.Controllers
         {
             var AV_List = await _testingRepository.GetAllAvanceVoyagesAsync();
             if (AV_List.Count <= 0) return NotFound("There is no AvanceVoyage");
-            var mappedAV_List = _mapper.Map<List<AvanceVoyageDTO>>(AV_List);
+            var mappedAV_List = _mapper.Map<List<AvanceVoyageViewDTO>>(AV_List);
             return Ok(mappedAV_List);
         }
 

@@ -37,7 +37,7 @@ namespace TMA_App.Services
         }
         public string[] GetUserInfo(string username)
         {
-            string[] userInfo = new string[4];
+            string[] userInfo = new string[6];
             string domainAndUsername = $"{_domain}\\{username}";
 
             try
@@ -46,31 +46,54 @@ namespace TMA_App.Services
                 // Create a DirectorySearcher object to search for the user's information.
                 DirectorySearcher search = new DirectorySearcher(entry);
                 search.Filter = $"(SAMAccountName={username})";
-                search.PropertiesToLoad.Add("givenName");
-                search.PropertiesToLoad.Add("sn");
-                search.PropertiesToLoad.Add("manager");
-                search.PropertiesToLoad.Add("employeeID");
+                search.PropertiesToLoad.Add("givenName"); // 0 => First name
+                search.PropertiesToLoad.Add("sn");  // 1 => lastname
+                search.PropertiesToLoad.Add("manager"); // 2 => manager username
+                search.PropertiesToLoad.Add("employeeID"); // 3 => registration number
+                search.PropertiesToLoad.Add("title"); // 4 => job title
+                search.PropertiesToLoad.Add("department"); // 5 => department
 
                 SearchResult result = search.FindOne();
 
                 if (result != null)
                 {
                     string managerFullField;
+
                     if (result.Properties.Contains("givenName") && result.Properties["givenName"].Count > 0)
                     {
                         userInfo[0] = result.Properties["givenName"][0].ToString();
                     }
                     else { throw new Exception($"error while retrieving user:\"{username}\" givenName"); };
+
+
                     if (result.Properties.Contains("sn") && result.Properties["sn"].Count > 0)
                     {
                         userInfo[1] = result.Properties["sn"][0].ToString();
                     }
                     else { throw new Exception($"error while retrieving user:\"{username}\" sn"); };
+
+
                     if (result.Properties.Contains("employeeID") && result.Properties["employeeID"].Count > 0)
                     {
                         userInfo[3] = result.Properties["employeeID"][0].ToString();
                     }
                     else { throw new Exception($"error while retrieving user:\"{username}\" employeeID"); };
+
+
+                    if (result.Properties.Contains("title") && result.Properties["title"].Count > 0)
+                    {
+                        userInfo[4] = result.Properties["title"][0].ToString();
+                    }
+                    else { throw new Exception($"error while retrieving user:\"{username}\" title"); };
+
+
+                    if (result.Properties.Contains("department") && result.Properties["department"].Count > 0)
+                    {
+                        userInfo[5] = result.Properties["department"][0].ToString();
+                    }
+                    else { throw new Exception($"error while retrieving user:\"{username}\" department"); };
+
+
                     if (result.Properties.Contains("manager") && result.Properties["manager"].Count > 0)
                     {
                         managerFullField = result.Properties["manager"][0].ToString();
@@ -81,6 +104,7 @@ namespace TMA_App.Services
                     {
                         userInfo[2] = "";
                     }
+
                 }
                 return userInfo;
             }
@@ -99,10 +123,12 @@ namespace TMA_App.Services
                 // Create a DirectorySearcher object to search for the user's information.
                 DirectorySearcher search = new DirectorySearcher(entry);
                 search.Filter = $"(SAMAccountName={username})";
-                search.PropertiesToLoad.Add("givenName");
-                search.PropertiesToLoad.Add("sn");
-                search.PropertiesToLoad.Add("manager");
-                search.PropertiesToLoad.Add("employeeID");
+                search.PropertiesToLoad.Add("givenName"); // first name
+                search.PropertiesToLoad.Add("sn"); // last name
+                search.PropertiesToLoad.Add("manager"); // manager username
+                search.PropertiesToLoad.Add("employeeID"); // registration number
+                search.PropertiesToLoad.Add("title"); //  job title
+                search.PropertiesToLoad.Add("department"); //  department
 
                 SearchResult result = search.FindOne();
 
@@ -124,6 +150,44 @@ namespace TMA_App.Services
                     else 
                     { 
                         throw new Exception($"error while retrieving user:\"{username}\" sn"); 
+                    };
+
+                    if (result.Properties.Contains("manager") && result.Properties["manager"].Count > 0)
+                    {
+                        string managerFullField = result.Properties["manager"][0].ToString();
+                        string managerDN = GetManagerCN(managerFullField);
+                        userInfo.ManagerUserName = GetUsernameByDisplayName(managerDN);
+                    }
+                    else
+                    {
+                        throw new Exception($"error while retrieving user:\"{username}\" sn");
+                    };
+
+                    if (result.Properties.Contains("employeeID") && result.Properties["employeeID"].Count > 0)
+                    {
+                        userInfo.RegistrationNumber = result.Properties["employeeID"][0].ToString();
+                    }
+                    else
+                    {
+                        throw new Exception($"error while retrieving user:\"{username}\" sn");
+                    };
+
+                    if (result.Properties.Contains("title") && result.Properties["title"].Count > 0)
+                    {
+                        userInfo.JobTitle = result.Properties["title"][0].ToString();
+                    }
+                    else
+                    {
+                        throw new Exception($"error while retrieving user:\"{username}\" sn");
+                    };
+
+                    if (result.Properties.Contains("department") && result.Properties["department"].Count > 0)
+                    {
+                        userInfo.Department = result.Properties["department"][0].ToString();
+                    }
+                    else
+                    {
+                        throw new Exception($"error while retrieving user:\"{username}\" sn");
                     };
                 }
                 return userInfo;

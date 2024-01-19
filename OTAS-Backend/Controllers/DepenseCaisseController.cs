@@ -175,14 +175,19 @@ namespace OTAS.Controllers
                 return BadRequest(result);
             }
 
+            
+
             result = await _depenseCaisseService.DeleteDraftedDepenseCaisse(depenseCaisse);
-            return Ok(result.Message);
+            if (!result.Success) return BadRequest(result.Message);
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+            var depenseCaisses = await _depenseCaisseRepository.GetDepensesCaisseByUserIdAsync(user.Id);
+
+            var mappedDepenseCaisses = _mapper.Map<List<DepenseCaisseDTO>>(depenseCaisses);
+
+            return Ok(mappedDepenseCaisses);
         }
-
-
-        ////Requester
-        //[HttpGet("{ordreMissionId}/View")]
-
 
         [Authorize(Roles = "decider")]
         [HttpGet("DecideOnRequests/Table")]
@@ -195,6 +200,7 @@ namespace OTAS.Controllers
 
             return Ok(DCs);
         }
+
 
         [Authorize(Roles = "decider")]
         [HttpPut("Decide")]

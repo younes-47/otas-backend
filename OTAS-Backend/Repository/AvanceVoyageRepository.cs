@@ -5,6 +5,8 @@ using OTAS.Interfaces.IRepository;
 using OTAS.Services;
 using OTAS.DTO.Get;
 using AutoMapper;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using OTAS.Interfaces.IService;
 
 namespace OTAS.Repository
 {
@@ -12,12 +14,14 @@ namespace OTAS.Repository
     {
         private readonly OtasContext _context;
         private readonly IDeciderRepository _deciderRepository;
+        private readonly IMiscService _misc;
         private readonly IMapper _mapper;
 
-        public AvanceVoyageRepository(OtasContext context, IDeciderRepository deciderRepository, IMapper mapper)
+        public AvanceVoyageRepository(OtasContext context, IDeciderRepository deciderRepository, IMiscService miscService, IMapper mapper)
         {
             _context = context;
             _deciderRepository = deciderRepository;
+            _misc = miscService;
             _mapper = mapper;
         }
 
@@ -104,6 +108,7 @@ namespace OTAS.Repository
                 {
                     Id = av.Id,
                     EstimatedTotal = av.EstimatedTotal,
+                    OnBehalf = av.OnBehalf,
                     OrdreMissionId = av.OrdreMission.Id,
                     OrdreMissionDescription = av.OrdreMission.Description,
                     ActualTotal = av.ActualTotal,
@@ -113,6 +118,34 @@ namespace OTAS.Repository
                     CreateDate = av.CreateDate,
                 })
                 .ToListAsync();
+        }
+
+        public async Task<AvanceVoyageViewDTO> GetAvancesVoyageViewDetailsByIdAsync(int id)
+        {
+            return await _context.AvanceVoyages.Where(av => av.Id == id)
+                .Include(av => av.LatestStatusNavigation)
+                .Include(av => av.OrdreMission)
+                .Include(av => av.StatusHistories)
+                .Select(av => new AvanceVoyageViewDTO
+                {
+                    Id = av.Id,
+                    EstimatedTotal = av.EstimatedTotal,
+                    OrdreMissionId = av.OrdreMission.Id,
+                    OrdreMissionDescription = av.OrdreMission.Description,
+                    OnBehalf = av.OnBehalf,
+                    ActualTotal = av.ActualTotal,
+                    Currency = av.Currency,
+                    LatestStatus = av.LatestStatusNavigation.StatusString,
+                    StatusHistory = av.StatusHistories.Select(sh => new StatusHistoryDTO
+                    {
+                        Status = sh.StatusNavigation.StatusString,
+                        DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
+                        DeciderLastName = sh.Decider != null ?  sh.Decider.LastName : null,
+                        DeciderComment = sh.DeciderComment,
+                        CreateDate = sh.CreateDate
+                    }).ToList()
+                })
+                .FirstAsync();
         }
 
         public async Task<ServiceResult> AddAvanceVoyageAsync(AvanceVoyage avanceVoyage)

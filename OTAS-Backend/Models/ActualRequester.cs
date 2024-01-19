@@ -17,7 +17,7 @@ public partial class ActualRequester
 
     public string LastName { get; set; } = null!;
 
-    public int RegistrationNumber { get; set; }
+    public string RegistrationNumber { get; set; } = null!;
 
     public string JobTitle { get; set; } = null!;
 

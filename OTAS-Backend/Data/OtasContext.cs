@@ -63,6 +63,7 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.FirstName).HasMaxLength(50);
             entity.Property(e => e.HiringDate).HasColumnType("date");
             entity.Property(e => e.JobTitle).HasMaxLength(120);
+            entity.Property(e => e.RegistrationNumber).HasMaxLength(30);
             entity.Property(e => e.LastName).HasMaxLength(50);
             //entity.Property(e => e.Manager)
             //    .HasMaxLength(50)

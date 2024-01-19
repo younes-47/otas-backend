@@ -11,11 +11,8 @@ namespace OTAS.Helper
         {
             // Mapping from post objects
             CreateMap<OrdreMission, OrdreMissionDTO>().ReverseMap();
-            CreateMap<OrdreMission, OrdreMissionFullDetailsDTO>()
-                .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User))
-                .ForMember(dest => dest.AvanceVoyages, opt => opt.MapFrom(src => src.AvanceVoyages))
-                .ForMember(dest => dest.ActualRequester, opt => opt.MapFrom(src => src.ActualRequester))
-                .ForMember(dest => dest.StatusHistories, opt => opt.MapFrom(src => src.StatusHistories));
+            CreateMap<OrdreMission, OrdreMissionViewDTO>()
+                .ForMember(dest => dest.StatusHistory, opt => opt.MapFrom(src => src.StatusHistories));
 
             CreateMap<AvanceCaisse, AvanceCaisseFullDetailsDTO>()
                 .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User))
@@ -24,14 +21,14 @@ namespace OTAS.Helper
                 .ForMember(dest => dest.StatusHistories, opt => opt.MapFrom(src => src.StatusHistories));
 
 
-            CreateMap<AvanceVoyage, AvanceVoyageDTO>()
-                .ForMember(dest => dest.Expenses, opt => opt.MapFrom(src => src.Expenses))
-                .ForMember(dest => dest.Trips, opt => opt.MapFrom(src => src.Trips));
+            //CreateMap<AvanceVoyage, AvanceVoyageViewDTO>()
+            //    .ForMember(dest => dest.Expenses, opt => opt.MapFrom(src => src.Expenses))
+            //    .ForMember(dest => dest.Trips, opt => opt.MapFrom(src => src.Trips));
 
-            CreateMap<AvanceVoyageDTO, AvanceVoyage>();
+            CreateMap<AvanceVoyageViewDTO, AvanceVoyage>();
             CreateMap<AvanceVoyage, AvanceVoyageTableDTO>().ReverseMap();
 
-            CreateMap<AvanceVoyageDTO, AvanceVoyage>().ReverseMap();
+            CreateMap<AvanceVoyageViewDTO, AvanceVoyage>().ReverseMap();
             CreateMap<AvanceCaisse, AvanceCaisseDTO>().ReverseMap();
 
 

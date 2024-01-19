@@ -105,5 +105,18 @@ namespace OTAS.Controllers
             return Ok(liquidations);
         }
 
+        [Authorize(Roles = "decider")]
+        [HttpGet("DecideOnRequests/Table")]
+        public async Task<IActionResult> LiquidationsDeciderTable()
+        {
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+
+            List<LiquidationTableDTO> liquidations = await _liquidationRepository.GetLiquidationsTableForDecider(user.Id);
+
+            return Ok(liquidations);
+        }
+
     }
 }

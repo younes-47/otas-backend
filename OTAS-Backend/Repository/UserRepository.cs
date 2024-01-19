@@ -51,6 +51,12 @@ namespace OTAS.Repository
             return user.Role;
         }
 
+        public async Task<int> GetUserIdByUsernameAsync(string username)
+        {
+            var user = await _context.Users.Where(user => user.Username == username).FirstAsync();
+            return user.Id;
+        }
+
         public async Task<ServiceResult> AddUserAsync(User user)
         {
             ServiceResult result = new();
@@ -71,6 +77,7 @@ namespace OTAS.Repository
             int saved = await _context.SaveChangesAsync();
             return saved > 0;
         }
+
 
     }
 }

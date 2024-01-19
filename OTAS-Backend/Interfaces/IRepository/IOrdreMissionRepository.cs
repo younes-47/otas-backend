@@ -9,7 +9,7 @@ namespace OTAS.Interfaces.IRepository
     {
         Task<List<OrdreMissionDTO>> GetOrdreMissionsForDecider(int deciderUserId);
         Task<OrdreMission> GetOrdreMissionByIdAsync(int id);
-        Task<OrdreMissionFullDetailsDTO> GetOrdreMissionFullDetailsById(int ordreMissionId);
+        Task<OrdreMissionViewDTO> GetOrdreMissionFullDetailsById(int ordreMissionId);
         Task<OrdreMission?> FindOrdreMissionByIdAsync(int ordreMissionId);
         Task<List<OrdreMissionDTO>?> GetOrdresMissionByUserIdAsync(int userid);
         Task<int> GetOrdreMissionNextDeciderUserId(string currentlevel, bool? isLongerThanOneDay = false);

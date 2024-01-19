@@ -111,6 +111,7 @@ namespace OTAS.Services
 
                 result.Success = true;
                 result.Message = "Created successfuly";
+                result.Id = mappedOM.Id;
                 return result;
 
             }
@@ -118,7 +119,7 @@ namespace OTAS.Services
             {
                 transaction.Rollback();
                 result.Success = false;
-                result.Message = exception.Message;
+                result.Message = exception.Message + exception.Source + exception.StackTrace;
                 return result;
             }
         }

@@ -456,6 +456,7 @@ namespace OTAS.Services
                 {
                     //Map
                     avanceVoyage_in_mad.OrdreMissionId = ordreMission.Id;
+                    avanceVoyage_in_mad.OnBehalf = ordreMission.OnBehalf;
                     avanceVoyage_in_mad.UserId = ordreMission.UserId;
                     avanceVoyage_in_mad.EstimatedTotal = estm_total_mad;
                     avanceVoyage_in_mad.Currency = "MAD";
@@ -647,6 +648,7 @@ namespace OTAS.Services
                 {
                     //Map the unmapped properties by Automapper
                     avanceVoyage_in_eur.OrdreMissionId = ordreMission.Id;
+                    avanceVoyage_in_eur.OnBehalf = ordreMission.OnBehalf;
                     avanceVoyage_in_eur.UserId = ordreMission.UserId;
                     avanceVoyage_in_eur.EstimatedTotal = estm_total_eur;
                     avanceVoyage_in_eur.Currency = "EUR";
@@ -826,6 +828,7 @@ namespace OTAS.Services
                 {
                     //Map the unmapped properties by Automapper
                     OrdreMissionId = ordreMission.Id,
+                    OnBehalf = ordreMission.OnBehalf,
                     UserId = ordreMission.UserId,
                     EstimatedTotal = estm_total_mad,
                     Currency = "MAD",
@@ -921,6 +924,7 @@ namespace OTAS.Services
                 {
                     //Map the unmapped properties by Automapper manually
                     OrdreMissionId = ordreMission.Id,
+                    OnBehalf = ordreMission.OnBehalf,
                     UserId = ordreMission.UserId,
                     EstimatedTotal = estm_total_eur,
                     Currency = "EUR",

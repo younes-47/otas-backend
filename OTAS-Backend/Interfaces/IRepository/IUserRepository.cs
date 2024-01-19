@@ -9,6 +9,7 @@ namespace OTAS.Interfaces.IRepository
         Task<int> GetUserRoleByUserIdAsync(int userId);
         Task<User?> GetUserByHttpContextAsync(HttpContext httpContext);
         Task<int> GetUserRoleByUsernameAsync(string username);
+        Task<int> GetUserIdByUsernameAsync(string username);
         Task<User> GetUserByUserIdAsync(int userId);
         Task<User?> FindUserByUserIdAsync(int userId);
         Task<User?> FindUserByUsernameAsync(string username);
