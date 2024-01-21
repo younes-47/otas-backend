@@ -56,5 +56,10 @@ namespace OTAS.Repository
         {
             return await _context.Deciders.Where(d => d.UserId == userId).FirstOrDefaultAsync();
         }
+
+        public async Task<List<string>> GetManagersUsernames()
+        {
+            return await _context.Deciders.Where(d => d.Level == "Manager").Include(d => d.User).Select(d => d.User.Username).ToListAsync();
+        }
     }
 }

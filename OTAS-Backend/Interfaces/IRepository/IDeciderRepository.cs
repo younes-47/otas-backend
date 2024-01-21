@@ -8,5 +8,6 @@ namespace OTAS.Interfaces.IRepository
         Task<int> GetDeciderUserIdByDeciderLevel(string level);
         Task<string?> GetDeciderLevelByUserId(int deciderUserId);
         Task<Decider?> FindDeciderByUserIdAsync(int Id);
+        Task<List<string>> GetManagersUsernames();
     }
 }
