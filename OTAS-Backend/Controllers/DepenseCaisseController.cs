@@ -9,6 +9,8 @@ using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
 using OTAS.Services;
+using System.Net;
+using System.Net.Http.Headers;
 
 namespace OTAS.Controllers
 {
@@ -86,6 +88,40 @@ namespace OTAS.Controllers
 
             if (!result.Success) return BadRequest($"{result.Message}");
             return Ok(result.Message);
+        }
+
+        [Authorize(Roles = "requester,decider")]
+        [HttpGet("ReceiptsFile/Download")]
+        public IActionResult DownloadDepenseCaisseReceiptsFile(string fileName)
+        {
+            try
+            {
+                string filePath = Path.Combine(_webHostEnvironment.WebRootPath + "\\Depense-Caisse-Receipts", fileName);
+           
+                if (System.IO.File.Exists(filePath))
+                {
+                    HttpResponseMessage response = new(HttpStatusCode.OK);
+                    var fileStream = new FileStream(filePath, FileMode.Open);
+
+                    // Put the file into the response
+                    response.Content = new StreamContent(fileStream);
+                    response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                    {
+                        FileName = fileName
+                    };
+                    response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+                    return Ok(response);
+                }
+                else
+                {
+                    return NotFound("File is not found! It may have been deleted by mistake");
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [Authorize(Roles = "requester,decider")]
