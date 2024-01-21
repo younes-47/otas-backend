@@ -12,8 +12,6 @@ namespace OTAS.DTO.Get
 
         public string JobTitle { get; set; } = null!;
 
-        public DateTime HiringDate { get; set; }
-
         public string Department { get; set; } = null!;
 
         public string ManagerUserName { get; set; } = null!;

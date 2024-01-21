@@ -19,15 +19,15 @@ public partial class ActualRequester
 
     public string RegistrationNumber { get; set; } = null!;
 
-    public string JobTitle { get; set; } = null!;
-
-    public DateTime HiringDate { get; set; }
+    public int JobTitleId { get; set; }
 
     public string Department { get; set; } = null!;
 
     public int ManagerUserId { get; set; }
 
     public DateTime CreateDate { get; set; }
+
+    public virtual JobTitle JobTitle { get; set; } = null!;
 
     public virtual AvanceCaisse? AvanceCaisse { get; set; }
 

@@ -18,6 +18,8 @@ public partial class OtasContext : DbContext
 
     public virtual DbSet<ActualRequester> ActualRequesters { get; set; }
 
+    public virtual DbSet<JobTitle> JobTitles { get; set; }
+
     public virtual DbSet<AvanceCaisse> AvanceCaisses { get; set; }
 
     public virtual DbSet<AvanceVoyage> AvanceVoyages { get; set; }
@@ -61,8 +63,6 @@ public partial class OtasContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.FirstName).HasMaxLength(50);
-            entity.Property(e => e.HiringDate).HasColumnType("date");
-            entity.Property(e => e.JobTitle).HasMaxLength(120);
             entity.Property(e => e.RegistrationNumber).HasMaxLength(30);
             entity.Property(e => e.LastName).HasMaxLength(50);
             //entity.Property(e => e.Manager)
@@ -87,10 +87,13 @@ public partial class OtasContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Manager_ActualRequester");
 
-
             entity.HasOne(d => d.OrdreMission).WithOne(p => p.ActualRequester)
                 .HasForeignKey<ActualRequester>(d => d.OrdreMissionId)
                 .HasConstraintName("FK_OM_ActualRequester");
+
+            entity.HasOne(d => d.JobTitle).WithMany(p => p.ActualRequesters)
+               .HasForeignKey(d => d.JobTitleId)
+               .HasConstraintName("FK_JobTitle_ActualRequester");
         });
 
         modelBuilder.Entity<AvanceCaisse>(entity =>
@@ -331,6 +334,14 @@ public partial class OtasContext : DbContext
 
             entity.Property(e => e.StatusInt).ValueGeneratedNever();
             entity.Property(e => e.StatusString)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<JobTitle>(entity =>
+        {
+            entity.ToTable("JobTitle");
+            entity.Property(e => e.Title)
                 .HasMaxLength(100)
                 .IsUnicode(false);
         });
