@@ -81,6 +81,7 @@ namespace OTAS.Services
                     ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(avanceCaisse.ActualRequester);
                     mappedActualRequester.AvanceCaisseId = mappedAC.Id;
                     mappedActualRequester.OrderingUserId = mappedAC.UserId;
+                    mappedActualRequester.ManagerUserId = await _userRepository.GetUserIdByUsernameAsync(avanceCaisse.ActualRequester.ManagerUserName);
                     result = await _actualRequesterRepository.AddActualRequesterInfoAsync(mappedActualRequester);
                     if (!result.Success) return result;
                 }
@@ -383,6 +384,7 @@ namespace OTAS.Services
                     ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(avanceCaisse.ActualRequester);
                     mappedActualRequester.AvanceCaisseId = avanceCaisse.Id;
                     mappedActualRequester.OrderingUserId = avanceCaisse_DB.UserId;
+                    mappedActualRequester.ManagerUserId = await _userRepository.GetUserIdByUsernameAsync(avanceCaisse.ActualRequester.ManagerUserName);
                     result = await _actualRequesterRepository.AddActualRequesterInfoAsync(mappedActualRequester);
                     if (!result.Success) return result;
                 }

@@ -20,6 +20,8 @@ public partial class OtasContext : DbContext
 
     public virtual DbSet<JobTitle> JobTitles { get; set; }
 
+    public virtual DbSet<Department> Departments { get; set; }
+
     public virtual DbSet<AvanceCaisse> AvanceCaisses { get; set; }
 
     public virtual DbSet<AvanceVoyage> AvanceVoyages { get; set; }
@@ -59,12 +61,11 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.Department)
-                .HasMaxLength(50)
-                .IsUnicode(false);
             entity.Property(e => e.FirstName).HasMaxLength(50);
             entity.Property(e => e.RegistrationNumber).HasMaxLength(30);
             entity.Property(e => e.LastName).HasMaxLength(50);
+            entity.Property(e => e.JobTitle).HasMaxLength(100);
+            entity.Property(e => e.Department).HasMaxLength(100);
             //entity.Property(e => e.Manager)
             //    .HasMaxLength(50)
             //    .IsUnicode(false);
@@ -91,9 +92,6 @@ public partial class OtasContext : DbContext
                 .HasForeignKey<ActualRequester>(d => d.OrdreMissionId)
                 .HasConstraintName("FK_OM_ActualRequester");
 
-            entity.HasOne(d => d.JobTitle).WithMany(p => p.ActualRequesters)
-               .HasForeignKey(d => d.JobTitleId)
-               .HasConstraintName("FK_JobTitle_ActualRequester");
         });
 
         modelBuilder.Entity<AvanceCaisse>(entity =>
@@ -342,6 +340,14 @@ public partial class OtasContext : DbContext
         {
             entity.ToTable("JobTitle");
             entity.Property(e => e.Title)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<Department>(entity =>
+        {
+            entity.ToTable("Department");
+            entity.Property(e => e.Name)
                 .HasMaxLength(100)
                 .IsUnicode(false);
         });

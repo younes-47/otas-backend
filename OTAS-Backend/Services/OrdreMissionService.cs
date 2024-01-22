@@ -101,6 +101,7 @@ namespace OTAS.Services
                     ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(ordreMission.ActualRequester);
                     mappedActualRequester.OrdreMissionId = mappedOM.Id;
                     mappedActualRequester.OrderingUserId = mappedOM.UserId;
+                    mappedActualRequester.ManagerUserId = await _userRepository.GetUserIdByUsernameAsync(ordreMission.ActualRequester.ManagerUserName);
                     result = await _actualRequesterRepository.AddActualRequesterInfoAsync(mappedActualRequester);
                     if (!result.Success) return result;
                 }
@@ -311,6 +312,7 @@ namespace OTAS.Services
                     ActualRequester mappedActualRequester = _mapper.Map<ActualRequester>(ordreMission.ActualRequester);
                     mappedActualRequester.OrdreMissionId = ordreMission.Id;
                     mappedActualRequester.OrderingUserId = updatedOrdreMission.UserId;
+                    mappedActualRequester.ManagerUserId = await _userRepository.GetUserIdByUsernameAsync(ordreMission.ActualRequester.ManagerUserName);
                     result = await _actualRequesterRepository.AddActualRequesterInfoAsync(mappedActualRequester);
                     if (!result.Success) return result;
                 }

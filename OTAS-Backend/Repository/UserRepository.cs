@@ -57,6 +57,12 @@ namespace OTAS.Repository
             return user.Id;
         }
 
+        public async Task<string> GetUsernameByUserIdAsync(int userId)
+        {
+            var user = await _context.Users.Where(user => user.Id == userId).FirstAsync();
+            return user.Username;
+        }
+
         public async Task<ServiceResult> AddUserAsync(User user)
         {
             ServiceResult result = new();

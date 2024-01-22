@@ -1,4 +1,5 @@
 ﻿using OTAS.DTO.Get;
+using System.DirectoryServices;
 
 namespace OTAS.Interfaces.IService
 {
@@ -9,5 +10,7 @@ namespace OTAS.Interfaces.IService
         UserInfoDTO GetUserInformation(string username);
         string GetUsernameByDisplayName(string displayName);
         string GetManagerCN(string managerFullField);
+        List<string> GetJobTitles();
+        List<string> GetDepartments();
     }
 }

@@ -654,7 +654,7 @@ namespace OTAS.Services
                     avanceVoyage_in_eur.Currency = "EUR";
 
                     if (action.ToLower() != "save") avanceVoyage_in_eur.NextDeciderUserId = ordreMission.NextDeciderUserId;
-                    result = await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_mad);
+                    result = await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_eur);
                     if (!result.Success)
                     {
                         result.Message += " (EUR)";

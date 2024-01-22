@@ -53,6 +53,7 @@ namespace OTAS.Repository
                     Id = om.Id,
                     Description = om.Description,
                     Abroad = om.Abroad,
+                    OnBehalf = om.OnBehalf,
                     DepartureDate = om.DepartureDate,
                     ReturnDate = om.ReturnDate,
                     LatestStatus = om.LatestStatusString.StatusString,

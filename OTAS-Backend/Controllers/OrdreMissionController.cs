@@ -165,7 +165,7 @@ namespace OTAS.Controllers
             {
                 ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByOrdreMissionIdAsync(ordreMission.Id);
                 ordreMission.RequesterInfo = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
-
+                ordreMission.RequesterInfo.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
             }
 
             // adding those more detailed status that are not in the DB

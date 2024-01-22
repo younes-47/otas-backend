@@ -14,7 +14,7 @@ namespace OTAS.DTO.Post
 
         public string Department { get; set; } = null!;
 
-        public int ManagerUserId { get; set; }
+        public string ManagerUserName { get; set; } = null!;
 
     }
 }

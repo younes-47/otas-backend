@@ -226,5 +226,68 @@ namespace TMA_App.Services
             else { return ""; }
         }
 
+        public List<string> GetJobTitles()
+        {
+            List<string> jobTitles = new();
+            try
+            {
+                DirectoryEntry entry = new(_path);
+                DirectorySearcher search = new(entry);
+                search.PropertiesToLoad.Add("title"); //  job title
+
+
+                SearchResultCollection results = search.FindAll();
+
+                if (results.Count > 0)
+                {
+                    foreach (SearchResult result in results)
+                    {
+                        if (result.Properties.Contains("title") && result.Properties["title"].Count > 0)
+                        {
+                            jobTitles.Add(result.Properties["title"][0].ToString());
+                        }
+                        
+                    }
+
+                }
+                return jobTitles;
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException("JobTitles could not be retrieved", ex);
+            }
+        }
+
+        public List<string> GetDepartments()
+        {
+            List<string> departments = new();
+            try
+            {
+                DirectoryEntry entry = new(_path);
+                DirectorySearcher search = new(entry);
+                search.PropertiesToLoad.Add("department"); //  job title
+
+
+                SearchResultCollection results = search.FindAll();
+
+                if (results.Count > 0)
+                {
+                    foreach (SearchResult result in results)
+                    {
+                        if (result.Properties.Contains("department") && result.Properties["department"].Count > 0)
+                        {
+                            departments.Add(result.Properties["department"][0].ToString());
+                        }
+
+                    }
+
+                }
+                return departments;
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException("departments could not be retrieved", ex);
+            }
+        }
     }
 }

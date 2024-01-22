@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.Interfaces.IRepository;
+using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
 using OTAS.Services;
@@ -22,11 +23,13 @@ namespace OTAS.Controllers
     public class TestingController : ControllerBase
     {
         private readonly ITestingRepository _testingRepository;
+        private readonly ILdapAuthenticationService _ldapAuthenticationService;
         private readonly IMapper _mapper;
 
-        public TestingController(ITestingRepository testingRepository, IMapper mapper)
+        public TestingController(ITestingRepository testingRepository, ILdapAuthenticationService ldapAuthenticationService, IMapper mapper)
         {
             _testingRepository = testingRepository;
+            _ldapAuthenticationService = ldapAuthenticationService;
             _mapper = mapper;
         }
 
@@ -106,5 +109,20 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
+        [HttpGet("JobTitles/All")]
+        public async Task<IActionResult> GetAllJobTitles()
+        {
+            var jobtitles =  _ldapAuthenticationService.GetJobTitles();
+
+            return Ok(jobtitles);
+        }
+
+        [HttpGet("Departments/All")]
+        public async Task<IActionResult> GetAllDepartments()
+        {
+            var departments = _ldapAuthenticationService.GetDepartments();
+
+            return Ok(departments);
+        }
     }
 }

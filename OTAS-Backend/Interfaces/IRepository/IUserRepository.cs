@@ -11,6 +11,7 @@ namespace OTAS.Interfaces.IRepository
         Task<int> GetUserRoleByUsernameAsync(string username);
         Task<int> GetUserIdByUsernameAsync(string username);
         Task<User> GetUserByUserIdAsync(int userId);
+        Task<string> GetUsernameByUserIdAsync(int userId);
         Task<User?> FindUserByUserIdAsync(int userId);
         Task<User?> FindUserByUsernameAsync(string username);
         Task<ServiceResult> AddUserAsync(User user);
