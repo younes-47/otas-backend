@@ -133,7 +133,7 @@ namespace OTAS.Controllers
 
             if (!result.Success) return BadRequest(result.Message);
 
-            return Ok(result.Message);
+            return Ok(result.Id);
         }
 
         [Authorize(Roles = "requester,decider")]

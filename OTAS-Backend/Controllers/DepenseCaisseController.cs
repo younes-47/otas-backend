@@ -101,8 +101,7 @@ namespace OTAS.Controllers
                 if (System.IO.File.Exists(filePath))
                 {
                     HttpResponseMessage response = new(HttpStatusCode.OK);
-                    var fileStream = new FileStream(filePath, FileMode.Open);
-
+                    using var fileStream = new FileStream(filePath, FileMode.Open);
                     // Put the file into the response
                     response.Content = new StreamContent(fileStream);
                     response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")

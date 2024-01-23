@@ -59,7 +59,7 @@ namespace OTAS.Repository
 
         public async Task<List<string>> GetManagersUsernames()
         {
-            return await _context.Deciders.Where(d => d.Level == "Manager").Include(d => d.User).Select(d => d.User.Username).ToListAsync();
+            return await _context.Deciders.Where(d => d.Level == "MANAGER").Include(d => d.User).Select(d => d.User.Username).ToListAsync();
         }
     }
 }

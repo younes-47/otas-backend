@@ -403,7 +403,7 @@ namespace OTAS.Services
 
 
                 await transaction.CommitAsync();
-
+                result.Id = updatedOrdreMission.Id;
             }
             catch (Exception exception)
             {
