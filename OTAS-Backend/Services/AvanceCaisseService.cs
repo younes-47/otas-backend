@@ -96,6 +96,7 @@ namespace OTAS.Services
                 }
 
                 await transaction.CommitAsync();
+                result.Id = mappedAC.Id;
             }
             catch (Exception exception)
             {
@@ -151,17 +152,32 @@ namespace OTAS.Services
 
         }
 
-        public async Task<AvanceCaisseFullDetailsDTO> GetAvanceCaisseFullDetailsById(int avanceCaisseId)
+        public async Task<AvanceCaisseViewDTO> GetAvanceCaisseFullDetailsById(int avanceCaisseId)
         {
-            var avanceCaisse = await _context.AvanceCaisses
+            return await _context.AvanceCaisses
                 .Where(ac => ac.Id == avanceCaisseId)
-                .ProjectTo<AvanceCaisseFullDetailsDTO>(_mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync();
-
-            //For some reason Automapper doesn't map the user object
-            avanceCaisse.User = _mapper.Map<UserDTO>(await _context.Users.Where(user => user.Id == avanceCaisse.UserId).FirstAsync());
-
-            return avanceCaisse;
+                .Include(ac => ac.LatestStatusNavigation)
+                .Include(ac => ac.StatusHistories)
+                .Select(ac => new AvanceCaisseViewDTO
+                {
+                    Id = ac.Id,
+                    Description = ac.Description,
+                    OnBehalf = ac.OnBehalf,
+                    Currency = ac.Currency,
+                    EstimatedTotal = ac.EstimatedTotal,
+                    ActualTotal = ac.ActualTotal,
+                    CreateDate = ac.CreateDate,
+                    LatestStatus = ac.LatestStatusNavigation.StatusString,
+                    StatusHistory = ac.StatusHistories.Select(sh => new StatusHistoryDTO
+                    {
+                        Status = sh.StatusNavigation.StatusString,
+                        DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
+                        DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
+                        DeciderComment = sh.DeciderComment,
+                        CreateDate = sh.CreateDate
+                    }).ToList(),
+                    Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses)
+                }).FirstAsync();
         }
 
         public async Task<ServiceResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision, int deciderUserId)
@@ -452,6 +468,7 @@ namespace OTAS.Services
 
 
                 await transaction.CommitAsync();
+                result.Id = avanceCaisse_DB.Id;
             }
             catch (Exception exception)
             {

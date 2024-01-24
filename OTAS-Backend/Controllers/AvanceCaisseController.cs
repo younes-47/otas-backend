@@ -19,18 +19,21 @@ namespace OTAS.Controllers
     public class AvanceCaisseController : ControllerBase
     {
         private readonly IAvanceCaisseRepository _avanceCaisseRepository;
+        private readonly IActualRequesterRepository _actualRequesterRepository;
         private readonly IAvanceCaisseService _avanceCaisseService;
         private readonly IUserRepository _userRepository;
         private readonly IDeciderRepository _deciderRepository;
         private readonly IMapper _mapper;
 
         public AvanceCaisseController(IAvanceCaisseRepository avanceCaisseRepository,
+            IActualRequesterRepository actualRequesterRepository,
             IAvanceCaisseService avanceCaisseService,
             IUserRepository userRepository,
             IDeciderRepository deciderRepository,
             IMapper mapper)
         {
             _avanceCaisseRepository = avanceCaisseRepository;
+            _actualRequesterRepository = actualRequesterRepository;
             _avanceCaisseService = avanceCaisseService;
             _userRepository = userRepository;
             _deciderRepository = deciderRepository;
@@ -80,7 +83,7 @@ namespace OTAS.Controllers
             var user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             result = await _avanceCaisseService.CreateAvanceCaisseAsync(avanceCaisse, user.Id);
             if (!result.Success) return Ok(result.Message);
-            return Ok(result.Message);
+            return Ok(result.Id);
         }
 
         [Authorize(Roles = "requester,decider")]
@@ -111,7 +114,7 @@ namespace OTAS.Controllers
             ServiceResult result = await _avanceCaisseService.ModifyAvanceCaisse(avanceCaisse);
 
             if (!result.Success) return BadRequest(result.Message);
-            return Ok(result.Message);
+            return Ok(result.Id);
         }
 
         [Authorize(Roles = "requester,decider")]
@@ -135,10 +138,59 @@ namespace OTAS.Controllers
 
         [Authorize(Roles = "requester,decider")]
         [HttpGet("View")]
-        public async Task<IActionResult> GetAvanceCaisseById(int Id)
+        public async Task<IActionResult> ShowAvanceCaisseDetailsPage(int Id)
         {
             if (await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null) return NotFound("AvanceCaisse is not found");
-            var avanceCaisseDetails = await _avanceCaisseService.GetAvanceCaisseFullDetailsById(Id);
+            AvanceCaisseViewDTO avanceCaisseDetails = await _avanceCaisseService.GetAvanceCaisseFullDetailsById(Id);
+
+            // if the request is on behalf of someone, get the requester data from the DB
+            if (avanceCaisseDetails.OnBehalf)
+            {
+                ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByAvanceCaisseIdAsync(avanceCaisseDetails.Id);
+                avanceCaisseDetails.RequesterInfo = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+                avanceCaisseDetails.RequesterInfo.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
+            }
+
+            // adding those more detailed status that are not in the DB
+            for (int i = avanceCaisseDetails.StatusHistory.Count - 1; i >= 0; i--)
+            {
+                StatusHistoryDTO statusHistory = avanceCaisseDetails.StatusHistory[i];
+                StatusHistoryDTO explicitStatusHistory = new();
+                switch (statusHistory.Status)
+                {
+                    case "Pending Manager's Approval":
+                        explicitStatusHistory.Status = "Submitted";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        break;
+                    case "Pending HR's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Finance Department's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending General Director's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Vice President's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    default:
+                        continue;
+                }
+                avanceCaisseDetails.StatusHistory.Insert(i, explicitStatusHistory);
+            }
 
             return Ok(avanceCaisseDetails);
         }
