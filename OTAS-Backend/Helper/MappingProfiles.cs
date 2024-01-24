@@ -14,11 +14,9 @@ namespace OTAS.Helper
             CreateMap<OrdreMission, OrdreMissionViewDTO>()
                 .ForMember(dest => dest.StatusHistory, opt => opt.MapFrom(src => src.StatusHistories));
 
-            CreateMap<AvanceCaisse, AvanceCaisseFullDetailsDTO>()
-                .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User))
-                .ForMember(dest => dest.Expenses, opt => opt.MapFrom(src => src.Expenses))
-                .ForMember(dest => dest.ActualRequester, opt => opt.MapFrom(src => src.ActualRequester))
-                .ForMember(dest => dest.StatusHistories, opt => opt.MapFrom(src => src.StatusHistories));
+            CreateMap<AvanceCaisse, AvanceCaisseViewDTO>()
+                .ForMember(dest => dest.Expenses, opt => opt.MapFrom(src => src.Expenses));
+
 
 
             //CreateMap<AvanceVoyage, AvanceVoyageViewDTO>()

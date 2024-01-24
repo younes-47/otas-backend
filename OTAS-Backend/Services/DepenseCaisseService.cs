@@ -121,6 +121,8 @@ namespace OTAS.Services
 
                 /* Create the file if everything went as expected*/
                 await System.IO.File.WriteAllBytesAsync(filePath, depenseCaisse.ReceiptsFile);
+
+                result.Id = mappedDepenseCaisse.Id;
             }
             catch (Exception ex)
             {
@@ -256,7 +258,7 @@ namespace OTAS.Services
                     /* Create the new file */
                     await System.IO.File.WriteAllBytesAsync(newFilePath, depenseCaisse.ReceiptsFile);
                 }
-           
+                result.Id = depenseCaisse_DB.Id;
             }
             catch (Exception exception)
             {

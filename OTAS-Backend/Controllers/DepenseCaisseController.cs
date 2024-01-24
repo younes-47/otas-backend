@@ -87,7 +87,7 @@ namespace OTAS.Controllers
             result = await _depenseCaisseService.AddDepenseCaisse(depenseCaisse, user.Id);
 
             if (!result.Success) return BadRequest($"{result.Message}");
-            return Ok(result.Message);
+            return Ok(result.Id);
         }
 
         [Authorize(Roles = "requester,decider")]
@@ -172,7 +172,7 @@ namespace OTAS.Controllers
 
             result = await _depenseCaisseService.ModifyDepenseCaisse(depenseCaisse);
             if (!result.Success) return BadRequest(result.Message);
-            return Ok(result.Message);
+            return Ok(result.Id);
         }
 
         [Authorize(Roles = "requester,decider")]

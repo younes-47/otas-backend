@@ -6,9 +6,9 @@ namespace OTAS.DTO.Get
     {
         public int Id { get; set; }
 
-        public virtual ActualRequesterDTO? RequesterInfo { get; set; }
-
         public bool OnBehalf { get; set; }
+
+        public virtual ActualRequesterDTO? RequesterInfo { get; set; }
 
         public string Description { get; set; } = null!;
 
