@@ -28,6 +28,35 @@ namespace OTAS.Repository
             return await _context.DepenseCaisses.FindAsync(depenseCaisseId);
         }
 
+        public async Task<DepenseCaisseViewDTO> GetDepenseCaisseFullDetailsById(int depenseCaisseId)
+        {
+            return await _context.DepenseCaisses
+                .Where(dc => dc.Id == depenseCaisseId)
+                .Include(dc => dc.LatestStatusNavigation)
+                .Include(dc => dc.StatusHistories)
+                .Select(dc => new DepenseCaisseViewDTO
+                {
+                    Id = dc.Id,
+                    Description = dc.Description,
+                    OnBehalf = dc.OnBehalf,
+                    Currency = dc.Currency,
+                    Total = dc.Total,
+                    ReceiptsFileName = dc.ReceiptsFileName,
+                    CreateDate = dc.CreateDate,
+                    LatestStatus = dc.LatestStatusNavigation.StatusString,
+                    StatusHistory = dc.StatusHistories.Select(sh => new StatusHistoryDTO
+                    {
+                        Status = sh.StatusNavigation.StatusString,
+                        DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
+                        DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
+                        DeciderComment = sh.DeciderComment,
+                        CreateDate = sh.CreateDate
+                    }).ToList(),
+                    Expenses = _mapper.Map<List<ExpenseDTO>>(dc.Expenses)
+                }).FirstAsync();
+        }
+
+
         public async Task<ServiceResult> AddDepenseCaisseAsync(DepenseCaisse depenseCaisse)
         {
             ServiceResult result = new();

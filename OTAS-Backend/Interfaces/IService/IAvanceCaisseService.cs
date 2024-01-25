@@ -9,7 +9,6 @@ namespace OTAS.Interfaces.IService
     public interface IAvanceCaisseService
     {
         Task<ServiceResult> CreateAvanceCaisseAsync(AvanceCaissePostDTO avanceCaisse, int userId);
-        Task<AvanceCaisseViewDTO> GetAvanceCaisseFullDetailsById(int avanceCaisseId);
         Task<ServiceResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision, int deciderUserId);
         Task<ServiceResult> MarkFundsAsPrepared(int avanceCaisseId, string advanceOption, int deciderUserId);
         Task<ServiceResult> ConfirmFundsDelivery(int avanceCaisseId, int confirmationNumber);

@@ -8,6 +8,7 @@ namespace OTAS.Interfaces.IRepository
     {
         Task<DepenseCaisse?> FindDepenseCaisseAsync(int depenseCaisseId);
         Task<DepenseCaisse> GetDepenseCaisseByIdAsync(int id);
+        Task<DepenseCaisseViewDTO> GetDepenseCaisseFullDetailsById(int depenseCaisseId);
         Task<ServiceResult> UpdateDepenseCaisseAsync(DepenseCaisse depenseCaisse);
         Task<ServiceResult> AddDepenseCaisseAsync(DepenseCaisse depenseCaisse);
         Task<ServiceResult> UpdateDepenseCaisseStatusAsync(int depesneCaisseId, int status);

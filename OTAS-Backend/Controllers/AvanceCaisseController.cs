@@ -141,7 +141,7 @@ namespace OTAS.Controllers
         public async Task<IActionResult> ShowAvanceCaisseDetailsPage(int Id)
         {
             if (await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null) return NotFound("AvanceCaisse is not found");
-            AvanceCaisseViewDTO avanceCaisseDetails = await _avanceCaisseService.GetAvanceCaisseFullDetailsById(Id);
+            AvanceCaisseViewDTO avanceCaisseDetails = await _avanceCaisseRepository.GetAvanceCaisseFullDetailsById(Id);
 
             // if the request is on behalf of someone, get the requester data from the DB
             if (avanceCaisseDetails.OnBehalf)

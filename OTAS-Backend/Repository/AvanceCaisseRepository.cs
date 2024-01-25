@@ -81,6 +81,34 @@ namespace OTAS.Repository
                 .ToListAsync();
         }
 
+        public async Task<AvanceCaisseViewDTO> GetAvanceCaisseFullDetailsById(int avanceCaisseId)
+        {
+            return await _context.AvanceCaisses
+                .Where(ac => ac.Id == avanceCaisseId)
+                .Include(ac => ac.LatestStatusNavigation)
+                .Include(ac => ac.StatusHistories)
+                .Select(ac => new AvanceCaisseViewDTO
+                {
+                    Id = ac.Id,
+                    Description = ac.Description,
+                    OnBehalf = ac.OnBehalf,
+                    Currency = ac.Currency,
+                    EstimatedTotal = ac.EstimatedTotal,
+                    ActualTotal = ac.ActualTotal,
+                    CreateDate = ac.CreateDate,
+                    LatestStatus = ac.LatestStatusNavigation.StatusString,
+                    StatusHistory = ac.StatusHistories.Select(sh => new StatusHistoryDTO
+                    {
+                        Status = sh.StatusNavigation.StatusString,
+                        DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
+                        DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
+                        DeciderComment = sh.DeciderComment,
+                        CreateDate = sh.CreateDate
+                    }).ToList(),
+                    Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses)
+                }).FirstAsync();
+        }
+
         public async Task<bool> SaveAsync()
         {
             var saved = await _context.SaveChangesAsync();

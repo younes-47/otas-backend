@@ -20,18 +20,21 @@ namespace OTAS.Controllers
     public class DepenseCaisseController : ControllerBase
     {
         private readonly IDepenseCaisseService _depenseCaisseService;
+        private readonly IActualRequesterRepository _actualRequesterRepository;
         private readonly IDepenseCaisseRepository _depenseCaisseRepository;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
         public DepenseCaisseController(IDepenseCaisseService depenseCaisseService,
+            IActualRequesterRepository actualRequesterRepository,
             IDepenseCaisseRepository depenseCaisseRepository,
             IWebHostEnvironment webHostEnvironment,
             IUserRepository userRepository,
             IMapper mapper)
         {
             _depenseCaisseService = depenseCaisseService;
+            _actualRequesterRepository = actualRequesterRepository;
             _depenseCaisseRepository = depenseCaisseRepository;
             _webHostEnvironment = webHostEnvironment;
             _userRepository = userRepository;
@@ -91,6 +94,85 @@ namespace OTAS.Controllers
         }
 
         [Authorize(Roles = "requester,decider")]
+        [HttpGet("View")]
+        public async Task<IActionResult> ShowDepenseCaisseDetailsPage(int Id)
+        {
+            if (await _depenseCaisseRepository.FindDepenseCaisseAsync(Id) == null) return NotFound("Depense Caisse is not found");
+            DepenseCaisseViewDTO depenseCaisseDetails = await _depenseCaisseRepository.GetDepenseCaisseFullDetailsById(Id);
+
+            // if the request is on behalf of someone, get the requester data from the DB
+            if (depenseCaisseDetails.OnBehalf)
+            {
+                ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByDepenseCaisseIdAsync(depenseCaisseDetails.Id);
+                depenseCaisseDetails.RequesterInfo = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+                depenseCaisseDetails.RequesterInfo.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
+            }
+
+            // get the file data
+            try
+            {
+                string filePath = Path.Combine(_webHostEnvironment.WebRootPath + "\\Depense-Caisse-Receipts", depenseCaisseDetails.ReceiptsFileName);
+
+                if (System.IO.File.Exists(filePath))
+                {
+                    depenseCaisseDetails.ReceiptsFile = System.IO.File.ReadAllBytes(filePath);
+
+                }
+                else
+                {
+                    depenseCaisseDetails.ReceiptsFile = Array.Empty<byte>();
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Something went wrong while trying to retrieve the file" +ex.Message);
+            }
+
+            // adding those more detailed status that are not in the DB
+            for (int i = depenseCaisseDetails.StatusHistory.Count - 1; i >= 0; i--)
+            {
+                StatusHistoryDTO statusHistory = depenseCaisseDetails.StatusHistory[i];
+                StatusHistoryDTO explicitStatusHistory = new();
+                switch (statusHistory.Status)
+                {
+                    case "Pending Manager's Approval":
+                        explicitStatusHistory.Status = "Submitted";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        break;
+                    case "Pending HR's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Finance Department's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending General Director's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Vice President's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    default:
+                        continue;
+                }
+                depenseCaisseDetails.StatusHistory.Insert(i, explicitStatusHistory);
+            }
+
+            return Ok(depenseCaisseDetails);
+        }
+
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("ReceiptsFile/Download")]
         public IActionResult DownloadDepenseCaisseReceiptsFile(string fileName)
         {
@@ -100,21 +182,15 @@ namespace OTAS.Controllers
            
                 if (System.IO.File.Exists(filePath))
                 {
-                    HttpResponseMessage response = new(HttpStatusCode.OK);
-                    using var fileStream = new FileStream(filePath, FileMode.Open);
-                    // Put the file into the response
-                    response.Content = new StreamContent(fileStream);
-                    response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
-                    {
-                        FileName = fileName
-                    };
-                    response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                    byte[] base64String = System.IO.File.ReadAllBytes(filePath);
 
-                    return Ok(response);
+                    Response.Headers.Add("Content-Disposition", $"attachment; filename={fileName}");
+
+                    return Ok(File(base64String, "application/pdf", fileName));
                 }
                 else
                 {
-                    return NotFound("File is not found! It may have been deleted by mistake");
+                    return NotFound("File is not found! It may have been moved or deleted");
                 }
             }
             catch (Exception ex)
@@ -235,7 +311,6 @@ namespace OTAS.Controllers
 
             return Ok(DCs);
         }
-
 
         [Authorize(Roles = "decider")]
         [HttpPut("Decide")]
