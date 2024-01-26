@@ -43,4 +43,6 @@ public partial class AvanceVoyage
     public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
 
     public virtual User User { get; set; } = null!;
+    public virtual User? Decider { get; set; }
+    public virtual User? NextDecider { get; set; }
 }

@@ -18,8 +18,6 @@ public partial class OtasContext : DbContext
 
     public virtual DbSet<ActualRequester> ActualRequesters { get; set; }
 
-    public virtual DbSet<JobTitle> JobTitles { get; set; }
-
     public virtual DbSet<Department> Departments { get; set; }
 
     public virtual DbSet<AvanceCaisse> AvanceCaisses { get; set; }
@@ -125,6 +123,16 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AC_Requester");
+
+            entity.HasOne(d => d.Decider).WithMany(p => p.DeciderOnAvanceCaisses)
+                .HasForeignKey(d => d.DeciderUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AC_Decider");
+
+            entity.HasOne(d => d.NextDecider).WithMany(p => p.NextDeciderOnAvanceCaisses)
+                .HasForeignKey(d => d.NextDeciderUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AC_NextDecider");
         });
 
         modelBuilder.Entity<AvanceVoyage>(entity =>
@@ -160,6 +168,16 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AV_Requester");
+
+            entity.HasOne(d => d.Decider).WithMany(p => p.DeciderOnAvanceVoyages)
+                .HasForeignKey(d => d.DeciderUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AV_Decider");
+
+            entity.HasOne(d => d.NextDecider).WithMany(p => p.NextDeciderOnAvanceVoyages)
+                .HasForeignKey(d => d.NextDeciderUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AV_NextDecider");
         });
 
         modelBuilder.Entity<Delegation>(entity =>
@@ -215,6 +233,16 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_DC_Requester");
+
+            entity.HasOne(d => d.Decider).WithMany(p => p.DeciderOnDepenseCaisses)
+                .HasForeignKey(d => d.DeciderUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DC_Decider");
+
+            entity.HasOne(d => d.NextDecider).WithMany(p => p.NextDeciderOnDepenseCaisses)
+                .HasForeignKey(d => d.NextDeciderUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DC_NextDecider");
         });
 
         modelBuilder.Entity<Expense>(entity =>
@@ -284,7 +312,17 @@ public partial class OtasContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.Liquidations)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Liquidation_Requester");
+                .HasConstraintName("FK_Liquidation_Requester");
+
+            entity.HasOne(d => d.Decider).WithMany(p => p.DeciderOnLiquidations)
+               .HasForeignKey(d => d.DeciderUserId)
+               .OnDelete(DeleteBehavior.ClientSetNull)
+               .HasConstraintName("FK_Liquidation_Decider");
+
+            entity.HasOne(d => d.NextDecider).WithMany(p => p.NextDeciderOnLiquidations)
+               .HasForeignKey(d => d.NextDeciderUserId)
+               .OnDelete(DeleteBehavior.ClientSetNull)
+               .HasConstraintName("fk_Liquidation_NextDecider");
         });
 
         modelBuilder.Entity<OrdreMission>(entity =>
@@ -310,6 +348,16 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OM_Requester");
+
+            entity.HasOne(d => d.NextDecider).WithMany(p => p.NextDeciderOnOrdreMissions)
+                .HasForeignKey(d => d.NextDeciderUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OM_NextDecider");
+
+            entity.HasOne(d => d.Decider).WithMany(p => p.DeciderOnOrdreMissions)
+                .HasForeignKey(d => d.DeciderUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OM_Decider");
         });
 
         modelBuilder.Entity<RoleCode>(entity =>
@@ -332,14 +380,6 @@ public partial class OtasContext : DbContext
 
             entity.Property(e => e.StatusInt).ValueGeneratedNever();
             entity.Property(e => e.StatusString)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-        });
-
-        modelBuilder.Entity<JobTitle>(entity =>
-        {
-            entity.ToTable("JobTitle");
-            entity.Property(e => e.Title)
                 .HasMaxLength(100)
                 .IsUnicode(false);
         });
@@ -376,9 +416,13 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.AvanceVoyageId)
                 .HasConstraintName("FK_AV_StatusHistory");
 
-            entity.HasOne(d => d.Decider).WithMany(p => p.StatusHistories)
+            entity.HasOne(d => d.Decider).WithMany(p => p.DeciderStatusHistories)
                 .HasForeignKey(d => d.DeciderUserId)
                 .HasConstraintName("FK_SH_Decider");
+
+            entity.HasOne(d => d.NextDecider).WithMany(p => p.NextDeciderStatusHistories)
+                .HasForeignKey(d => d.NextDeciderUserId)
+                .HasConstraintName("FK_SH_NextDecider");
 
             entity.HasOne(d => d.DepenseCaisse).WithMany(p => p.StatusHistories)
                 .HasForeignKey(d => d.DepenseCaisseId)

@@ -38,4 +38,6 @@ public partial class DepenseCaisse
     public virtual ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
 
     public virtual User User { get; set; } = null!;
+    public virtual User? Decider { get; set; }
+    public virtual User? NextDecider { get; set; }
 }

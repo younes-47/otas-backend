@@ -35,6 +35,8 @@ public partial class StatusHistory
 
     public virtual User? Decider { get; set; }
 
+    public virtual User? NextDecider { get; set; }
+
     public virtual DepenseCaisse? DepenseCaisse { get; set; }
 
     public virtual Liquidation? Liquidation { get; set; }
