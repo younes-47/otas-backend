@@ -59,18 +59,7 @@ namespace OTAS.Controllers
                 avanceVoyage.RequesterInfo = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
                 
             }
-            // otherwise get the requester data from AD
-            // it wll be handled from frontend since user data is stored in a state so no need to interact with AD everytime
-            //else
-            //{
-            //    var userInfo = _ldapAuthenticationService.GetUserInfo(user.Username);
-            //    avanceVoyage.RequesterInfo.FirstName = userInfo[0];
-            //    avanceVoyage.RequesterInfo.LastName = userInfo[1];
-            //    avanceVoyage.RequesterInfo.ManagerUserName = userInfo[2];
-            //    avanceVoyage.RequesterInfo.RegistrationNumber = userInfo[3];
-            //    avanceVoyage.RequesterInfo.JobTitle = userInfo[4];
-            //    avanceVoyage.RequesterInfo.Department = userInfo[5];
-            //}
+
 
             // adding those more detailed status that are not in the DB
             for (int i = avanceVoyage.StatusHistory.Count - 1; i >= 0; i--)
