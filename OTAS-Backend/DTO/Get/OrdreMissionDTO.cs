@@ -10,6 +10,8 @@ namespace OTAS.DTO.Get
 
         public string Description { get; set; } = null!;
 
+        public string NextDeciderUserName { get; set; } = null!;
+
         public bool Abroad { get; set; }
 
         public DateTime DepartureDate { get; set; }

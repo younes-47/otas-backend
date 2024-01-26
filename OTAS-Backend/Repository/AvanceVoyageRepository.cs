@@ -124,6 +124,8 @@ namespace OTAS.Repository
         {
             return await _context.AvanceVoyages.Where(av => av.Id == id)
                 .Include(av => av.LatestStatusNavigation)
+                .Include (av => av.Trips)
+                .Include(av => av.Expenses)
                 .Include(av => av.OrdreMission)
                 .Include(av => av.StatusHistories)
                 .Select(av => new AvanceVoyageViewDTO
@@ -143,7 +145,9 @@ namespace OTAS.Repository
                         DeciderLastName = sh.Decider != null ?  sh.Decider.LastName : null,
                         DeciderComment = sh.DeciderComment,
                         CreateDate = sh.CreateDate
-                    }).ToList()
+                    }).ToList(),
+                    Trips = _mapper.Map<List<TripDTO>>(av.Trips),
+                    Expenses = _mapper.Map<List<ExpenseDTO>>(av.Expenses)
                 })
                 .FirstAsync();
         }
