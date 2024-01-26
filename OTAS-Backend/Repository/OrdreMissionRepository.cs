@@ -29,17 +29,35 @@ namespace OTAS.Repository
         public async Task<List<OrdreMissionDTO>> GetOrdreMissionsForDecider(int deciderUserId)
         {
             /* Get the records that needs to be decided upon now */
-            List<OrdreMissionDTO> ordreMissions = _mapper.Map<List<OrdreMissionDTO>>
-                (await _context.OrdreMissions.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
+            //List<OrdreMissionDTO> ordreMissions = _mapper.Map<List<OrdreMissionDTO>>
+            //    (await _context.OrdreMissions.Where(om => om.NextDeciderUserId == deciderUserId).Include(om => om.NextDeciderUser).Select().ToListAsync());
+
+            List<OrdreMissionDTO> ordreMissions2 = await _context.OrdreMissions
+                .Where(om => om.NextDeciderUserId == deciderUserId)
+                .Include(om => om.LatestStatusString)
+                .Include(om => om.NextDecider)
+                .Select(om => new OrdreMissionDTO
+                {
+                    Id = om.Id,
+                    NextDeciderUserName = om.NextDecider != null ? om.NextDecider.Username : null,
+                    Description = om.Description,
+                    Abroad = om.Abroad,
+                    OnBehalf = om.OnBehalf,
+                    DepartureDate = om.DepartureDate,
+                    ReturnDate = om.ReturnDate,
+                    LatestStatus = om.LatestStatusString.StatusString,
+                    CreateDate = om.CreateDate,
+                })
+                .ToListAsync();
 
             /* Get the records that have been already decided upon and add it to the previous list */
-            ordreMissions.AddRange(_mapper.Map<List<OrdreMissionDTO>>
+            ordreMissions2.AddRange(_mapper.Map<List<OrdreMissionDTO>>
                 (await _context.StatusHistories
                 .Where(sh => sh.DeciderUserId == deciderUserId)
                 .Select(sh => sh.OrdreMission)
                 .ToListAsync()));
 
-            return ordreMissions;
+            return ordreMissions2;
         }
 
         public async Task<OrdreMissionViewDTO> GetOrdreMissionFullDetailsById(int ordreMissionId)
