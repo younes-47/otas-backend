@@ -996,7 +996,6 @@ namespace OTAS.Services
         public async Task<ServiceResult> SubmitAvanceVoyage(int avanceVoyageId)
         {
             ServiceResult result = new();
-            var transaction = _context.Database.BeginTransaction();
 
             try
             {
@@ -1020,9 +1019,7 @@ namespace OTAS.Services
                     return result;
                 }
 
-                
-
-                await transaction.CommitAsync();
+           
             }
             catch (Exception exception)
             {
