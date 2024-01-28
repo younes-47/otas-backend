@@ -17,6 +17,8 @@ namespace OTAS.Interfaces.IRepository
         Task<List<DepenseCaisseDTO>> GetDepensesCaisseByUserIdAsync(int userId);
         Task<List<DepenseCaisseDTO>> GetDepenseCaissesForDeciderTable(int deciderUserId);
         Task<int> GetDepenseCaisseNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false);
+        Task<decimal[]> GetRequesterAllTimeRequestedAmountsByUserIdAsync(int userId);
+        Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId);
         Task<bool> SaveAsync();
     }
 }

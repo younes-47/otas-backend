@@ -172,6 +172,54 @@ namespace OTAS.Repository
             return result;
         }
 
+        public async Task<decimal[]> GetRequesterAllTimeRequestedAmountsByUserIdAsync(int userId)
+        {
+            decimal[] totalAmounts = new decimal[2];
+            decimal AllTimeTotalMAD = 0.0m;
+            decimal AllTimeTotalEUR = 0.0m;
+
+            List<decimal> resultMAD = await _context.AvanceCaisses.Where(av => av.UserId == userId).Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).ToListAsync();
+            List<decimal> resultEUR = await _context.AvanceCaisses.Where(av => av.UserId == userId).Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).ToListAsync();
+
+            if (resultMAD.Count > 0)
+            {
+                foreach (var item in resultMAD)
+                {
+                    AllTimeTotalMAD += item;
+                }
+            }
+            if (resultEUR.Count > 0)
+            {
+                foreach (var item in resultMAD)
+                {
+                    AllTimeTotalEUR += item;
+                }
+            }
+
+            totalAmounts[0] = AllTimeTotalMAD;
+            totalAmounts[1] = AllTimeTotalEUR;
+
+            return totalAmounts;
+        }
+
+        public async Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId)
+        {
+            DateTime? lastCreated = null;
+
+            var latestAvanceVoyage = await _context.AvanceCaisses
+                .Where(av => av.UserId == userId)
+                .OrderByDescending(av => av.CreateDate)
+                .FirstOrDefaultAsync();
+
+            if (latestAvanceVoyage != null)
+            {
+                lastCreated = latestAvanceVoyage.CreateDate;
+            }
+
+            return lastCreated;
+        }
+
+
         public async Task<string?> DecodeStatusAsync(int statusCode)
         {
             var statusCodeEntity = await _context.StatusCodes.Where(sc => sc.StatusInt == statusCode).FirstOrDefaultAsync();

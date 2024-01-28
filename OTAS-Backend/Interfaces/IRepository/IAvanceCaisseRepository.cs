@@ -18,6 +18,8 @@ namespace OTAS.Interfaces.IRepository
         Task<ServiceResult> UpdateAvanceCaisseAsync(AvanceCaisse avanceCaisse);
         Task<ServiceResult> DeleteAvanceCaisseAync(AvanceCaisse avanceCaisse);
         Task<string?> DecodeStatusAsync(int statusCode);
+        Task<decimal[]> GetRequesterAllTimeRequestedAmountsByUserIdAsync(int userId);
+        Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId);
         Task<bool> SaveAsync();
 
     }

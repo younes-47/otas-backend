@@ -63,7 +63,7 @@ namespace OTAS.Repository
 
             return deciderUserId;
         }
-   
+
         public async Task<List<AvanceVoyageTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderUserId)
         {
             /* Get the records that needs to be decided upon now */
@@ -124,7 +124,7 @@ namespace OTAS.Repository
         {
             return await _context.AvanceVoyages.Where(av => av.Id == id)
                 .Include(av => av.LatestStatusNavigation)
-                .Include (av => av.Trips)
+                .Include(av => av.Trips)
                 .Include(av => av.Expenses)
                 .Include(av => av.OrdreMission)
                 .Include(av => av.StatusHistories)
@@ -142,7 +142,7 @@ namespace OTAS.Repository
                     {
                         Status = sh.StatusNavigation.StatusString,
                         DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
-                        DeciderLastName = sh.Decider != null ?  sh.Decider.LastName : null,
+                        DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
                         DeciderComment = sh.DeciderComment,
                         CreateDate = sh.CreateDate
                     }).ToList(),
@@ -170,11 +170,11 @@ namespace OTAS.Repository
             return result;
         }
 
-        public async Task <ServiceResult> UpdateAvanceVoyageStatusAsync(int avanceVoyageId, int status, int nextDeciderUserId)
+        public async Task<ServiceResult> UpdateAvanceVoyageStatusAsync(int avanceVoyageId, int status, int nextDeciderUserId)
         {
             ServiceResult result = new();
 
-            AvanceVoyage updatedAvanceVoyage  = await GetAvanceVoyageByIdAsync(avanceVoyageId);
+            AvanceVoyage updatedAvanceVoyage = await GetAvanceVoyageByIdAsync(avanceVoyageId);
             updatedAvanceVoyage.LatestStatus = status;
             updatedAvanceVoyage.NextDeciderUserId = nextDeciderUserId;
             _context.AvanceVoyages.Update(updatedAvanceVoyage);
@@ -182,7 +182,7 @@ namespace OTAS.Repository
             result.Success = await SaveAsync();
             result.Message = result.Success == true ? "AvanceVoyage Status Updated Successfully" : "Something went wrong while updating AvanceVoyage Status";
 
-           return result;
+            return result;
 
         }
 
@@ -195,6 +195,52 @@ namespace OTAS.Repository
             return result;
         }
 
+        public async Task<decimal[]> GetRequesterAllTimeRequestedAmountsByUserIdAsync(int userId)
+        {
+            decimal[] totalAmounts = new decimal[2];
+            decimal AllTimeTotalMAD = 0.0m;
+            decimal AllTimeTotalEUR = 0.0m;
+
+            List<decimal> resultMAD = await _context.AvanceVoyages.Where(av => av.UserId == userId).Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).ToListAsync();
+            List<decimal> resultEUR = await _context.AvanceVoyages.Where(av => av.UserId == userId).Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).ToListAsync();
+
+            if (resultMAD.Count > 0)
+            {
+                foreach (var item in resultMAD)
+                {
+                    AllTimeTotalMAD += item;
+                }
+            }
+            if (resultEUR.Count > 0)
+            {
+                foreach (var item in resultMAD)
+                {
+                    AllTimeTotalEUR += item;
+                }
+            }
+
+            totalAmounts[0] = AllTimeTotalMAD;
+            totalAmounts[1] = AllTimeTotalEUR;
+
+            return totalAmounts;
+        }
+
+        public async Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId)
+        {
+            DateTime? lastCreated = null;
+
+            var latestAvanceVoyage = await _context.AvanceVoyages
+                .Where(av => av.UserId == userId)
+                .OrderByDescending(av => av.CreateDate)
+                .FirstOrDefaultAsync();
+
+            if (latestAvanceVoyage != null)
+            {
+                lastCreated = latestAvanceVoyage.CreateDate;
+            }
+
+            return lastCreated;
+        }
         public async Task<bool> SaveAsync()
         {
             var saved = await _context.SaveChangesAsync();
