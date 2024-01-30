@@ -71,6 +71,13 @@ namespace OTAS.Repository
             result.Message = result.Success == true ? "User added Successfully." : "Something went wrong while adding the user";
             return result;
         }
+
+        public async Task<string> GetDeciderUsernameByDeciderLevel(string level)
+        {
+            int userId =  _context.Deciders.Where(dc => dc.Level == level).Select(dc => dc.UserId).FirstOrDefault();
+            return await _context.Users.Where(user => user.Id == userId).Select(user => user.Username).FirstAsync();
+        }
+
         public async Task<User> CreateUserAsync(User user)
         {
             await _context.AddAsync(user);

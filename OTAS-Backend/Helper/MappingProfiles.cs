@@ -14,6 +14,15 @@ namespace OTAS.Helper
             CreateMap<OrdreMission, OrdreMissionViewDTO>()
                 .ForMember(dest => dest.StatusHistory, opt => opt.MapFrom(src => src.StatusHistories));
 
+            CreateMap<OrdreMission, OrdreMissionDeciderTableDTO>()
+                .ForMember(dest => dest.RequestedAmountMAD, opt => opt.MapFrom(src => src.AvanceVoyages.Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).FirstOrDefault()))
+                .ForMember(dest => dest.RequestedAmountEUR, opt => opt.MapFrom(src => src.AvanceVoyages.Where(av => av.Currency == "EUR").Select(av => av.EstimatedTotal).FirstOrDefault()));
+                   
+
+            CreateMap<OrdreMission, OrdreMissionDeciderViewDTO>().ReverseMap();
+            CreateMap<OrdreMission, OrdreMissionDeciderViewDTO>()
+                .ForMember(dest => dest.StatusHistory, opt => opt.MapFrom(src => src.StatusHistories));
+
             CreateMap<AvanceCaisse, AvanceCaisseViewDTO>()
                 .ForMember(dest => dest.Expenses, opt => opt.MapFrom(src => src.Expenses));
 

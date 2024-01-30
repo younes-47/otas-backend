@@ -16,27 +16,32 @@ namespace OTAS.Repository
         private readonly OtasContext _context;
         private readonly IMapper _mapper;
         private readonly IDeciderRepository _deciderRepository;
+        private readonly IAvanceVoyageRepository _avanceVoyageRepository;
         private readonly IUserRepository _userRepository;
 
-        public OrdreMissionRepository(OtasContext context, IMapper mapper, IDeciderRepository deciderRepository, IUserRepository userRepository)
+        public OrdreMissionRepository(OtasContext context, IMapper mapper, IDeciderRepository deciderRepository, IUserRepository userRepository, IAvanceVoyageRepository avanceVoyageRepository)
         {
             _context = context;
             _mapper = mapper;
             _deciderRepository = deciderRepository;
+            _avanceVoyageRepository = avanceVoyageRepository;
             _userRepository = userRepository;
         }
 
-        public async Task<List<OrdreMissionDTO>> GetOrdreMissionsForDecider(int deciderUserId)
+        public async Task<List<OrdreMissionDeciderTableDTO>> GetOrdreMissionsForDecider(int deciderUserId)
         {
             /* Get the records that needs to be decided upon now */
             //List<OrdreMissionDTO> ordreMissions = _mapper.Map<List<OrdreMissionDTO>>
             //    (await _context.OrdreMissions.Where(om => om.NextDeciderUserId == deciderUserId).Include(om => om.NextDeciderUser).Select().ToListAsync());
 
-            List<OrdreMissionDTO> ordreMissions2 = await _context.OrdreMissions
+            bool isDeciderHR = await _context.Deciders.Where(dc => dc.UserId == deciderUserId).Select(dc => "HR" == dc.Level).FirstAsync();
+
+            List<OrdreMissionDeciderTableDTO> ordreMissions = await _context.OrdreMissions
                 .Where(om => om.NextDeciderUserId == deciderUserId)
-                .Include(om => om.LatestStatusString)
+                .Include(om => om.AvanceVoyages)
+                .Where(om => (om.AvanceVoyages.Where(av => av.LatestStatus == om.LatestStatus).Count() == om.AvanceVoyages.Count()) || isDeciderHR)
                 .Include(om => om.NextDecider)
-                .Select(om => new OrdreMissionDTO
+                .Select(om => new OrdreMissionDeciderTableDTO
                 {
                     Id = om.Id,
                     NextDeciderUserName = om.NextDecider != null ? om.NextDecider.Username : null,
@@ -45,19 +50,34 @@ namespace OTAS.Repository
                     OnBehalf = om.OnBehalf,
                     DepartureDate = om.DepartureDate,
                     ReturnDate = om.ReturnDate,
-                    LatestStatus = om.LatestStatusString.StatusString,
                     CreateDate = om.CreateDate,
+                    RequestedAmountMAD = om.AvanceVoyages.Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).FirstOrDefault(),
+                    RequestedAmountEUR = om.AvanceVoyages.Where(av => av.Currency == "EUR").Select(av => av.EstimatedTotal).FirstOrDefault(),
                 })
                 .ToListAsync();
 
             /* Get the records that have been already decided upon and add it to the previous list */
-            ordreMissions2.AddRange(_mapper.Map<List<OrdreMissionDTO>>
-                (await _context.StatusHistories
-                .Where(sh => sh.DeciderUserId == deciderUserId)
-                .Select(sh => sh.OrdreMission)
-                .ToListAsync()));
+            List<OrdreMissionDeciderTableDTO> ordreMissions2 = await _context.StatusHistories
+                .Where(sh => sh.DeciderUserId == deciderUserId && sh.OrdreMissionId != null)
+                .Include(sh => sh.OrdreMission)
+                .Select(sh => new OrdreMissionDeciderTableDTO
+                {
+                    Id = sh.OrdreMission.Id,
+                    NextDeciderUserName = sh.OrdreMission.NextDecider != null ? sh.OrdreMission.NextDecider.Username : null,
+                    Description = sh.OrdreMission.Description,
+                    Abroad = sh.OrdreMission.Abroad,
+                    OnBehalf = sh.OrdreMission.OnBehalf,
+                    DepartureDate = sh.OrdreMission.DepartureDate,
+                    ReturnDate = sh.OrdreMission.ReturnDate,
+                    CreateDate = sh.OrdreMission.CreateDate,
+                    RequestedAmountMAD = sh.OrdreMission.AvanceVoyages.Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).FirstOrDefault(),
+                    RequestedAmountEUR = sh.OrdreMission.AvanceVoyages.Where(av => av.Currency == "EUR").Select(av => av.EstimatedTotal).FirstOrDefault(),
+                })
+                .ToListAsync();
 
-            return ordreMissions2;
+            ordreMissions.AddRange (ordreMissions2);
+
+            return ordreMissions;
         }
 
         public async Task<OrdreMissionViewDTO> GetOrdreMissionFullDetailsById(int ordreMissionId)
@@ -96,13 +116,45 @@ namespace OTAS.Repository
                     }).ToList(),
                 })
                 .FirstAsync();
+        }
 
-            //var ordreMission = await _context.OrdreMissions
-            //    .Where(om => om.Id == ordreMissionId)
-            //    .ProjectTo<OrdreMissionViewDTO>(_mapper.ConfigurationProvider)
-            //    .FirstOrDefaultAsync();
-
-            //return ordreMission;
+        public async Task<OrdreMissionDeciderViewDTO> GetOrdreMissionFullDetailsByIdForDecider(int ordreMissionId)
+        {
+            return await _context.OrdreMissions
+                .Where(om => om.Id == ordreMissionId)
+                .Include(om => om.LatestStatusString)
+                .Include(om => om.StatusHistories)
+                .Select(om => new OrdreMissionDeciderViewDTO
+                {
+                    Id = om.Id,
+                    UserId = om.UserId,
+                    Description = om.Description,
+                    Abroad = om.Abroad,
+                    OnBehalf = om.OnBehalf,
+                    DepartureDate = om.DepartureDate,
+                    ReturnDate = om.ReturnDate,
+                    LatestStatus = om.LatestStatusString.StatusString,
+                    CreateDate = om.CreateDate,
+                    StatusHistory = om.StatusHistories.Select(sh => new StatusHistoryDTO
+                    {
+                        Status = sh.StatusNavigation.StatusString,
+                        DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
+                        DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
+                        DeciderComment = sh.DeciderComment,
+                        CreateDate = sh.CreateDate
+                    }).ToList(),
+                    AvanceVoyagesDetails = om.AvanceVoyages.Select(av => new OrdreMissionAvanceDetailsDTO
+                    {
+                        Id = av.Id,
+                        EstimatedTotal = av.EstimatedTotal,
+                        ActualTotal = av.ActualTotal,
+                        Currency = av.Currency,
+                        LatestStatus = av.LatestStatusNavigation.StatusString,
+                        Trips = _mapper.Map<List<TripDTO>>(av.Trips),
+                        Expenses = _mapper.Map<List<ExpenseDTO>>(av.Expenses),
+                    }).ToList(),
+                })
+                .FirstAsync();
         }
 
         public async Task<List<OrdreMissionDTO>?> GetOrdresMissionByUserIdAsync(int userid)

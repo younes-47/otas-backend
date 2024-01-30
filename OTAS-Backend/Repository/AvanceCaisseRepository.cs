@@ -179,7 +179,7 @@ namespace OTAS.Repository
             decimal AllTimeTotalEUR = 0.0m;
 
             List<decimal> resultMAD = await _context.AvanceCaisses.Where(av => av.UserId == userId).Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).ToListAsync();
-            List<decimal> resultEUR = await _context.AvanceCaisses.Where(av => av.UserId == userId).Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).ToListAsync();
+            List<decimal> resultEUR = await _context.AvanceCaisses.Where(av => av.UserId == userId).Where(av => av.Currency == "EUR").Select(av => av.EstimatedTotal).ToListAsync();
 
             if (resultMAD.Count > 0)
             {

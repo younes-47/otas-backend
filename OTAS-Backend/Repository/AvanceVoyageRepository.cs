@@ -67,15 +67,49 @@ namespace OTAS.Repository
         public async Task<List<AvanceVoyageTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderUserId)
         {
             /* Get the records that needs to be decided upon now */
-            List<AvanceVoyageTableDTO> avanceVoyages = _mapper.Map<List<AvanceVoyageTableDTO>>
-                (await _context.AvanceVoyages.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
+
+            bool isDeciderTR = await _context.Deciders.Where(dc => dc.UserId == deciderUserId).Select(dc => dc.Level == "TR").FirstAsync();
+
+            List<AvanceVoyageTableDTO> avanceVoyages = await _context.AvanceVoyages
+                .Include(av => av.LatestStatusNavigation)
+                .Include(av => av.OrdreMission)
+                .Where(av => (av.NextDeciderUserId == deciderUserId && av.OrdreMission.LatestStatus > av.LatestStatus) || (av.LatestStatus >= 8 && isDeciderTR))
+                .Select(av => new AvanceVoyageTableDTO
+                {
+                    Id = av.Id,
+                    EstimatedTotal = av.EstimatedTotal,
+                    NextDeciderUserName = av.NextDecider != null ? av.NextDecider.Username : null,
+                    OnBehalf = av.OnBehalf,
+                    OrdreMissionId = av.OrdreMission.Id,
+                    OrdreMissionDescription = av.OrdreMission.Description,
+                    ActualTotal = av.ActualTotal,
+                    Currency = av.Currency,
+                    ConfirmationNumber = av.ConfirmationNumber,
+                    LatestStatus = av.LatestStatusNavigation.StatusString,
+                    CreateDate = av.CreateDate,
+                })
+                .ToListAsync();
 
             /* Get the records that have been already decided upon and add it to the previous list */
-            avanceVoyages.AddRange(_mapper.Map<List<AvanceVoyageTableDTO>>
-                (await _context.StatusHistories
-                .Where(sh => sh.DeciderUserId == deciderUserId)
-                .Select(sh => sh.AvanceVoyage)
-                .ToListAsync()));
+            List<AvanceVoyageTableDTO> avanceVoyages2 = await _context.StatusHistories
+                .Where(sh => sh.DeciderUserId == deciderUserId && sh.AvanceVoyageId != null)
+                .Include(sh => sh.AvanceVoyage)
+                .Select(sh => new AvanceVoyageTableDTO
+                {
+                    Id = sh.AvanceVoyage.Id,
+                    EstimatedTotal = sh.AvanceVoyage.EstimatedTotal,
+                    OnBehalf = sh.AvanceVoyage.OnBehalf,
+                    OrdreMissionId = sh.AvanceVoyage.OrdreMission.Id,
+                    OrdreMissionDescription = sh.AvanceVoyage.OrdreMission.Description,
+                    ActualTotal = sh.AvanceVoyage.ActualTotal,
+                    Currency = sh.AvanceVoyage.Currency,
+                    ConfirmationNumber = sh.AvanceVoyage.ConfirmationNumber,
+                    LatestStatus = sh.AvanceVoyage.LatestStatusNavigation.StatusString,
+                    CreateDate = sh.AvanceVoyage.CreateDate,
+                })
+                .ToListAsync();
+
+            avanceVoyages.AddRange(avanceVoyages2);
 
             return avanceVoyages;
         }
@@ -152,6 +186,39 @@ namespace OTAS.Repository
                 .FirstAsync();
         }
 
+        public async Task<AvanceVoyageDeciderViewDTO> GetAvanceVoyageFullDetailsByIdForDecider(int avanceVoyageId)
+        {
+            return await _context.AvanceVoyages
+                .Where(av => av.Id == avanceVoyageId)
+                .Include(av => av.LatestStatusNavigation)
+                .Include(av => av.OrdreMission)
+                .Include(av => av.StatusHistories)
+                .Select(av => new AvanceVoyageDeciderViewDTO
+                {
+                    Id = av.Id,
+                    UserId = av.UserId,
+                    OrdreMissionDescription = av.OrdreMission.Description,
+                    OrdreMissionId = av.OrdreMissionId,
+                    EstimatedTotal = av.EstimatedTotal,
+                    ActualTotal = av.ActualTotal,
+                    Currency = av.Currency,
+                    OnBehalf = av.OnBehalf,
+                    LatestStatus = av.LatestStatusNavigation.StatusString,
+                    CreateDate = av.CreateDate,
+                    StatusHistory = av.StatusHistories.Select(sh => new StatusHistoryDTO
+                    {
+                        Status = sh.StatusNavigation.StatusString,
+                        DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
+                        DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
+                        DeciderComment = sh.DeciderComment,
+                        CreateDate = sh.CreateDate
+                    }).ToList(),
+                    Trips = _mapper.Map<List<TripDTO>>(av.Trips),
+                    Expenses = _mapper.Map<List<ExpenseDTO>>(av.Expenses),
+                })
+                .FirstAsync();
+        }
+
         public async Task<ServiceResult> AddAvanceVoyageAsync(AvanceVoyage avanceVoyage)
         {
             ServiceResult result = new();
@@ -202,7 +269,7 @@ namespace OTAS.Repository
             decimal AllTimeTotalEUR = 0.0m;
 
             List<decimal> resultMAD = await _context.AvanceVoyages.Where(av => av.UserId == userId).Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).ToListAsync();
-            List<decimal> resultEUR = await _context.AvanceVoyages.Where(av => av.UserId == userId).Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).ToListAsync();
+            List<decimal> resultEUR = await _context.AvanceVoyages.Where(av => av.UserId == userId).Where(av => av.Currency == "EUR").Select(av => av.EstimatedTotal).ToListAsync();
 
             if (resultMAD.Count > 0)
             {

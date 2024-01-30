@@ -6,6 +6,8 @@
 
         public decimal EstimatedTotal { get; set; }
 
+        public string NextDeciderUserName { get; set; } = null!;
+
         public bool OnBehalf { get; set; }
 
         public int OrdreMissionId { get; set; }

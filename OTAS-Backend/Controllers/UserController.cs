@@ -86,40 +86,55 @@ namespace OTAS.Controllers
             var userId = await _userRepository.GetUserIdByUsernameAsync(username);
 
             StatsDTO stats = new();
+            StatsMoneyDTO moneyStats = new();
+            StatsRequestsDTO requestsStats = new();
 
             decimal[] av_Totals = await _avanceVoyageRepository.GetRequesterAllTimeRequestedAmountsByUserIdAsync(userId);
             decimal[] ac_Totals = await _avanceCaisseRepository.GetRequesterAllTimeRequestedAmountsByUserIdAsync(userId);
             decimal[] dc_Totals = await _depenseCaisseRepository.GetRequesterAllTimeRequestedAmountsByUserIdAsync(userId);
 
-            stats.MoneyStats.AvanceVoyagesAllTimeAmountMAD = av_Totals[0];
-            stats.MoneyStats.AvanceVoyagesAllTimeAmountEUR = av_Totals[1];
+            moneyStats.AvanceVoyagesAllTimeAmountMAD += av_Totals[0];
+            moneyStats.AvanceVoyagesAllTimeAmountEUR += av_Totals[1];
 
-            stats.MoneyStats.AvanceCaissesAllTimeAmountMAD = ac_Totals[0];
-            stats.MoneyStats.AvanceCaissesAllTimeAmountMAD = ac_Totals[1];
+            moneyStats.AvanceCaissesAllTimeAmountMAD += ac_Totals[0];
+            moneyStats.AvanceCaissesAllTimeAmountMAD += ac_Totals[1];
 
-            stats.MoneyStats.DepenseCaissesAllTimeAmountMAD = dc_Totals[0];
-            stats.MoneyStats.DepenseCaissesAllTimeAmountMAD = dc_Totals[1];
+            moneyStats.DepenseCaissesAllTimeAmountMAD += dc_Totals[0];
+            moneyStats.DepenseCaissesAllTimeAmountMAD += dc_Totals[1];
 
-            stats.MoneyStats.AllTimeAmountMAD = av_Totals[0] + ac_Totals[0] + dc_Totals[0];
-            stats.MoneyStats.AllTimeAmountEUR = av_Totals[1] + ac_Totals[1] + dc_Totals[1];
+            moneyStats.AllTimeAmountMAD += av_Totals[0] + ac_Totals[0] + dc_Totals[0];
+            moneyStats.AllTimeAmountEUR += av_Totals[1] + ac_Totals[1] + dc_Totals[1];
+
+            stats.MoneyStats = moneyStats;
 
 
-            stats.RequestsStats.AvanceVoyagesAllTimeCount = _context.AvanceVoyages.Where(av => av.UserId == userId).Count();
-            stats.RequestsStats.AvanceCaissesAllTimeCount = _context.AvanceCaisses.Where(ac => ac.UserId == userId).Count();
-            stats.RequestsStats.DepenseCaissesAllTimeCount = _context.DepenseCaisses.Where(dc => dc.UserId == userId).Count();
+            requestsStats.OrdreMissionsAllTimeCount = _context.OrdreMissions.Where(om => om.UserId == userId).Count();
+            requestsStats.AvanceVoyagesAllTimeCount = _context.AvanceVoyages.Where(av => av.UserId == userId).Count();
+            requestsStats.AvanceCaissesAllTimeCount = _context.AvanceCaisses.Where(ac => ac.UserId == userId).Count();
+            requestsStats.DepenseCaissesAllTimeCount = _context.DepenseCaisses.Where(dc => dc.UserId == userId).Count();
 
-            stats.RequestsStats.AllTimeCount = stats.RequestsStats.AvanceVoyagesAllTimeCount
-                + stats.RequestsStats.AvanceCaissesAllTimeCount + stats.RequestsStats.DepenseCaissesAllTimeCount;
 
-            //stats.RequestsStats.AllOngoingRequestsCount += _context.AvanceVoyages.Where(av => av.UserId == userId)
-            //    .Where(av => av.LatestStatus != "Approved" && av.LatestStatus != "Approved")
+            requestsStats.AllTimeCount = requestsStats.OrdreMissionsAllTimeCount + requestsStats.AvanceVoyagesAllTimeCount
+                + requestsStats.AvanceCaissesAllTimeCount + requestsStats.DepenseCaissesAllTimeCount;
 
-            DateTime? lastCreatedReq = DateTime.MaxValue;
+            requestsStats.AllOngoingRequestsCount = _context.AvanceVoyages.Where(av => av.UserId == userId)
+                .Where(av => av.LatestStatus != 99 && av.LatestStatus != 97 && av.LatestStatus != 16 && av.LatestStatus != 7).Count();
+
+            requestsStats.AllOngoingRequestsCount += _context.AvanceCaisses.Where(av => av.UserId == userId)
+                .Where(av => av.LatestStatus != 99 && av.LatestStatus != 97 && av.LatestStatus != 16 && av.LatestStatus != 7).Count();
+
+            requestsStats.AllOngoingRequestsCount += _context.DepenseCaisses.Where(av => av.UserId == userId)
+                .Where(av => av.LatestStatus != 99 && av.LatestStatus != 97 && av.LatestStatus != 16 && av.LatestStatus != 7).Count();
+
+            requestsStats.AllOngoingRequestsCount += _context.OrdreMissions.Where(av => av.UserId == userId)
+                .Where(av => av.LatestStatus != 99 && av.LatestStatus != 97 && av.LatestStatus != 16 && av.LatestStatus != 7).Count();
+
+            DateTime? lastCreatedReq = DateTime.MinValue;
 
             DateTime? tempDate = await _avanceVoyageRepository.GetTheLatestCreatedRequestByUserIdAsync(userId);
             if (tempDate != null)
             {
-                if (tempDate < lastCreatedReq)
+                if (tempDate > lastCreatedReq)
                 {
                     lastCreatedReq = tempDate;
                 }
@@ -128,7 +143,7 @@ namespace OTAS.Controllers
             tempDate = await _avanceCaisseRepository.GetTheLatestCreatedRequestByUserIdAsync(userId);
             if (tempDate != null)
             {
-                if (tempDate < lastCreatedReq)
+                if (tempDate > lastCreatedReq)
                 {
                     lastCreatedReq = tempDate;
                 }
@@ -137,17 +152,19 @@ namespace OTAS.Controllers
             tempDate = await _depenseCaisseRepository.GetTheLatestCreatedRequestByUserIdAsync(userId);
             if (tempDate != null)
             {
-                if (tempDate < lastCreatedReq)
+                if (tempDate > lastCreatedReq)
                 {
                     lastCreatedReq = tempDate;
                 }
             }
 
-            if(lastCreatedReq != DateTime.MaxValue)
+            if (lastCreatedReq != DateTime.MinValue)
             {
                 TimeSpan difference = (TimeSpan)(DateTime.Now - lastCreatedReq);
-                stats.RequestsStats.DaysPassedSinceLastRequest = difference.Days;
+                requestsStats.HoursPassedSinceLastRequest = difference.Hours;
             }
+
+            stats.RequestsStats = requestsStats;
 
             return Ok(stats);
         }
@@ -220,7 +237,7 @@ namespace OTAS.Controllers
             if (lastCreatedReq != DateTime.MaxValue)
             {
                 TimeSpan difference = (TimeSpan)(DateTime.Now - lastCreatedReq);
-                stats.RequestsStats.DaysPassedSinceLastRequest = difference.Days;
+                stats.RequestsStats.HoursPassedSinceLastRequest = difference.Days;
             }
 
             return Ok(stats);

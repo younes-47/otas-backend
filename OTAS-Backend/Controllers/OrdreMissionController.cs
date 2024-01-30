@@ -9,6 +9,7 @@ using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
 using OTAS.Services;
+using TMA_App.Services;
 
 namespace OTAS.Controllers
 {
@@ -20,18 +21,21 @@ namespace OTAS.Controllers
         private readonly IOrdreMissionService _ordreMissionService;
         private readonly IOrdreMissionRepository _ordreMissionRepository;
         private readonly IUserRepository _userRepository;
+        private readonly ILdapAuthenticationService _ldapAuthenticationService;
         private readonly IActualRequesterRepository _actualRequesterRepository;
         private readonly IMapper _mapper;
 
         public OrdreMissionController(IOrdreMissionService ordreMissionService,
             IOrdreMissionRepository ordreMissionRepository,
             IUserRepository userRepository,
+            ILdapAuthenticationService ldapAuthenticationService,
             IActualRequesterRepository actualRequesterRepository,
             IMapper mapper)
         {
             _ordreMissionService = ordreMissionService;
             _ordreMissionRepository = ordreMissionRepository;
             _userRepository = userRepository;
+            _ldapAuthenticationService = ldapAuthenticationService;
             _actualRequesterRepository = actualRequesterRepository;
             _mapper = mapper;
         }
@@ -238,8 +242,71 @@ namespace OTAS.Controllers
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
 
-            List<OrdreMissionDTO> ordreMissions = await _ordreMissionRepository.GetOrdreMissionsForDecider(user.Id);
+            List<OrdreMissionDeciderTableDTO> ordreMissions = await _ordreMissionRepository.GetOrdreMissionsForDecider(user.Id);
             return Ok(ordreMissions);
+        }
+
+        [Authorize(Roles = "requester,decider")]
+        [HttpGet("DecideOnRequests/View")]
+        public async Task<IActionResult> ShowOrdreMissionDetailsPageForDecider(int Id) // Id = ordreMissionId
+        {
+            if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(Id) == null) return NotFound("OrdreMission not found!");
+            OrdreMissionDeciderViewDTO ordreMission = await _ordreMissionRepository.GetOrdreMissionFullDetailsByIdForDecider(Id);
+
+            // Fill the requester data
+            string username = await _userRepository.GetUsernameByUserIdAsync(ordreMission.UserId);
+            var userInfo = _ldapAuthenticationService.GetUserInformation(username);
+            ordreMission.Requester = userInfo;
+
+            // if the request is on behalf of someone, get the requester data from the DB
+            if (ordreMission.OnBehalf)
+            {
+                ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByOrdreMissionIdAsync(ordreMission.Id);
+                ordreMission.ActualRequester = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+                ordreMission.ActualRequester.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
+            }
+
+            // adding those more detailed status that are not in the DB
+            for (int i = ordreMission.StatusHistory.Count - 1; i >= 0; i--)
+            {
+                StatusHistoryDTO statusHistory = ordreMission.StatusHistory[i];
+                StatusHistoryDTO explicitStatusHistory = new();
+                switch (statusHistory.Status)
+                {
+                    case "Pending Manager's Approval":
+                        explicitStatusHistory.Status = "Submitted";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        break;
+                    case "Pending HR's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Finance Department's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending General Director's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Vice President's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    default:
+                        continue;
+                }
+                ordreMission.StatusHistory.Insert(i, explicitStatusHistory);
+            }
+            return Ok(ordreMission);
         }
 
         [Authorize(Roles = "decider")]

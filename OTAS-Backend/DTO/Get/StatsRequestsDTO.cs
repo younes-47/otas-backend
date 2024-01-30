@@ -6,7 +6,9 @@
 
         public int AllOngoingRequestsCount { get; set; } = 0;
 
-        public int? DaysPassedSinceLastRequest { get; set; }
+        public int HoursPassedSinceLastRequest { get; set; } = 0;
+
+        public int OrdreMissionsAllTimeCount { get; set; } = 0;
 
         public int AvanceVoyagesAllTimeCount { get; set; } = 0;
 

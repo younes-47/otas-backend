@@ -104,6 +104,7 @@ namespace OTAS.Controllers
             return Ok(avanceVoyage);
         }
 
+
         [Authorize(Roles = "requester,decider")]
         [HttpGet("Requests/Table")]
         public async Task<IActionResult> ShowAvanceVoyageRequestsTable()
@@ -128,6 +129,72 @@ namespace OTAS.Controllers
 
             return Ok(AVs);
         }
+        [Authorize(Roles = "decider")]
+        [HttpGet("DecideOnRequests/View")]
+        public async Task<IActionResult> ShowAvanceVoyageDetailsPageForDecider(int Id)
+        {
+            if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(Id) == null)
+                return NotFound("AvanceVoyage is not found");
+
+            AvanceVoyageDeciderViewDTO avanceVoyage = await _avanceVoyageRepository.GetAvanceVoyageFullDetailsByIdForDecider(Id);
+
+            // Fill the requester data
+            string username = await _userRepository.GetUsernameByUserIdAsync(avanceVoyage.UserId);
+            var userInfo = _ldapAuthenticationService.GetUserInformation(username);
+            avanceVoyage.Requester = userInfo;
+
+
+            // if the request is on behalf of someone, get the requester data from the DB
+            if (avanceVoyage.OnBehalf)
+            {
+                ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByOrdreMissionIdAsync(avanceVoyage.OrdreMissionId);
+                avanceVoyage.ActualRequester = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+            }
+
+            // adding those more detailed status that are not in the DB
+            for (int i = avanceVoyage.StatusHistory.Count - 1; i >= 0; i--)
+            {
+                StatusHistoryDTO statusHistory = avanceVoyage.StatusHistory[i];
+                StatusHistoryDTO explicitStatusHistory = new();
+                switch (statusHistory.Status)
+                {
+                    case "Pending Manager's Approval":
+                        explicitStatusHistory.Status = "Submitted";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        break;
+                    case "Pending HR's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Finance Department's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending General Director's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Vice President's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    default:
+                        continue;
+                }
+                avanceVoyage.StatusHistory.Insert(i, explicitStatusHistory);
+            }
+            return Ok(avanceVoyage);
+        }
+
+
 
         [Authorize(Roles = "decider")]
         [HttpPut("Decide")]

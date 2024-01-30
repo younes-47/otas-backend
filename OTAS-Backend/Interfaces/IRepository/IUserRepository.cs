@@ -12,6 +12,7 @@ namespace OTAS.Interfaces.IRepository
         Task<int> GetUserIdByUsernameAsync(string username);
         Task<User> GetUserByUserIdAsync(int userId);
         Task<string> GetUsernameByUserIdAsync(int userId);
+        Task<string> GetDeciderUsernameByDeciderLevel(string level);
         Task<User?> FindUserByUserIdAsync(int userId);
         Task<User?> FindUserByUsernameAsync(string username);
         Task<ServiceResult> AddUserAsync(User user);

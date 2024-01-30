@@ -196,6 +196,7 @@ namespace OTAS.Services
                 var transaction = _context.Database.BeginTransaction();
                 try
                 {
+                    // Handle OrdreMssion
                     var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(decision.RequestId);
                     decidedOrdreMission.DeciderComment = decision.DeciderComment;
                     decidedOrdreMission.DeciderUserId = deciderUserId;
@@ -215,6 +216,29 @@ namespace OTAS.Services
                     result = await _statusHistoryRepository.AddStatusAsync(decidedOrdreMission_SH);
                     if (!result.Success) return result;
 
+                    // Handle Related AvanceVoyage(s)
+                    List<AvanceVoyage> decidedAvanceVoyages = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(decidedOrdreMission.Id);
+                    foreach( var av in  decidedAvanceVoyages )
+                    {
+                        av.DeciderComment = decision.DeciderComment;
+                        av.DeciderUserId = deciderUserId;
+                        av.NextDeciderUserId = null; /* next decider is set to null if returned or rejected for OM */
+                        av.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97;
+                        result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(av);
+                        if (!result.Success) return result;
+
+                        StatusHistory decidedAvanceVoyage_SH = new()
+                        {
+                            AvanceVoyageId = av.Id,
+                            DeciderUserId = av.DeciderUserId,
+                            DeciderComment = av.DeciderComment,
+                            Status = av.LatestStatus,
+                            NextDeciderUserId = av.NextDeciderUserId,
+                        };
+                        result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceVoyage_SH);
+                        if (!result.Success) return result;
+                    }
+                    
 
                     await transaction.CommitAsync();
                 }

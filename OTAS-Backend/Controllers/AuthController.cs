@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using OTAS.DTO.Get;
+using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Services;
@@ -19,11 +20,14 @@ namespace OTAS.Controllers
     {
         private readonly IAuthService _authService;
         private readonly IConfiguration _configuration;
+        private readonly IJWTManagerRepository _jWTManagerRepository;
 
-        public AuthController(IAuthService authService, IConfiguration configuration)
+        public AuthController(IAuthService authService, IConfiguration configuration, IJWTManagerRepository jWTManagerRepository)
         {
+            
             _authService = authService;
             _configuration = configuration;
+            _jWTManagerRepository = jWTManagerRepository;
         }
 
         [AllowAnonymous]
@@ -43,24 +47,13 @@ namespace OTAS.Controllers
 
         [AllowAnonymous]
         [HttpPost]
-        [Route("create-test-token")]
-        public async Task<IActionResult> CreateToken([FromBody] CreateToken data)
+        [Route("CreateDeciderToken")]
+        public async Task<IActionResult> CreateToken(string deciderLevel)
         {
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var tokenKey = Encoding.UTF8.GetBytes(_configuration["JWT:Key"]);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new Claim[]
-                {
-                        new Claim(ClaimTypes.Name, data.Username),
-                        new Claim(ClaimTypes.Role, data.Role)
-                }),
-                Expires = DateTime.UtcNow.AddDays(30),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(tokenKey), SecurityAlgorithms.HmacSha256Signature)
-            };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return Ok(new Tokens { Token = tokenHandler.WriteToken(token), Role = data.Role, PreferredLanguage = data.PreferredLanguage });
+            Tokens? token = await _jWTManagerRepository.CreateTokenByLevel(deciderLevel);
+
+            return Ok(token);
         }
 
     }
