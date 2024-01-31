@@ -65,8 +65,8 @@ namespace OTAS.Services
 
             bool IS_LONGER_THAN_ONEDAY = true;
 
-            var tempOM = await _ordreMissionRepository.GetOrdreMissionByIdAsync(decidedAvanceVoyage.OrdreMissionId);
-            if (tempOM.ReturnDate.Day == tempOM.DepartureDate.Day) IS_LONGER_THAN_ONEDAY = false;
+            var linkedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(decidedAvanceVoyage.OrdreMissionId);
+            if (linkedOrdreMission.ReturnDate.Day == linkedOrdreMission.DepartureDate.Day) IS_LONGER_THAN_ONEDAY = false;
 
 
             if (decision.DecisionString.ToLower() == "return" || decision.DecisionString.ToLower() == "reject")
@@ -74,6 +74,7 @@ namespace OTAS.Services
                 var transaction = _context.Database.BeginTransaction();
                 try
                 {
+                    // Decide on Avance voyage
                     decidedAvanceVoyage.DeciderComment = decision.DeciderComment;
                     decidedAvanceVoyage.DeciderUserId = deciderUserId;
                     decidedAvanceVoyage.NextDeciderUserId = null;
@@ -92,6 +93,25 @@ namespace OTAS.Services
                     result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceVoyage_SH);
                     if (!result.Success) return result;
 
+                    //Decide on linked Ordre Mission
+                    linkedOrdreMission.DeciderComment = decidedAvanceVoyage.LatestStatus == 97 ? "Automatically rejected by the system because the related request has been rejected"
+                            : "Automatically returned by the system because the related request has been returned";
+                    linkedOrdreMission.DeciderUserId = 1; // System userId
+                    linkedOrdreMission.NextDeciderUserId = null;
+                    linkedOrdreMission.LatestStatus = decidedAvanceVoyage.LatestStatus;
+                    result = await _ordreMissionRepository.UpdateOrdreMission(linkedOrdreMission);
+                    if (!result.Success) return result;
+
+                    StatusHistory decidedLinkedOrdreMission_SH = new()
+                    {
+                        OrdreMissionId = linkedOrdreMission.Id,
+                        DeciderUserId = linkedOrdreMission.DeciderUserId,
+                        DeciderComment = linkedOrdreMission.DeciderComment,
+                        Status = linkedOrdreMission.LatestStatus,
+                        NextDeciderUserId = linkedOrdreMission.NextDeciderUserId,
+                    };
+                    result = await _statusHistoryRepository.AddStatusAsync(decidedLinkedOrdreMission_SH);
+                    if (!result.Success) return result;
 
                     await transaction.CommitAsync();
 

@@ -51,6 +51,7 @@ namespace OTAS.Controllers
             var userInfo = _ldapAuthenticationService.GetUserInformation(username);
             var userId = await _userRepository.GetUserIdByUsernameAsync(username);
             userInfo.Level = await _deciderRepository.GetDeciderLevelByUserId(userId);
+            userInfo.PreferredLanguage = await _userRepository.GetPreferredLanguageByUserIdAsync(userId);
             return userInfo;
         }
 

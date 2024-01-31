@@ -107,9 +107,9 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.Currency)
                 .HasMaxLength(5)
                 .IsUnicode(false);
-            entity.Property(e => e.DeciderComment).HasMaxLength(350);
+            entity.Property(e => e.DeciderComment).HasMaxLength(255);
             entity.Property(e => e.AdvanceOption).HasMaxLength(50);
-            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.EstimatedTotal)
                 .HasColumnType("decimal(10, 2)");
             entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
@@ -148,7 +148,7 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.Currency)
                 .HasMaxLength(5)
                 .IsUnicode(false);
-            entity.Property(e => e.DeciderComment).HasMaxLength(350);
+            entity.Property(e => e.DeciderComment).HasMaxLength(255);
             entity.Property(e => e.AdvanceOption).HasMaxLength(50);
             entity.Property(e => e.EstimatedTotal).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
@@ -212,14 +212,16 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+
             entity.Property(e => e.Currency)
                 .HasMaxLength(10)
                 .IsUnicode(false);
-            entity.Property(e => e.DeciderComment).HasMaxLength(350);
-            entity.Property(e => e.Description).HasMaxLength(2000);
+
+            entity.Property(e => e.DeciderComment).HasMaxLength(255);
+            entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
             entity.Property(e => e.ReceiptsFileName)
-                .HasMaxLength(500)
+                .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.Total).HasColumnType("decimal(10, 2)");
 
@@ -260,7 +262,7 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.Currency)
                 .HasMaxLength(10)
                 .IsUnicode(false);
-            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.EstimatedFee)
                 .HasDefaultValueSql("((0.00))")
                 .HasColumnType("decimal(10, 2)");
@@ -290,10 +292,10 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.DeciderComment).HasMaxLength(350);
+            entity.Property(e => e.DeciderComment).HasMaxLength(255);
             entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
             entity.Property(e => e.ReceiptsFileName)
-                .HasMaxLength(500)
+                .HasMaxLength(100)
                 .IsUnicode(false);
 
             entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.Liquidations)
@@ -334,7 +336,8 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.DeciderComment).HasMaxLength(350);
+            entity.Property(e => e.DeciderComment).HasMaxLength(255);
+            entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.DepartureDate).HasColumnType("datetime");
             entity.Property(e => e.LatestStatus).HasDefaultValueSql("((99))");
             entity.Property(e => e.ReturnDate).HasColumnType("datetime");
@@ -402,7 +405,7 @@ public partial class OtasContext : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.DeciderComment)
-                .HasMaxLength(50)
+                .HasMaxLength(255)
                 .IsUnicode(false);
 
             entity.Property(e => e.Status).HasDefaultValueSql("((99))");

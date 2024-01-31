@@ -57,6 +57,12 @@ namespace OTAS.Repository
             return user.Id;
         }
 
+        public async Task<string> GetPreferredLanguageByUserIdAsync(int userId)
+        {
+            return await _context.Users.Where(user => user.Id == userId).Select(user => user.PreferredLanguage).FirstAsync();
+            
+        }
+
         public async Task<string> GetUsernameByUserIdAsync(int userId)
         {
             var user = await _context.Users.Where(user => user.Id == userId).FirstAsync();

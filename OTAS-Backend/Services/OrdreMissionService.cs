@@ -220,10 +220,11 @@ namespace OTAS.Services
                     List<AvanceVoyage> decidedAvanceVoyages = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(decidedOrdreMission.Id);
                     foreach( var av in  decidedAvanceVoyages )
                     {
-                        av.DeciderComment = decision.DeciderComment;
-                        av.DeciderUserId = deciderUserId;
+                        av.DeciderComment = decidedOrdreMission.LatestStatus == 97 ? "Automatically rejected by the system because the related request has been rejected"
+                            : "Automatically returned by the system because the related request has been returned"; ;
+                        av.DeciderUserId = 1; // System 
                         av.NextDeciderUserId = null; /* next decider is set to null if returned or rejected for OM */
-                        av.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97;
+                        av.LatestStatus = decidedOrdreMission.LatestStatus;
                         result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(av);
                         if (!result.Success) return result;
 
