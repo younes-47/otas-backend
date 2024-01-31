@@ -41,18 +41,43 @@ namespace OTAS.Repository
         {
             return await _context.AvanceCaisses.Where(ac => ac.Id == avanceCaisseId).FirstAsync();
         }
-        public async Task<List<AvanceCaisseDTO>> GetAvanceCaissesForDeciderTable(int deciderUserId)
+        public async Task<List<AvanceCaisseDeciderTableDTO>> GetAvanceCaissesForDeciderTable(int deciderUserId)
         {
             /* Get the records that needs to be decided upon now */
-            List<AvanceCaisseDTO> avanceCaisses = _mapper.Map<List<AvanceCaisseDTO>>
-                (await _context.AvanceCaisses.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
+            List<AvanceCaisseDeciderTableDTO> avanceCaisses = await _context.AvanceCaisses
+                .Include(ac => ac.LatestStatusNavigation)
+                .Where(ac => ac.NextDeciderUserId == deciderUserId)
+                .Select(ac => new AvanceCaisseDeciderTableDTO
+                {
+                    Id = ac.Id,
+                    EstimatedTotal = ac.EstimatedTotal,
+                    NextDeciderUserName = ac.NextDecider != null ? ac.NextDecider.Username : null,
+                    OnBehalf = ac.OnBehalf,
+                    Description = ac.Description,
+                    Currency = ac.Currency,
+                    CreateDate = ac.CreateDate,
+                    LatestStatus = ac.LatestStatusNavigation.StatusString,
+                })
+                .ToListAsync();
 
             /* Get the records that have been already decided upon and add it to the previous list */
-            avanceCaisses.AddRange(_mapper.Map<List<AvanceCaisseDTO>>
-                (await _context.StatusHistories
+            List<AvanceCaisseDeciderTableDTO> avanceCaisses2 = await _context.StatusHistories
                 .Where(sh => sh.DeciderUserId == deciderUserId)
-                .Select(sh => sh.AvanceCaisse)
-                .ToListAsync()));
+                .Include(sh => sh.AvanceCaisse)
+                .Select(sh => new AvanceCaisseDeciderTableDTO
+                {
+                    Id = sh.AvanceCaisse.Id,
+                    EstimatedTotal = sh.AvanceCaisse.EstimatedTotal,
+                    NextDeciderUserName = sh.AvanceCaisse.NextDecider != null ? sh.AvanceCaisse.NextDecider.Username : null,
+                    OnBehalf = sh.AvanceCaisse.OnBehalf,
+                    Description = sh.AvanceCaisse.Description,
+                    Currency = sh.AvanceCaisse.Currency,
+                    CreateDate = sh.AvanceCaisse.CreateDate,
+                    LatestStatus = sh.AvanceCaisse.LatestStatusNavigation.StatusString,
+                })
+                .ToListAsync();
+
+            avanceCaisses.AddRange(avanceCaisses2);
 
             return avanceCaisses;
         }

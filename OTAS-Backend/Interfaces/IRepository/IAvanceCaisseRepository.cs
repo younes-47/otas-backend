@@ -12,7 +12,7 @@ namespace OTAS.Interfaces.IRepository
         Task<int> GetAvanceCaisseNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false);
         Task<List<AvanceCaisseDTO>> GetAvancesCaisseByUserIdAsync(int userId);
         Task<AvanceCaisseViewDTO> GetAvanceCaisseFullDetailsById(int avanceCaisseId);
-        Task<List<AvanceCaisseDTO>> GetAvanceCaissesForDeciderTable(int deciderUserId);
+        Task<List<AvanceCaisseDeciderTableDTO>> GetAvanceCaissesForDeciderTable(int deciderUserId);
         Task<ServiceResult> AddAvanceCaisseAsync(AvanceCaisse avanceCaisse);
         Task<ServiceResult> UpdateAvanceCaisseStatusAsync(int avanceCaisseId, int status);
         Task<ServiceResult> UpdateAvanceCaisseAsync(AvanceCaisse avanceCaisse);

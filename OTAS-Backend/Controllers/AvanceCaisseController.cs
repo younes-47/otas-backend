@@ -234,7 +234,7 @@ namespace OTAS.Controllers
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
 
-            List<AvanceCaisseDTO> ACs = await _avanceCaisseRepository.GetAvanceCaissesForDeciderTable(user.Id);
+            List<AvanceCaisseDeciderTableDTO> ACs = await _avanceCaisseRepository.GetAvanceCaissesForDeciderTable(user.Id);
 
             return Ok(ACs);
         }
