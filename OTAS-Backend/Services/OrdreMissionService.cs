@@ -278,7 +278,9 @@ namespace OTAS.Services
                             decidedOrdreMission.LatestStatus = IS_LONGER_THAN_ONEDAY ? 5 : 7;  /* if it is not longer than one day skip VP*/
                             break;
                         case 5:
-                            decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("VP");
+                            //decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("VP");
+                            decidedOrdreMission.NextDeciderUserId = null; // end of process for Ordre Mission
+
                             decidedOrdreMission.LatestStatus = 7;
                             break;
                     }

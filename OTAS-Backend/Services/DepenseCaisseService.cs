@@ -216,7 +216,7 @@ namespace OTAS.Services
                     /* Find the old file */
                     oldFilePath = Path.Combine(uploadsFolderPath, depenseCaisse_DB.ReceiptsFileName);
 
-                    /* Deletion and creation of the file occur after the commitment of DB changes */
+                    /* Deletion and creation of the file occur after the commitment of DB changes (you don't want to create a file if the req hasnt been saved) */
 
                     depenseCaisse_DB.ReceiptsFileName = uniqueReceiptsFileName;
                 }

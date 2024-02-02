@@ -236,8 +236,8 @@ namespace OTAS.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            //if (advanceOption.ToLower() != "" && advanceOption.ToLower() != "")
-            //    return BadRequest("Invalid Advance choice!");
+            if (action.AdvanceOption.ToUpper() != "CASH" && action.AdvanceOption.ToUpper() != "PROVISION")
+                return BadRequest("Invalid Advance choice!");
 
             if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(action.RequestId) == null)
                 return BadRequest("Request is not found");
