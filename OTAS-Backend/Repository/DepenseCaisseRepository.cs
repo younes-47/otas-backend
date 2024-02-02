@@ -205,9 +205,9 @@ namespace OTAS.Repository
             return depenseCaisses.Distinct(new DepenseCaisseDeciderTableDTO()).ToList();
         }
 
-        public async Task<int?> GetDepenseCaisseNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false)
+        public async Task<int> GetDepenseCaisseNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false)
         {
-            int? deciderUserId; 
+            int deciderUserId; 
             switch (currentlevel)
             {
                 case "MG":
@@ -233,9 +233,7 @@ namespace OTAS.Repository
                         deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("FM"); /* In case TR returns it to FM */
                         break;
                     }
-                    //deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR"); /* In case TR aprroves it, the next decider is still TR*/
-                    deciderUserId = null; /* In case TR aprroves it, the next decider is null*/
-
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR"); /* In case TR aprroves it, the next decider is still TR*/
                     break;
                 default:
                     deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
