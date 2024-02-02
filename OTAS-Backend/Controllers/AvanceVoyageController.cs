@@ -125,7 +125,7 @@ namespace OTAS.Controllers
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
 
-            List<AvanceVoyageTableDTO> AVs = await _avanceVoyageRepository.GetAvanceVoyagesForDeciderTable(user.Id);
+            List<AvanceVoyageDeciderTableDTO> AVs = await _avanceVoyageRepository.GetAvanceVoyagesForDeciderTable(user.Id);
 
             return Ok(AVs);
         }
@@ -205,6 +205,11 @@ namespace OTAS.Controllers
 
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+
+            bool isDecisionValid = decision.DecisionString.ToLower() == "approve" || decision.DecisionString.ToLower() == "return" || decision.DecisionString.ToLower() == "reject";
+            if (!isDecisionValid)
+                return BadRequest("Decision is invalid!");
+
 
             int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
             if (deciderRole != 3) return BadRequest("You are not authorized to decide upon requests!");

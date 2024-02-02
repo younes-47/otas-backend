@@ -10,6 +10,7 @@ using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
 using OTAS.Services;
+using TMA_App.Services;
 
 namespace OTAS.Controllers
 {
@@ -20,6 +21,7 @@ namespace OTAS.Controllers
     {
         private readonly IAvanceCaisseRepository _avanceCaisseRepository;
         private readonly IActualRequesterRepository _actualRequesterRepository;
+        private readonly ILdapAuthenticationService _ldapAuthenticationService;
         private readonly IAvanceCaisseService _avanceCaisseService;
         private readonly IUserRepository _userRepository;
         private readonly IDeciderRepository _deciderRepository;
@@ -27,6 +29,7 @@ namespace OTAS.Controllers
 
         public AvanceCaisseController(IAvanceCaisseRepository avanceCaisseRepository,
             IActualRequesterRepository actualRequesterRepository,
+            ILdapAuthenticationService ldapAuthenticationService,
             IAvanceCaisseService avanceCaisseService,
             IUserRepository userRepository,
             IDeciderRepository deciderRepository,
@@ -34,6 +37,7 @@ namespace OTAS.Controllers
         {
             _avanceCaisseRepository = avanceCaisseRepository;
             _actualRequesterRepository = actualRequesterRepository;
+            _ldapAuthenticationService = ldapAuthenticationService;
             _avanceCaisseService = avanceCaisseService;
             _userRepository = userRepository;
             _deciderRepository = deciderRepository;
@@ -240,6 +244,72 @@ namespace OTAS.Controllers
         }
 
         [Authorize(Roles = "decider")]
+        [HttpGet("DecideOnRequests/View")]
+        public async Task<IActionResult> ShowAvanceCaisseDetailsPageForDecider(int Id)
+        {
+            if (await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null)
+                return NotFound("AvanceCaisse is not found");
+
+            AvanceCaisseDeciderViewDTO avanceCaisse = await _avanceCaisseRepository.GetAvanceCaisseFullDetailsByIdForDecider(Id);
+
+            // Fill the requester data
+            string username = await _userRepository.GetUsernameByUserIdAsync(avanceCaisse.UserId);
+            var userInfo = _ldapAuthenticationService.GetUserInformation(username);
+            avanceCaisse.Requester = userInfo;
+
+
+            // if the request is on behalf of someone, get the requester data from the DB
+            if (avanceCaisse.OnBehalf)
+            {
+                ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByAvanceCaisseIdAsync(avanceCaisse.Id);
+                avanceCaisse.ActualRequester = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+            }
+
+            // adding those more detailed status that are not in the DB
+            for (int i = avanceCaisse.StatusHistory.Count - 1; i >= 0; i--)
+            {
+                StatusHistoryDTO statusHistory = avanceCaisse.StatusHistory[i];
+                StatusHistoryDTO explicitStatusHistory = new();
+                switch (statusHistory.Status)
+                {
+                    case "Pending Manager's Approval":
+                        explicitStatusHistory.Status = "Submitted";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        break;
+                    case "Pending HR's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Finance Department's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending General Director's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Vice President's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    default:
+                        continue;
+                }
+                avanceCaisse.StatusHistory.Insert(i, explicitStatusHistory);
+            }
+            return Ok(avanceCaisse);
+        }
+
+
+        [Authorize(Roles = "decider")]
         [HttpPut("Decide")]
         public async Task<IActionResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision)
         {
@@ -251,7 +321,7 @@ namespace OTAS.Controllers
 
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) 
                 return NotFound("Decider is not found");
-            bool isDecisionValid = decision.DecisionString.ToLower() != "approve" && decision.DecisionString.ToLower() != "return" && decision.DecisionString.ToLower() != "reject";
+            bool isDecisionValid = decision.DecisionString.ToLower() == "approve" || decision.DecisionString.ToLower() == "return" || decision.DecisionString.ToLower() == "reject";
             if (!isDecisionValid) 
                 return BadRequest("Decision is invalid!");
 

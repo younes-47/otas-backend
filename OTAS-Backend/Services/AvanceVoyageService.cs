@@ -132,22 +132,21 @@ namespace OTAS.Services
                 {
                     decidedAvanceVoyage.DeciderUserId = deciderUserId;
 
-                    var deciderLevel = await _deciderRepository.GetDeciderLevelByUserId(deciderUserId);
-                    switch (deciderLevel)
+                    switch (decidedAvanceVoyage.LatestStatus)
                     {
-                        case "MG":
+                        case 1:
                             decidedAvanceVoyage.NextDeciderUserId = await _avanceVoyageRepository.GetAvanceVoyageNextDeciderUserId("MG");
                             decidedAvanceVoyage.LatestStatus = 3;
                             break;
-                        case "FM":
+                        case 3:
                             decidedAvanceVoyage.NextDeciderUserId = await _avanceVoyageRepository.GetAvanceVoyageNextDeciderUserId("FM");
                             decidedAvanceVoyage.LatestStatus = 4;
                             break;
-                        case "GD":
+                        case 4:
                             decidedAvanceVoyage.NextDeciderUserId = await _avanceVoyageRepository.GetAvanceVoyageNextDeciderUserId("GD", IS_LONGER_THAN_ONEDAY);
                             decidedAvanceVoyage.LatestStatus = IS_LONGER_THAN_ONEDAY ? 5 : 8;  /* if it is not longer than one day skip VP*/
                             break;
-                        case "VP":
+                        case 5:
                             decidedAvanceVoyage.NextDeciderUserId = await _avanceVoyageRepository.GetAvanceVoyageNextDeciderUserId("VP");
                             decidedAvanceVoyage.LatestStatus = 8;
                             break;
@@ -244,6 +243,9 @@ namespace OTAS.Services
                         avanceVoyages[0].EstimatedTotal = 0.0m;
 
                         if (action.ToLower() != "save") avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
+                        avanceVoyages[0].LatestStatus = ordreMission.LatestStatus;
+                        avanceVoyages[0].DeciderComment = ordreMission.DeciderComment;
+                        avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
                         result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[0]);
                         if (!result.Success)
                         {
@@ -276,6 +278,9 @@ namespace OTAS.Services
                         {
                             avanceVoyages[1].EstimatedTotal = 0.0m;
                             if (action.ToLower() != "save") avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
+                            avanceVoyages[1].LatestStatus = ordreMission.LatestStatus;
+                            avanceVoyages[1].DeciderComment = ordreMission.DeciderComment;
+                            avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
                             result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[1]);
                             if (!result.Success)
                             {
@@ -313,6 +318,9 @@ namespace OTAS.Services
                     {
                         avanceVoyages[0].EstimatedTotal = 0.0m;
                         if (action.ToLower() != "save") avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
+                        avanceVoyages[0].LatestStatus = ordreMission.LatestStatus;
+                        avanceVoyages[0].DeciderComment = ordreMission.DeciderComment;
+                        avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
                         result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[0]);
                         if (!result.Success)
                         {
@@ -345,6 +353,10 @@ namespace OTAS.Services
                         {
                             avanceVoyages[1].EstimatedTotal = 0.0m;
                             if (action.ToLower() != "save") avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
+                            avanceVoyages[1].LatestStatus = ordreMission.LatestStatus;
+                            avanceVoyages[1].DeciderComment = ordreMission.DeciderComment;
+                            avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
+
                             result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[1]);
                             if (!result.Success)
                             {
@@ -409,6 +421,10 @@ namespace OTAS.Services
                 {
                     avanceVoyages[0].EstimatedTotal = estm_total_mad;
                     if (action.ToLower() != "save") avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
+                    avanceVoyages[0].LatestStatus = ordreMission.LatestStatus;
+                    avanceVoyages[0].DeciderComment = ordreMission.DeciderComment;
+                    avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
+
                     result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[0]);
                     if (!result.Success)
                     {
@@ -443,6 +459,10 @@ namespace OTAS.Services
                     {
                         avanceVoyages[1].EstimatedTotal = estm_total_mad;
                         if (action.ToLower() != "save") avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
+                        avanceVoyages[1].LatestStatus = ordreMission.LatestStatus;
+                        avanceVoyages[1].DeciderComment = ordreMission.DeciderComment;
+                        avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
+
                         result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[1]);
                         if (!result.Success)
                         {
@@ -482,6 +502,10 @@ namespace OTAS.Services
                     avanceVoyage_in_mad.Currency = "MAD";
 
                     if (action.ToLower() != "save") avanceVoyage_in_mad.NextDeciderUserId = ordreMission.NextDeciderUserId;
+                    avanceVoyage_in_mad.LatestStatus = ordreMission.LatestStatus;
+                    avanceVoyage_in_mad.DeciderComment = ordreMission.DeciderComment;
+                    avanceVoyage_in_mad.NextDeciderUserId = ordreMission.NextDeciderUserId;
+
                     result = await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_mad);
                     if (!result.Success)
                     {
@@ -602,6 +626,9 @@ namespace OTAS.Services
                 {
                     avanceVoyages[0].EstimatedTotal = estm_total_eur;
                     if (action.ToLower() != "save") avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
+                    avanceVoyages[0].LatestStatus = ordreMission.LatestStatus;
+                    avanceVoyages[0].DeciderComment = ordreMission.DeciderComment;
+                    avanceVoyages[0].NextDeciderUserId = ordreMission.NextDeciderUserId;
                     result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[0]);
                     if (!result.Success)
                     {
@@ -634,6 +661,10 @@ namespace OTAS.Services
                     {
                         avanceVoyages[1].EstimatedTotal = estm_total_eur;
                         if (action.ToLower() != "save") avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
+                        avanceVoyages[1].LatestStatus = ordreMission.LatestStatus;
+                        avanceVoyages[1].DeciderComment = ordreMission.DeciderComment;
+                        avanceVoyages[1].NextDeciderUserId = ordreMission.NextDeciderUserId;
+
                         result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyages[1]);
                         if (!result.Success)
                         {
@@ -674,6 +705,10 @@ namespace OTAS.Services
                     avanceVoyage_in_eur.Currency = "EUR";
 
                     if (action.ToLower() != "save") avanceVoyage_in_eur.NextDeciderUserId = ordreMission.NextDeciderUserId;
+                    avanceVoyage_in_eur.LatestStatus = ordreMission.LatestStatus;
+                    avanceVoyage_in_eur.DeciderComment = ordreMission.DeciderComment;
+                    avanceVoyage_in_eur.NextDeciderUserId = ordreMission.NextDeciderUserId;
+
                     result = await _avanceVoyageRepository.AddAvanceVoyageAsync(avanceVoyage_in_eur);
                     if (!result.Success)
                     {

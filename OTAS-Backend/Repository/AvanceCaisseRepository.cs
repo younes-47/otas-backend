@@ -7,6 +7,7 @@ using AutoMapper.QueryableExtensions;
 using OTAS.DTO.Get;
 using AutoMapper;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OTAS.Repository
 {
@@ -56,30 +57,31 @@ namespace OTAS.Repository
                     Description = ac.Description,
                     Currency = ac.Currency,
                     CreateDate = ac.CreateDate,
-                    LatestStatus = ac.LatestStatusNavigation.StatusString,
                 })
                 .ToListAsync();
 
-            /* Get the records that have been already decided upon and add it to the previous list */
-            List<AvanceCaisseDeciderTableDTO> avanceCaisses2 = await _context.StatusHistories
-                .Where(sh => sh.DeciderUserId == deciderUserId)
-                .Include(sh => sh.AvanceCaisse)
-                .Select(sh => new AvanceCaisseDeciderTableDTO
+
+                /* Get the records that have been already decided upon and add it to the previous list */
+                if( _context.StatusHistories.Where(sh => sh.AvanceCaisseId != null && sh.DeciderUserId == deciderUserId).Any())
                 {
-                    Id = sh.AvanceCaisse.Id,
-                    EstimatedTotal = sh.AvanceCaisse.EstimatedTotal,
-                    NextDeciderUserName = sh.AvanceCaisse.NextDecider != null ? sh.AvanceCaisse.NextDecider.Username : null,
-                    OnBehalf = sh.AvanceCaisse.OnBehalf,
-                    Description = sh.AvanceCaisse.Description,
-                    Currency = sh.AvanceCaisse.Currency,
-                    CreateDate = sh.AvanceCaisse.CreateDate,
-                    LatestStatus = sh.AvanceCaisse.LatestStatusNavigation.StatusString,
-                })
-                .ToListAsync();
+                    List<AvanceCaisseDeciderTableDTO> avanceCaisses2 = await _context.StatusHistories
+                            .Where(sh => sh.DeciderUserId == deciderUserId && sh.AvanceCaisseId != null && sh.Status != 98)
+                            .Include(sh => sh.AvanceCaisse)
+                            .Select(sh => new AvanceCaisseDeciderTableDTO
+                            {
+                                Id = sh.AvanceCaisse.Id,
+                                EstimatedTotal = sh.AvanceCaisse.EstimatedTotal,
+                                NextDeciderUserName = sh.AvanceCaisse.NextDecider != null ? sh.AvanceCaisse.NextDecider.Username : null,
+                                OnBehalf = sh.AvanceCaisse.OnBehalf,
+                                Description = sh.AvanceCaisse.Description,
+                                Currency = sh.AvanceCaisse.Currency,
+                                CreateDate = sh.AvanceCaisse.CreateDate,
+                            })
+                            .ToListAsync();
+                    avanceCaisses.AddRange(avanceCaisses2);
+                }
 
-            avanceCaisses.AddRange(avanceCaisses2);
-
-            return avanceCaisses;
+            return avanceCaisses.Distinct(new AvanceCaisseDeciderTableDTO()).ToList();
         }
 
         public async Task<List<AvanceCaisse>> GetAvancesCaisseByStatusAsync(int status)
@@ -116,6 +118,7 @@ namespace OTAS.Repository
                 {
                     Id = ac.Id,
                     Description = ac.Description,
+                    DeciderComment = ac.DeciderComment,
                     OnBehalf = ac.OnBehalf,
                     Currency = ac.Currency,
                     EstimatedTotal = ac.EstimatedTotal,
@@ -158,9 +161,40 @@ namespace OTAS.Repository
             _context.AvanceCaisses.Update(updatedAvanceCaisse);
 
             result.Success = await SaveAsync();
+
             result.Message = result.Success == true ? "\"AvanceCaisse\" Status Updated Successfully" : "Something went wrong while updating \"AvanceCaisse\" Status";
 
             return result;
+        }
+
+        public async Task<AvanceCaisseDeciderViewDTO> GetAvanceCaisseFullDetailsByIdForDecider(int avanceCaisseId)
+        {
+            return await _context.AvanceCaisses
+                .Where(ac => ac.Id == avanceCaisseId)
+                .Include(ac => ac.LatestStatusNavigation)
+                .Include(ac => ac.StatusHistories)
+                .Select(ac => new AvanceCaisseDeciderViewDTO
+                {
+                    Id = ac.Id,
+                    UserId = ac.UserId,
+                    Description = ac.Description,
+                    EstimatedTotal = ac.EstimatedTotal,
+                    ActualTotal = ac.ActualTotal,
+                    Currency = ac.Currency,
+                    OnBehalf = ac.OnBehalf,
+                    LatestStatus = ac.LatestStatusNavigation.StatusString,
+                    CreateDate = ac.CreateDate,
+                    StatusHistory = ac.StatusHistories.Select(sh => new StatusHistoryDTO
+                    {
+                        Status = sh.StatusNavigation.StatusString,
+                        DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
+                        DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
+                        DeciderComment = sh.DeciderComment,
+                        CreateDate = sh.CreateDate
+                    }).ToList(),
+                    Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses),
+                })
+                .FirstAsync();
         }
 
         public async Task<int> GetAvanceCaisseNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false)
@@ -231,14 +265,14 @@ namespace OTAS.Repository
         {
             DateTime? lastCreated = null;
 
-            var latestAvanceVoyage = await _context.AvanceCaisses
+            var latestAvanceCaisse = await _context.AvanceCaisses
                 .Where(av => av.UserId == userId)
                 .OrderByDescending(av => av.CreateDate)
                 .FirstOrDefaultAsync();
 
-            if (latestAvanceVoyage != null)
+            if (latestAvanceCaisse != null)
             {
-                lastCreated = latestAvanceVoyage.CreateDate;
+                lastCreated = latestAvanceCaisse.CreateDate;
             }
 
             return lastCreated;

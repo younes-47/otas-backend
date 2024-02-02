@@ -112,7 +112,7 @@ namespace OTAS.Controllers
                 return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
 
             var ordreMission_DB = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMission.Id);   
-            if (ordreMission.Action.ToLower() != "save" && ordreMission_DB.LatestStatus == 98) 
+            if (ordreMission.Action.ToLower() == "save" && ordreMission_DB.LatestStatus == 98) 
                 return BadRequest("You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly");
             if (ordreMission_DB.LatestStatus != 98 && ordreMission_DB.LatestStatus != 99)
                 return BadRequest("The OrdreMission you are trying to modify is not a draft nor returned! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks");
@@ -318,6 +318,11 @@ namespace OTAS.Controllers
 
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
+
+            bool isDecisionValid = decision.DecisionString.ToLower() == "approve" || decision.DecisionString.ToLower() == "return" || decision.DecisionString.ToLower() == "reject";
+            if (!isDecisionValid)
+                return BadRequest("Decision is invalid!");
+
 
             int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
             if (deciderRole != 3) return BadRequest("You are not authorized to decide upon requests!");

@@ -7,6 +7,7 @@ using OTAS.DTO.Get;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using OTAS.Interfaces.IService;
+using System.Linq;
 
 namespace OTAS.Repository
 {
@@ -64,17 +65,17 @@ namespace OTAS.Repository
             return deciderUserId;
         }
 
-        public async Task<List<AvanceVoyageTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderUserId)
+        public async Task<List<AvanceVoyageDeciderTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderUserId)
         {
             /* Get the records that needs to be decided upon now */
 
             bool isDeciderTR = await _context.Deciders.Where(dc => dc.UserId == deciderUserId).Select(dc => dc.Level == "TR").FirstAsync();
 
-            List<AvanceVoyageTableDTO> avanceVoyages = await _context.AvanceVoyages
+            List<AvanceVoyageDeciderTableDTO> avanceVoyages = await _context.AvanceVoyages
                 .Include(av => av.LatestStatusNavigation)
                 .Include(av => av.OrdreMission)
                 .Where(av => (av.NextDeciderUserId == deciderUserId && av.OrdreMission.LatestStatus > av.LatestStatus) || (av.LatestStatus >= 8 && isDeciderTR))
-                .Select(av => new AvanceVoyageTableDTO
+                .Select(av => new AvanceVoyageDeciderTableDTO
                 {
                     Id = av.Id,
                     EstimatedTotal = av.EstimatedTotal,
@@ -82,36 +83,34 @@ namespace OTAS.Repository
                     OnBehalf = av.OnBehalf,
                     OrdreMissionId = av.OrdreMission.Id,
                     OrdreMissionDescription = av.OrdreMission.Description,
-                    ActualTotal = av.ActualTotal,
                     Currency = av.Currency,
-                    ConfirmationNumber = av.ConfirmationNumber,
-                    LatestStatus = av.LatestStatusNavigation.StatusString,
                     CreateDate = av.CreateDate,
                 })
                 .ToListAsync();
 
             /* Get the records that have been already decided upon and add it to the previous list */
-            List<AvanceVoyageTableDTO> avanceVoyages2 = await _context.StatusHistories
-                .Where(sh => sh.DeciderUserId == deciderUserId && sh.AvanceVoyageId != null)
+            if (_context.StatusHistories.Where(sh => sh.AvanceVoyageId != null && sh.DeciderUserId == deciderUserId).Any())
+            {
+                List<AvanceVoyageDeciderTableDTO> avanceVoyages2 = await _context.StatusHistories
+                .Where(sh => sh.DeciderUserId == deciderUserId && sh.AvanceVoyageId != null && sh.Status != 98)
                 .Include(sh => sh.AvanceVoyage)
-                .Select(sh => new AvanceVoyageTableDTO
+                .Select(sh => new AvanceVoyageDeciderTableDTO
                 {
                     Id = sh.AvanceVoyage.Id,
                     EstimatedTotal = sh.AvanceVoyage.EstimatedTotal,
+                    NextDeciderUserName = sh.AvanceVoyage.NextDecider != null ? sh.AvanceVoyage.NextDecider.Username : null,
                     OnBehalf = sh.AvanceVoyage.OnBehalf,
                     OrdreMissionId = sh.AvanceVoyage.OrdreMission.Id,
                     OrdreMissionDescription = sh.AvanceVoyage.OrdreMission.Description,
-                    ActualTotal = sh.AvanceVoyage.ActualTotal,
                     Currency = sh.AvanceVoyage.Currency,
-                    ConfirmationNumber = sh.AvanceVoyage.ConfirmationNumber,
-                    LatestStatus = sh.AvanceVoyage.LatestStatusNavigation.StatusString,
                     CreateDate = sh.AvanceVoyage.CreateDate,
                 })
                 .ToListAsync();
 
-            avanceVoyages.AddRange(avanceVoyages2);
+                avanceVoyages.AddRange(avanceVoyages2);
+            }
 
-            return avanceVoyages;
+            return avanceVoyages.Distinct(new AvanceVoyageDeciderTableDTO()).ToList();
         }
 
         public async Task<List<AvanceVoyage>> GetAvancesVoyageByStatusAsync(int status)
@@ -166,6 +165,7 @@ namespace OTAS.Repository
                 {
                     Id = av.Id,
                     EstimatedTotal = av.EstimatedTotal,
+                    DeciderComment = av.DeciderComment,
                     OrdreMissionId = av.OrdreMission.Id,
                     OrdreMissionDescription = av.OrdreMission.Description,
                     OnBehalf = av.OnBehalf,

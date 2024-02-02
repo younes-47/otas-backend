@@ -445,22 +445,21 @@ namespace OTAS.Services
                 try
                 {
                     decidedDepenseCaisse.DeciderUserId = deciderUserId;
-                    var deciderLevel = await _deciderRepository.GetDeciderLevelByUserId(deciderUserId);
-                    switch (deciderLevel)
+                    switch (decidedDepenseCaisse.LatestStatus)
                     {
-                        case "MG":
+                        case 1:
                             decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("MG");
                             decidedDepenseCaisse.LatestStatus = 3;
                             break;
-                        case "FM":
+                        case 3:
                             decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("FM", null, decision.ReturnedToTRByFM);
                             decidedDepenseCaisse.LatestStatus = decision.ReturnedToTRByFM ? 13 : 4; 
                             break;
-                        case "GD":
+                        case 4:
                             decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("GD");
                             decidedDepenseCaisse.LatestStatus = 13;
                             break;
-                        case "TR":
+                        case 13:
                             decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("TR", decision.ReturnedToFMByTR);
                             decidedDepenseCaisse.LatestStatus = 8;
                             break;

@@ -17,6 +17,7 @@ namespace OTAS.Interfaces.IRepository
         Task<ServiceResult> UpdateAvanceCaisseStatusAsync(int avanceCaisseId, int status);
         Task<ServiceResult> UpdateAvanceCaisseAsync(AvanceCaisse avanceCaisse);
         Task<ServiceResult> DeleteAvanceCaisseAync(AvanceCaisse avanceCaisse);
+        Task<AvanceCaisseDeciderViewDTO> GetAvanceCaisseFullDetailsByIdForDecider(int avanceCaisseId);
         Task<string?> DecodeStatusAsync(int statusCode);
         Task<decimal[]> GetRequesterAllTimeRequestedAmountsByUserIdAsync(int userId);
         Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId);

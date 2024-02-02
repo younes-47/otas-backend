@@ -12,6 +12,8 @@ namespace OTAS.DTO.Get
 
         public string Description { get; set; } = null!;
 
+        public string? DeciderComment { get; set; }
+
         public bool Abroad { get; set; }
 
         public DateTime DepartureDate { get; set; }

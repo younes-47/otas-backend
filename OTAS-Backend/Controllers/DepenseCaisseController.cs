@@ -11,6 +11,7 @@ using OTAS.Repository;
 using OTAS.Services;
 using System.Net;
 using System.Net.Http.Headers;
+using TMA_App.Services;
 
 namespace OTAS.Controllers
 {
@@ -22,6 +23,7 @@ namespace OTAS.Controllers
         private readonly IDepenseCaisseService _depenseCaisseService;
         private readonly IActualRequesterRepository _actualRequesterRepository;
         private readonly IDepenseCaisseRepository _depenseCaisseRepository;
+        private readonly ILdapAuthenticationService _ldapAuthenticationService;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
@@ -29,6 +31,7 @@ namespace OTAS.Controllers
         public DepenseCaisseController(IDepenseCaisseService depenseCaisseService,
             IActualRequesterRepository actualRequesterRepository,
             IDepenseCaisseRepository depenseCaisseRepository,
+            ILdapAuthenticationService ldapAuthenticationService,
             IWebHostEnvironment webHostEnvironment,
             IUserRepository userRepository,
             IMapper mapper)
@@ -36,6 +39,7 @@ namespace OTAS.Controllers
             _depenseCaisseService = depenseCaisseService;
             _actualRequesterRepository = actualRequesterRepository;
             _depenseCaisseRepository = depenseCaisseRepository;
+            _ldapAuthenticationService = ldapAuthenticationService;
             _webHostEnvironment = webHostEnvironment;
             _userRepository = userRepository;
             _mapper = mapper;
@@ -307,10 +311,96 @@ namespace OTAS.Controllers
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
 
-            List<DepenseCaisseDTO> DCs = await _depenseCaisseRepository.GetDepenseCaissesForDeciderTable(user.Id);
+            List<DepenseCaisseDeciderTableDTO> DCs = await _depenseCaisseRepository.GetDepenseCaissesForDeciderTable(user.Id);
 
             return Ok(DCs);
         }
+
+        [Authorize(Roles = "decider")]
+        [HttpGet("DecideOnRequests/View")]
+        public async Task<IActionResult> ShowDepenseCaisseDetailsPageForDecider(int Id)
+        {
+            if (await _depenseCaisseRepository.FindDepenseCaisseAsync(Id) == null)
+                return NotFound("DepenseCaisse is not found");
+
+            DepenseCaisseDeciderViewDTO depenseCaisse = await _depenseCaisseRepository.GetDepenseCaisseFullDetailsByIdForDecider(Id);
+
+            // Fill the requester data
+            string username = await _userRepository.GetUsernameByUserIdAsync(depenseCaisse.UserId);
+            var userInfo = _ldapAuthenticationService.GetUserInformation(username);
+            depenseCaisse.Requester = userInfo;
+
+
+            // if the request is on behalf of someone, get the requester data from the DB
+            if (depenseCaisse.OnBehalf)
+            {
+                ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByDepenseCaisseIdAsync(depenseCaisse.Id);
+                depenseCaisse.ActualRequester = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+            }
+
+            // get the file data
+            try
+            {
+                string filePath = Path.Combine(_webHostEnvironment.WebRootPath + "\\Depense-Caisse-Receipts", depenseCaisse.ReceiptsFileName);
+
+                if (System.IO.File.Exists(filePath))
+                {
+                    depenseCaisse.ReceiptsFile = System.IO.File.ReadAllBytes(filePath);
+
+                }
+                else
+                {
+                    depenseCaisse.ReceiptsFile = Array.Empty<byte>();
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Something went wrong while trying to retrieve the file" + ex.Message);
+            }
+
+            // adding those more detailed status that are not in the DB
+            for (int i = depenseCaisse.StatusHistory.Count - 1; i >= 0; i--)
+            {
+                StatusHistoryDTO statusHistory = depenseCaisse.StatusHistory[i];
+                StatusHistoryDTO explicitStatusHistory = new();
+                switch (statusHistory.Status)
+                {
+                    case "Pending Manager's Approval":
+                        explicitStatusHistory.Status = "Submitted";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        break;
+                    case "Pending HR's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Finance Department's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending General Director's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Vice President's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    default:
+                        continue;
+                }
+                depenseCaisse.StatusHistory.Insert(i, explicitStatusHistory);
+            }
+            return Ok(depenseCaisse);
+        }
+
 
         [Authorize(Roles = "decider")]
         [HttpPut("Decide")]
@@ -324,7 +414,7 @@ namespace OTAS.Controllers
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) 
                 return NotFound("Decider is not found");
 
-            bool isDecisionValid = decision.DecisionString.ToLower() != "apSprove" && decision.DecisionString.ToLower() != "return" && decision.DecisionString.ToLower() != "reject";
+            bool isDecisionValid = decision.DecisionString.ToLower() == "apSprove" || decision.DecisionString.ToLower() == "return" || decision.DecisionString.ToLower() == "reject";
             if (!isDecisionValid) return BadRequest("Decision is invalid!");
 
             

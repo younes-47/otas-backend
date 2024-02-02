@@ -2,7 +2,7 @@
 
 namespace OTAS.DTO.Get
 {
-    public class AvanceCaisseDeciderTableDTO : IEqualityComparer<AvanceCaisseDeciderTableDTO>
+    public class DepenseCaisseDeciderTableDTO : IEqualityComparer<DepenseCaisseDeciderTableDTO>
     {
         public int Id { get; set; }
 
@@ -14,16 +14,18 @@ namespace OTAS.DTO.Get
 
         public string Currency { get; set; } = null!;
 
-        public decimal EstimatedTotal { get; set; }
+        public decimal Total { get; set; }
+
+        public string ReceiptsFileName { get; set; } = null!;
 
         public DateTime CreateDate { get; set; }
 
-        public bool Equals(AvanceCaisseDeciderTableDTO? x, AvanceCaisseDeciderTableDTO? y)
+        public bool Equals(DepenseCaisseDeciderTableDTO? x, DepenseCaisseDeciderTableDTO? y)
         {
             return x != null && y != null && x.Id == y.Id;
         }
 
-        public int GetHashCode([DisallowNull] AvanceCaisseDeciderTableDTO obj)
+        public int GetHashCode([DisallowNull] DepenseCaisseDeciderTableDTO obj)
         {
             return obj.Id.GetHashCode();
         }

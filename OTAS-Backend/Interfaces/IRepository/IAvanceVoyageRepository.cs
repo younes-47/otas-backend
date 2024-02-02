@@ -15,7 +15,7 @@ namespace OTAS.Interfaces.IRepository
         Task<List<AvanceVoyage>> GetAvancesVoyageByStatusAsync(int status);
         Task<List<AvanceVoyage>> GetAvancesVoyageByOrdreMissionIdAsync(int ordreMissionId);
         Task<int> GetAvanceVoyageNextDeciderUserId(string currentlevel, bool? isLongerThanOneDay = false);
-        Task<List<AvanceVoyageTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderRole);
+        Task<List<AvanceVoyageDeciderTableDTO>> GetAvanceVoyagesForDeciderTable(int deciderUserId);
         Task<decimal[]> GetRequesterAllTimeRequestedAmountsByUserIdAsync(int userId);
         Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId);
 

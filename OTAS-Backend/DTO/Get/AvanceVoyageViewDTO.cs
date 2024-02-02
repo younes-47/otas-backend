@@ -10,6 +10,8 @@ namespace OTAS.DTO.Get
 
         public bool OnBehalf { get; set; }
 
+        public string? DeciderComment { get; set; }
+
         public int OrdreMissionId { get; set; }
 
         public string OrdreMissionDescription { get; set; } = null!;

@@ -1,16 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace OTAS.DTO.Get
+﻿namespace OTAS.DTO.Get
 {
-    public class DepenseCaisseViewDTO
+    public class DepenseCaisseDeciderViewDTO
     {
         public int Id { get; set; }
 
-        public virtual ActualRequesterDTO? RequesterInfo { get; set; }
-
-        public string? DeciderComment { get; set; }
+        public int UserId { get; set; }
 
         public bool OnBehalf { get; set; }
+
+        public virtual UserInfoDTO Requester { get; set; } = new UserInfoDTO();
+
+        public virtual ActualRequesterDTO? ActualRequester { get; set; }
 
         public string Description { get; set; } = null!;
 

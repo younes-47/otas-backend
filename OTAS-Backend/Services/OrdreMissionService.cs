@@ -259,26 +259,25 @@ namespace OTAS.Services
                     var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(decision.RequestId);
                     decidedOrdreMission.DeciderUserId = deciderUserId;
 
-                    var deciderLevel = await _deciderRepository.GetDeciderLevelByUserId(deciderUserId);
-                    switch (deciderLevel)
+                    switch (decidedOrdreMission.LatestStatus)
                     {
-                        case "MG":
+                        case 1:
                             decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("MG");
                             decidedOrdreMission.LatestStatus = 2;
                             break;
-                        case "HR":
+                        case 2:
                             decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("HR");
                             decidedOrdreMission.LatestStatus = 3;
                             break;
-                        case "FM":
+                        case 3:
                             decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("FM");
                             decidedOrdreMission.LatestStatus = 4;
                             break;
-                        case "GD":
+                        case 4:
                             decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("GD", IS_LONGER_THAN_ONEDAY);
                             decidedOrdreMission.LatestStatus = IS_LONGER_THAN_ONEDAY ? 5 : 7;  /* if it is not longer than one day skip VP*/
                             break;
-                        case "VP":
+                        case 5:
                             decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("VP");
                             decidedOrdreMission.LatestStatus = 7;
                             break;
@@ -357,6 +356,11 @@ namespace OTAS.Services
                 updatedOrdreMission.LatestStatus = ordreMission.Action.ToLower() == "save" ? 99 : 1;
                 updatedOrdreMission.Description = ordreMission.Description;
                 updatedOrdreMission.Abroad = ordreMission.Abroad;
+
+                if(ordreMission.Action.ToLower() != "save")
+                {
+                    updatedOrdreMission.NextDeciderUserId = await _deciderRepository.GetManagerUserIdByUserIdAsync(updatedOrdreMission.UserId);
+                }
 
                 DateTime smallestDate = DateTime.MaxValue;
                 DateTime biggestDate = DateTime.MinValue;

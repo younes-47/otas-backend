@@ -16,6 +16,5 @@
 
         public string? ManagerUserName { get; set; }
 
-        public string? Level { get; set; }
     }
 }

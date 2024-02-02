@@ -42,6 +42,12 @@ namespace OTAS.Repository
             return decider.UserId;
         }
 
+        public async Task<List<string>?> GetDeciderLevelsByUserId(int deciderUserId)
+        {
+            return await _context.Deciders.Where(d => d.UserId == deciderUserId).Select(d => d.Level).ToListAsync();
+        }
+
+
         public async Task<string?> GetDeciderLevelByUserId(int deciderUserId)
         {
             var decider = await _context.Deciders.Where(d => d.UserId == deciderUserId).FirstOrDefaultAsync();

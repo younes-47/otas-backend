@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 using OTAS.Data;
 using OTAS.DTO.Get;
 using OTAS.Interfaces.IRepository;
@@ -50,11 +51,18 @@ namespace OTAS.Controllers
             string username = HttpContext.User.Identity.Name;
             var userInfo = _ldapAuthenticationService.GetUserInformation(username);
             var userId = await _userRepository.GetUserIdByUsernameAsync(username);
-            userInfo.Level = await _deciderRepository.GetDeciderLevelByUserId(userId);
             userInfo.PreferredLanguage = await _userRepository.GetPreferredLanguageByUserIdAsync(userId);
             return userInfo;
         }
 
+        [Authorize(Roles = "decider")]
+        [HttpGet("DeciderLevels")]
+        public async Task<List<string>> GetDeciderLevels()
+        {
+            string username = HttpContext.User.Identity.Name;
+            var userId = await _userRepository.GetUserIdByUsernameAsync(username);
+            return await _deciderRepository.GetDeciderLevelsByUserId(userId);
+        }
 
         [Authorize(Roles = "requester,decider")]
         [HttpGet("ActualRequesterStaticInfo/All")]

@@ -6,6 +6,7 @@ using OTAS.Services;
 using Azure.Core;
 using OTAS.DTO.Get;
 using AutoMapper;
+using System.Linq;
 
 namespace OTAS.Repository
 {
@@ -39,6 +40,7 @@ namespace OTAS.Repository
                     Id = dc.Id,
                     Description = dc.Description,
                     OnBehalf = dc.OnBehalf,
+                    DeciderComment = dc.DeciderComment,
                     Currency = dc.Currency,
                     Total = dc.Total,
                     ReceiptsFileName = dc.ReceiptsFileName,
@@ -55,6 +57,38 @@ namespace OTAS.Repository
                     Expenses = _mapper.Map<List<ExpenseDTO>>(dc.Expenses)
                 }).FirstAsync();
         }
+
+        public async Task<DepenseCaisseDeciderViewDTO> GetDepenseCaisseFullDetailsByIdForDecider(int depenseCaisseId)
+        {
+            return await _context.DepenseCaisses
+                .Where(ac => ac.Id == depenseCaisseId)
+                .Include(ac => ac.LatestStatusNavigation)
+                .Include(ac => ac.StatusHistories)
+                .Select(ac => new DepenseCaisseDeciderViewDTO
+                {
+                    Id = ac.Id,
+                    UserId = ac.UserId,
+                    Description = ac.Description,
+                    Total = ac.Total,
+                    Currency = ac.Currency,
+                    OnBehalf = ac.OnBehalf,
+                    LatestStatus = ac.LatestStatusNavigation.StatusString,
+                    CreateDate = ac.CreateDate,
+                    ReceiptsFileName = ac.ReceiptsFileName,
+                    StatusHistory = ac.StatusHistories.Select(sh => new StatusHistoryDTO
+                    {
+                        Status = sh.StatusNavigation.StatusString,
+                        DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
+                        DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
+                        DeciderComment = sh.DeciderComment,
+                        CreateDate = sh.CreateDate
+                    }).ToList(),
+                    Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses),
+                })
+                .FirstAsync();
+        }
+
+
 
 
         public async Task<ServiceResult> AddDepenseCaisseAsync(DepenseCaisse depenseCaisse)
@@ -126,21 +160,49 @@ namespace OTAS.Repository
             return await _context.DepenseCaisses.Where(dc => dc.LatestStatus == status).ToListAsync();
         }
 
-        public async Task<List<DepenseCaisseDTO>> GetDepenseCaissesForDeciderTable(int deciderUserId)
+        public async Task<List<DepenseCaisseDeciderTableDTO>> GetDepenseCaissesForDeciderTable(int deciderUserId)
         {
             /* Get the records that needs to be decided upon now */
-            List<DepenseCaisseDTO> depenseCaisses = _mapper.Map<List<DepenseCaisseDTO>>
-                (await _context.DepenseCaisses.Where(om => om.NextDeciderUserId == deciderUserId).ToListAsync());
+            List<DepenseCaisseDeciderTableDTO> depenseCaisses = await _context.DepenseCaisses
+                .Include(dc => dc.LatestStatusNavigation)
+                .Where(dc => dc.NextDeciderUserId == deciderUserId)
+                .Select(dc => new DepenseCaisseDeciderTableDTO
+                {
+                    Id = dc.Id,
+                    Total = dc.Total,
+                    NextDeciderUserName = dc.NextDecider != null ? dc.NextDecider.Username : null,
+                    ReceiptsFileName= dc.ReceiptsFileName,
+                    OnBehalf = dc.OnBehalf,
+                    Description = dc.Description,
+                    Currency = dc.Currency,
+                    CreateDate = dc.CreateDate,
+                })
+                .ToListAsync();
+
 
             /* Get the records that have been already decided upon and add it to the previous list */
-            depenseCaisses.AddRange(_mapper.Map<List<DepenseCaisseDTO>>
-                (await _context.StatusHistories
-                .Where(sh => sh.DeciderUserId == deciderUserId)
-                .Select(sh => sh.DepenseCaisse)
-                .ToListAsync()));
+            if (_context.StatusHistories.Where(sh => sh.DepenseCaisseId != null && sh.DeciderUserId == deciderUserId).Any())
+            {
+                List<DepenseCaisseDeciderTableDTO> depenseCaisses2 = await _context.StatusHistories
+                        .Where(sh => sh.DeciderUserId == deciderUserId && sh.DepenseCaisseId != null && sh.Status != 98)
+                        .Include(sh => sh.DepenseCaisse)
+                        .Select(sh => new DepenseCaisseDeciderTableDTO
+                        {
+                            Id = sh.DepenseCaisse.Id,
+                            Total = sh.DepenseCaisse.Total,
+                            NextDeciderUserName = sh.DepenseCaisse.NextDecider != null ? sh.DepenseCaisse.NextDecider.Username : null,
+                            OnBehalf = sh.DepenseCaisse.OnBehalf,
+                            ReceiptsFileName = sh.DepenseCaisse.ReceiptsFileName,
+                            Description = sh.DepenseCaisse.Description,
+                            Currency = sh.DepenseCaisse.Currency,
+                            CreateDate = sh.DepenseCaisse.CreateDate,
+                        })
+                        .ToListAsync();
+                depenseCaisses.AddRange(depenseCaisses2);
+            }
 
-            return depenseCaisses;
 
+            return depenseCaisses.Distinct(new DepenseCaisseDeciderTableDTO()).ToList();
         }
 
         public async Task<int> GetDepenseCaisseNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false)
@@ -215,14 +277,14 @@ namespace OTAS.Repository
         {
             DateTime? lastCreated = null;
 
-            var latestAvanceVoyage = await _context.DepenseCaisses
+            var latestDepenseVoyage = await _context.DepenseCaisses
                 .Where(av => av.UserId == userId)
                 .OrderByDescending(av => av.CreateDate)
                 .FirstOrDefaultAsync();
 
-            if (latestAvanceVoyage != null)
+            if (latestDepenseVoyage != null)
             {
-                lastCreated = latestAvanceVoyage.CreateDate;
+                lastCreated = latestDepenseVoyage.CreateDate;
             }
 
             return lastCreated;

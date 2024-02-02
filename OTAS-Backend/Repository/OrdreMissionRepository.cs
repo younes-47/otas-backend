@@ -57,27 +57,31 @@ namespace OTAS.Repository
                 .ToListAsync();
 
             /* Get the records that have been already decided upon and add it to the previous list */
-            List<OrdreMissionDeciderTableDTO> ordreMissions2 = await _context.StatusHistories
-                .Where(sh => sh.DeciderUserId == deciderUserId && sh.OrdreMissionId != null)
-                .Include(sh => sh.OrdreMission)
-                .Select(sh => new OrdreMissionDeciderTableDTO
-                {
-                    Id = sh.OrdreMission.Id,
-                    NextDeciderUserName = sh.OrdreMission.NextDecider != null ? sh.OrdreMission.NextDecider.Username : null,
-                    Description = sh.OrdreMission.Description,
-                    Abroad = sh.OrdreMission.Abroad,
-                    OnBehalf = sh.OrdreMission.OnBehalf,
-                    DepartureDate = sh.OrdreMission.DepartureDate,
-                    ReturnDate = sh.OrdreMission.ReturnDate,
-                    CreateDate = sh.OrdreMission.CreateDate,
-                    RequestedAmountMAD = sh.OrdreMission.AvanceVoyages.Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).FirstOrDefault(),
-                    RequestedAmountEUR = sh.OrdreMission.AvanceVoyages.Where(av => av.Currency == "EUR").Select(av => av.EstimatedTotal).FirstOrDefault(),
-                })
-                .ToListAsync();
+            if (_context.StatusHistories.Where(sh => sh.OrdreMissionId != null && sh.DeciderUserId == deciderUserId).Any())
+            {
+                List<OrdreMissionDeciderTableDTO> ordreMissions2 = await _context.StatusHistories
+                   .Where(sh => sh.DeciderUserId == deciderUserId && sh.OrdreMissionId != null)
+                   .Include(sh => sh.OrdreMission)
+                   .Select(sh => new OrdreMissionDeciderTableDTO
+                   {
+                       Id = sh.OrdreMission.Id,
+                       NextDeciderUserName = sh.OrdreMission.NextDecider != null ? sh.OrdreMission.NextDecider.Username : null,
+                       Description = sh.OrdreMission.Description,
+                       Abroad = sh.OrdreMission.Abroad,
+                       OnBehalf = sh.OrdreMission.OnBehalf,
+                       DepartureDate = sh.OrdreMission.DepartureDate,
+                       ReturnDate = sh.OrdreMission.ReturnDate,
+                       CreateDate = sh.OrdreMission.CreateDate,
+                       RequestedAmountMAD = sh.OrdreMission.AvanceVoyages.Where(av => av.Currency == "MAD").Select(av => av.EstimatedTotal).FirstOrDefault(),
+                       RequestedAmountEUR = sh.OrdreMission.AvanceVoyages.Where(av => av.Currency == "EUR").Select(av => av.EstimatedTotal).FirstOrDefault(),
+                   })
+                   .ToListAsync();
 
-            ordreMissions.AddRange (ordreMissions2);
+                ordreMissions.AddRange(ordreMissions2);
+            }
 
-            return ordreMissions;
+
+            return ordreMissions.Distinct(new OrdreMissionDeciderTableDTO()).ToList();
         }
 
         public async Task<OrdreMissionViewDTO> GetOrdreMissionFullDetailsById(int ordreMissionId)
@@ -90,6 +94,7 @@ namespace OTAS.Repository
                 {
                     Id = om.Id,
                     Description = om.Description,
+                    DeciderComment = om.DeciderComment,
                     Abroad = om.Abroad,
                     OnBehalf = om.OnBehalf,
                     DepartureDate = om.DepartureDate,
