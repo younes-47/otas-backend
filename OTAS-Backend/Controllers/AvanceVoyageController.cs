@@ -220,7 +220,7 @@ namespace OTAS.Controllers
         }
 
         [Authorize(Roles = "decider")]
-        [HttpPut("Decide/Funds")]
+        [HttpPut("Decide/Funds/MarkAsPrepared")]
         public async Task<IActionResult> MarkFundsAsPrepared(MarkFundsAsPreparedPutDTO action) // Only TR
         {
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
@@ -251,7 +251,7 @@ namespace OTAS.Controllers
         }
 
         [Authorize(Roles = "decider")]
-        [HttpPut("Decide/Funds/Confirm")]
+        [HttpPut("Decide/Funds/ConfirmDelivery")]
         public async Task<IActionResult> ConfirmFundsDelivery(ConfirmFundsDeliveryPutDTO action) // Only TR
         {
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);

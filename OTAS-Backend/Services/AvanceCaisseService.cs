@@ -269,10 +269,10 @@ namespace OTAS.Services
                 decidedAvanceCaisse.LatestStatus = 9;
 
                 /*
-                    Generates a random number of 8-9 digits (8 => case 0 at the beginning)
+                    Generates a random number of 8
                     CAUTION: DO NOT EXCEED 10 IN LENGTH AS THIS WILL CAUSE AN OVERFLOW EXCEPTION
                  */
-                decidedAvanceCaisse.ConfirmationNumber = _miscService.GenerateRandomNumber(9); //  
+                decidedAvanceCaisse.ConfirmationNumber = _miscService.GenerateRandomNumber(8); //  
                 result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(decidedAvanceCaisse);
                 if(!result.Success) return result;
 

@@ -1102,10 +1102,10 @@ namespace OTAS.Services
                 decidedAvanceVoyage.LatestStatus = 9;
 
                 /*
-                    Generates a random number of 8-9 digits (8 => case 0 at the beginning)
+                    Generates a random number of 8 digits
                     CAUTION: DO NOT EXCEED 10 IN LENGTH AS THIS WILL CAUSE AN OVERFLOW EXCEPTION
                  */
-                decidedAvanceVoyage.ConfirmationNumber = _miscService.GenerateRandomNumber(9); //  
+                decidedAvanceVoyage.ConfirmationNumber = _miscService.GenerateRandomNumber(8); //  
                 result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(decidedAvanceVoyage);
                 if (!result.Success) return result;
 

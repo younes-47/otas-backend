@@ -59,12 +59,16 @@ namespace OTAS.Services
             int[] _decimalNumbers = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
             Random _random = new();
 
-            var sb = new StringBuilder(length);
+            var confirmationString = new StringBuilder(length);
 
-            for (int i = 0; i < length; i++)
-                sb.Append(_decimalNumbers[_random.Next(10)]);
+            confirmationString.Append(_decimalNumbers[_random.Next(1,10)]); // Avoid generating 0 at the beginning
 
-            return int.Parse(sb.ToString());
+            for (int i = 1; i < length; i++)
+            {
+                confirmationString.Append(_decimalNumbers[_random.Next(10)]);
+            }
+
+            return int.Parse(confirmationString.ToString());
         }
 
         public string GenerateRandomString(int length)
