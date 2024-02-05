@@ -69,6 +69,7 @@ namespace OTAS.Repository
                     Id = ac.Id,
                     UserId = ac.UserId,
                     Description = ac.Description,
+                    DeciderComment = ac.DeciderComment != null ? ac.DeciderComment : null,
                     Total = ac.Total,
                     Currency = ac.Currency,
                     OnBehalf = ac.OnBehalf,
@@ -184,7 +185,7 @@ namespace OTAS.Repository
             if (_context.StatusHistories.Where(sh => sh.DepenseCaisseId != null && sh.DeciderUserId == deciderUserId).Any())
             {
                 List<DepenseCaisseDeciderTableDTO> depenseCaisses2 = await _context.StatusHistories
-                        .Where(sh => sh.DeciderUserId == deciderUserId && sh.DepenseCaisseId != null && sh.Status != 98)
+                        .Where(sh => sh.DeciderUserId == deciderUserId && sh.DepenseCaisseId != null)
                         .Include(sh => sh.DepenseCaisse)
                         .Select(sh => new DepenseCaisseDeciderTableDTO
                         {

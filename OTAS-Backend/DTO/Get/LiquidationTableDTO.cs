@@ -1,4 +1,6 @@
-﻿namespace OTAS.DTO.Get
+﻿using Microsoft.AspNetCore.Http.Features;
+
+namespace OTAS.DTO.Get
 {
     public class LiquidationTableDTO
     {
@@ -6,15 +8,15 @@
 
         public bool OnBehalf { get; set; }
 
-        public int? AvanceVoyageId { get; set; }
+        public int RequestId { get; set; }
 
-        public string? AvanceVoyageDescription { get; set; }
+        public string RequestType { get; set; } = null!;
 
-        public int? AvanceCaisseId { get; set; }
-
-        public string? AvanceCaisseDescription { get; set; }
+        public string? Description { get; set; }
 
         public decimal? ActualTotal { get; set; }
+
+        public string Currency { get; set; } = null!;
 
         public string? ReceiptsFileName { get; set; }
 

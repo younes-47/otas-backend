@@ -14,6 +14,8 @@
 
         public string Description { get; set; } = null!;
 
+        public string DeciderComment { get; set; } = null!;
+
         public string Currency { get; set; } = null!;
 
         public decimal Total { get; set; }

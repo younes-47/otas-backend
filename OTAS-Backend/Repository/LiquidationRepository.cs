@@ -6,6 +6,7 @@ using Microsoft.Identity.Client;
 using OTAS.Services;
 using OTAS.DTO.Get;
 using System.Collections.Generic;
+using Azure.Core;
 
 namespace OTAS.Repository
 {
@@ -35,6 +36,7 @@ namespace OTAS.Repository
         {
             List<LiquidationTableDTO> liquidations = await _context.Liquidations
                 .Where(lq => lq.UserId == userId)
+                .Where(lq => lq.AvanceCaisseId != null && lq.AvanceVoyageId != null)
                 .Include(lq => lq.LatestStatusNavigation)
                 .Include(lq => lq.AvanceCaisse)
                 .Include(lq => lq.AvanceVoyage)
@@ -47,10 +49,10 @@ namespace OTAS.Repository
                     Result = lq.Result,
                     CreateDate = lq.CreateDate,
                     LatestStatus = lq.LatestStatusNavigation.StatusString,
-                    AvanceCaisseId = lq.AvanceCaisse != null ? lq.AvanceCaisse.Id : null,
-                    AvanceCaisseDescription = lq.AvanceCaisse != null ? lq.AvanceCaisse.Description : null,
-                    AvanceVoyageId = lq.AvanceVoyage != null ? lq.AvanceVoyage.Id : null,
-                    AvanceVoyageDescription = lq.AvanceVoyage != null ? lq.AvanceVoyage.OrdreMission.Description : null,
+                    RequestType = lq.AvanceCaisseId != null ? "AC" : "AV",
+                    RequestId = lq.AvanceCaisseId != null ? (int)lq.AvanceCaisseId : (int)lq.AvanceVoyageId,
+                    Description = lq.AvanceCaisseId != null ? lq.AvanceCaisse.Description : lq.AvanceVoyage.OrdreMission.Description,
+                    Currency = lq.AvanceCaisseId != null ? lq.AvanceCaisse.Currency : lq.AvanceVoyage.Currency,
                 }).ToListAsync();
               
             return liquidations;
@@ -61,6 +63,7 @@ namespace OTAS.Repository
             /* Get the records that needs to be decided upon now */
             List<LiquidationTableDTO> liquidations = await _context.Liquidations
                             .Where(lq => lq.NextDeciderUserId == deciderUserId)
+                            .Where(lq => lq.AvanceCaisseId != null && lq.AvanceVoyageId != null)
                             .Include(lq => lq.LatestStatusNavigation)
                             .Include(lq => lq.AvanceCaisse)
                             .Include(lq => lq.AvanceVoyage)
@@ -73,10 +76,10 @@ namespace OTAS.Repository
                                 Result = lq.Result,
                                 CreateDate = lq.CreateDate,
                                 LatestStatus = lq.LatestStatusNavigation.StatusString,
-                                AvanceCaisseId = lq.AvanceCaisse != null ? lq.AvanceCaisse.Id : null,
-                                AvanceCaisseDescription = lq.AvanceCaisse != null ? lq.AvanceCaisse.Description : null,
-                                AvanceVoyageId = lq.AvanceVoyage != null ? lq.AvanceVoyage.Id : null,
-                                AvanceVoyageDescription = lq.AvanceVoyage != null ? lq.AvanceVoyage.OrdreMission.Description : null,
+                                RequestType = lq.AvanceCaisseId != null ? "AC" : "AV",
+                                RequestId = lq.AvanceCaisseId != null ? (int)lq.AvanceCaisseId : (int)lq.AvanceVoyageId,
+                                Description = lq.AvanceCaisseId != null ? lq.AvanceCaisse.Description : lq.AvanceVoyage.OrdreMission.Description,
+                                Currency = lq.AvanceCaisseId != null ? lq.AvanceCaisse.Currency : lq.AvanceVoyage.Currency,
                             }).ToListAsync();
 
             /* Get the records that have been already decided upon and add it to the previous list */
@@ -96,10 +99,10 @@ namespace OTAS.Repository
                 mappedLiquidation.Result = liquidation.Result;
                 mappedLiquidation.CreateDate = liquidation.CreateDate;
                 mappedLiquidation.LatestStatus = liquidation.LatestStatusNavigation.StatusString;
-                mappedLiquidation.AvanceCaisseId = liquidation.AvanceCaisse?.Id;
-                mappedLiquidation.AvanceCaisseDescription = liquidation.AvanceCaisse?.Description;
-                mappedLiquidation.AvanceVoyageId = liquidation.AvanceVoyage?.Id;
-                mappedLiquidation.AvanceVoyageDescription = liquidation.AvanceVoyage?.OrdreMission.Description;
+                mappedLiquidation.RequestType = liquidation.AvanceCaisseId != null ? "AC" : "AV";
+                mappedLiquidation.RequestId = liquidation.AvanceCaisseId != null ? (int)liquidation.AvanceCaisseId : (int)liquidation.AvanceVoyageId;
+                mappedLiquidation.Description = liquidation.AvanceCaisseId != null ? liquidation.AvanceCaisse.Description : liquidation.AvanceVoyage.OrdreMission.Description;
+                mappedLiquidation.Currency = liquidation.AvanceCaisseId != null ? liquidation.AvanceCaisse.Currency : liquidation.AvanceVoyage.Currency;
 
                 mappedLiquidations.Add(mappedLiquidation);
             }

@@ -92,7 +92,7 @@ namespace OTAS.Repository
             if (_context.StatusHistories.Where(sh => sh.AvanceVoyageId != null && sh.DeciderUserId == deciderUserId).Any())
             {
                 List<AvanceVoyageDeciderTableDTO> avanceVoyages2 = await _context.StatusHistories
-                .Where(sh => sh.DeciderUserId == deciderUserId && sh.AvanceVoyageId != null && sh.Status != 98)
+                .Where(sh => sh.DeciderUserId == deciderUserId && sh.AvanceVoyageId != null)
                 .Include(sh => sh.AvanceVoyage)
                 .Select(sh => new AvanceVoyageDeciderTableDTO
                 {

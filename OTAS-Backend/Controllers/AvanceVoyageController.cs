@@ -223,6 +223,7 @@ namespace OTAS.Controllers
         [HttpPut("Decide/Funds/MarkAsPrepared")]
         public async Task<IActionResult> MarkFundsAsPrepared(MarkFundsAsPreparedPutDTO action) // Only TR
         {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null)
                 return BadRequest("User not found!");
@@ -254,6 +255,7 @@ namespace OTAS.Controllers
         [HttpPut("Decide/Funds/ConfirmDelivery")]
         public async Task<IActionResult> ConfirmFundsDelivery(ConfirmFundsDeliveryPutDTO action) // Only TR
         {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null)
                 return BadRequest("User not found!");
@@ -266,9 +268,15 @@ namespace OTAS.Controllers
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(action.RequestId) == null)
+            AvanceVoyage? av = await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(action.RequestId);
+            if (av == null)
                 return BadRequest("Request is not found");
+
+            if (av.LatestStatus == 10)
+                return BadRequest("Funds has already been confirmed as delivered!");
+
+            if (av.LatestStatus != 9)
+                return BadRequest("Cannot confirm delivery of funds at this state");
 
             ServiceResult result = await _avanceVoyageService.ConfirmFundsDelivery(action.RequestId, action.ConfirmationNumber);
             if (!result.Success)

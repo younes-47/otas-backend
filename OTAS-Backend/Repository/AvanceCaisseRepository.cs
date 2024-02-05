@@ -65,7 +65,7 @@ namespace OTAS.Repository
                 if( _context.StatusHistories.Where(sh => sh.AvanceCaisseId != null && sh.DeciderUserId == deciderUserId).Any())
                 {
                     List<AvanceCaisseDeciderTableDTO> avanceCaisses2 = await _context.StatusHistories
-                            .Where(sh => sh.DeciderUserId == deciderUserId && sh.AvanceCaisseId != null && sh.Status != 98)
+                            .Where(sh => sh.DeciderUserId == deciderUserId && sh.AvanceCaisseId != null)
                             .Include(sh => sh.AvanceCaisse)
                             .Select(sh => new AvanceCaisseDeciderTableDTO
                             {

@@ -192,7 +192,10 @@ namespace OTAS.Services
                 //Map the fetched DP from the DB with the new values and update it
                 depenseCaisse_DB.DeciderComment = null;
                 depenseCaisse_DB.DeciderUserId = null;
-                depenseCaisse_DB.LatestStatus = depenseCaisse.Action.ToLower() == "save" ? 99 : 1;
+                if(depenseCaisse_DB.LatestStatus != 15)
+                {
+                    depenseCaisse_DB.LatestStatus = depenseCaisse.Action.ToLower() == "save" ? 99 : 1;
+                }
                 depenseCaisse_DB.Description = depenseCaisse.Description;
                 depenseCaisse_DB.Currency = depenseCaisse.Currency;
                 depenseCaisse_DB.OnBehalf = depenseCaisse.OnBehalf;
@@ -227,18 +230,38 @@ namespace OTAS.Services
                 //Insert new status history in case of a submit action
                 if (depenseCaisse.Action.ToLower() == "submit")
                 {
-                    var managerUserId = await _deciderRepository.GetManagerUserIdByUserIdAsync(depenseCaisse_DB.UserId);
-                    depenseCaisse_DB.NextDeciderUserId = managerUserId;
-                    result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(depenseCaisse_DB);
-                    if (!result.Success) return result;
-                    StatusHistory OM_statusHistory = new()
+                    if(depenseCaisse_DB.LatestStatus != 15)
                     {
-                        Total = depenseCaisse_DB.Total,
-                        DepenseCaisseId = depenseCaisse_DB.Id,
-                        Status = 1
-                    };
-                    result = await _statusHistoryRepository.AddStatusAsync(OM_statusHistory);
-                    if (!result.Success) return result;
+                        var managerUserId = await _deciderRepository.GetManagerUserIdByUserIdAsync(depenseCaisse_DB.UserId);
+                        depenseCaisse_DB.NextDeciderUserId = managerUserId;
+                        result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(depenseCaisse_DB);
+                        if (!result.Success) return result;
+                        StatusHistory OM_statusHistory = new()
+                        {
+                            NextDeciderUserId = managerUserId,
+                            Total = depenseCaisse_DB.Total,
+                            DepenseCaisseId = depenseCaisse_DB.Id,
+                            Status = 1
+                        };
+                        result = await _statusHistoryRepository.AddStatusAsync(OM_statusHistory);
+                        if (!result.Success) return result;
+                    }
+                    else
+                    {
+                        depenseCaisse_DB.LatestStatus = 13;
+                        depenseCaisse_DB.NextDeciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
+                        result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(depenseCaisse_DB);
+                        if (!result.Success) return result;
+                        StatusHistory OM_statusHistory = new()
+                        {
+                            NextDeciderUserId = depenseCaisse_DB.NextDeciderUserId,
+                            Total = depenseCaisse_DB.Total,
+                            DepenseCaisseId = depenseCaisse_DB.Id,
+                            Status = 13
+                        };
+                        result = await _statusHistoryRepository.AddStatusAsync(OM_statusHistory);
+                        if (!result.Success) return result;
+                    }
                 }
                 else
                 {
@@ -405,12 +428,12 @@ namespace OTAS.Services
                     }
                     else if (decision.ReturnedToRequesterByTR)
                     {
-                        decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("TR", null, decision.ReturnedToTRByFM);
+                        decidedDepenseCaisse.NextDeciderUserId = null;
                         decidedDepenseCaisse.LatestStatus = 15; /* returned for missing evidences + next decider is still TR */
                     }
                     else
                     {
-                        decidedDepenseCaisse.NextDeciderUserId = null; /* next decider is set to null if returned or rejected by deciders other than TR */
+                        decidedDepenseCaisse.NextDeciderUserId = null; /* next decider is set to null if returned or rejected normally */
                         decidedDepenseCaisse.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97; /* returned normaly or rejected */
                     }
                     result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(decidedDepenseCaisse);
@@ -453,17 +476,32 @@ namespace OTAS.Services
                             break;
                         case 3:
                             decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("FM", null, decision.ReturnedToTRByFM);
-                            decidedDepenseCaisse.LatestStatus = decision.ReturnedToTRByFM ? 13 : 4; 
+                            decidedDepenseCaisse.LatestStatus = 4; 
                             break;
                         case 4:
                             decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("GD");
                             decidedDepenseCaisse.LatestStatus = 13;
                             break;
                         case 13:
-                            decidedDepenseCaisse.NextDeciderUserId = await _depenseCaisseRepository.GetDepenseCaisseNextDeciderUserId("TR", decision.ReturnedToFMByTR);
-                            decidedDepenseCaisse.LatestStatus = 8;
+                            decidedDepenseCaisse.NextDeciderUserId = null;
+                            decidedDepenseCaisse.LatestStatus = 16;
                             break;
                     }
+
+                    result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(decidedDepenseCaisse);
+                    if (!result.Success) return result;
+
+                    StatusHistory decidedAvanceCaisse_SH = new()
+                    {
+                        DepenseCaisseId = decision.RequestId,
+                        DeciderUserId = deciderUserId,
+                        DeciderComment = decision.DeciderComment,
+                        Total = decidedDepenseCaisse.Total,
+                        Status = decidedDepenseCaisse.LatestStatus,
+                        NextDeciderUserId = decidedDepenseCaisse.NextDeciderUserId,
+                    };
+                    result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);
+                    if (!result.Success) return result;
 
                     await transaction.CommitAsync();
                 }

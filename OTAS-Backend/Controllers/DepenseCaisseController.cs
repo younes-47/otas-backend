@@ -224,7 +224,7 @@ namespace OTAS.Controllers
                 result.Message = "You can't modify or resubmit a rejected request!";
                 return BadRequest(result);
             }
-            if (depenseCaisse_DB.LatestStatus != 98 && depenseCaisse_DB.LatestStatus != 99)
+            if (depenseCaisse_DB.LatestStatus != 98 && depenseCaisse_DB.LatestStatus != 99 && depenseCaisse_DB.LatestStatus != 15)
             {
                 result.Success = false;
                 result.Message = "The DP you are trying to modify is not a draft nor returned! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
@@ -414,7 +414,7 @@ namespace OTAS.Controllers
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) 
                 return NotFound("Decider is not found");
 
-            bool isDecisionValid = decision.DecisionString.ToLower() == "apSprove" || decision.DecisionString.ToLower() == "return" || decision.DecisionString.ToLower() == "reject";
+            bool isDecisionValid = decision.DecisionString.ToLower() == "approve" || decision.DecisionString.ToLower() == "return" || decision.DecisionString.ToLower() == "reject";
             if (!isDecisionValid) return BadRequest("Decision is invalid!");
 
             
