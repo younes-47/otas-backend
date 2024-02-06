@@ -11,6 +11,7 @@ namespace OTAS.Interfaces.IRepository
         Task<ServiceResult> AddLiquidationAsync(Liquidation liquidation);
         Task<List<LiquidationTableDTO>> GetLiquidationsTableForRequster(int userId);
         Task<List<LiquidationTableDTO>> GetLiquidationsTableForDecider(int userId);
+        Task<List<RequestToLiquidate>> GetRequestsToLiquidatesByTypeAsync(string type, int userId);
         Task<bool> SaveAsync();
 
     }

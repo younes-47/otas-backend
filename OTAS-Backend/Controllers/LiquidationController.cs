@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
@@ -17,32 +18,39 @@ namespace OTAS.Controllers
     public class LiquidationController : ControllerBase
     {
         private readonly ILiquidationRepository _liquidationRepository;
+        private readonly IActualRequesterRepository _actualRequesterRepository;
         private readonly ILiquidationService _liquidationService;
         private readonly IAvanceVoyageRepository _avanceVoyageRepository;
         private readonly IAvanceCaisseRepository _avanceCaisseRepository;
         private readonly ITripRepository _tripRepository;
+        private readonly IMapper _mapper;
         private readonly IExpenseRepository _expenseRepository;
         private readonly IUserRepository _userRepository;
 
         public LiquidationController(ILiquidationRepository liquidationRepository,
+            IActualRequesterRepository actualRequesterRepository,
             ILiquidationService liquidationService,
             IAvanceVoyageRepository avanceVoyageRepository,
             IAvanceCaisseRepository avanceCaisseRepository,
             ITripRepository tripRepository,
+            IMapper mapper,
             IExpenseRepository expenseRepository,
             IUserRepository userRepository)
         {
             _liquidationRepository = liquidationRepository;
+            _actualRequesterRepository = actualRequesterRepository;
             _liquidationService = liquidationService;
             _avanceVoyageRepository = avanceVoyageRepository;
             _avanceCaisseRepository = avanceCaisseRepository;
             _tripRepository = tripRepository;
+            _mapper = mapper;
             _expenseRepository = expenseRepository;
             _userRepository = userRepository;
         }
 
+        // LIQUIDATE ACTIONS
         [Authorize(Roles = "requester,decider")]
-        [HttpGet("Liquidate/AvanceVoyage")]
+        [HttpPost("Liquidate/AvanceVoyage")]
         public async Task<IActionResult> LiquidateAvanceVoyage(AvanceVoyageLiquidationPostDTO avanceVoyageLiquidation)
         {
             if (!ModelState.IsValid) 
@@ -68,7 +76,7 @@ namespace OTAS.Controllers
         }
 
         [Authorize(Roles = "requester,decider")]
-        [HttpGet("Liquidate/AvanceCaisse")]
+        [HttpPost("Liquidate/AvanceCaisse")]
         public async Task<IActionResult> LiquidateAvanceCaisse(AvanceCaisseLiquidationPostDTO avanceCaisseLiquidation)
         {
             if (!ModelState.IsValid)
@@ -92,9 +100,72 @@ namespace OTAS.Controllers
             return Ok(result.Message);
         }
 
+        // REQS TO MEANT TO BE LIQUIDATED
+        [Authorize(Roles = "requester,decider")]
+        [HttpGet("Requests/Pending")]
+        public async Task<IActionResult> GetRequestsToLiquidate([FromQuery] string requestType)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+           if(requestType != "AC" && requestType != "AV")
+                return BadRequest("Request type is invalid");
+
+            var user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+
+            var response = await _liquidationRepository.GetRequestsToLiquidatesByTypeAsync(requestType, user.Id);
+
+            return Ok(response);
+        }
+
+        [Authorize(Roles = "requester,decider")]
+        [HttpGet("Requests/ToLiquidate/AvanceCaisse")]
+        public async Task<IActionResult> GetAvanceCaisseToLiquidateDetails([FromQuery] int requestId)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var req = await _avanceCaisseRepository.GetAvanceCaisseDetailsForLiquidationAsync(requestId);
+
+            if (req == null) return BadRequest("Request Not Found");
+            
+            // if the request is on behalf of someone, get the requester data from the DB
+            if (req.OnBehalf)
+            {
+                ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByAvanceCaisseIdAsync(req.Id);
+                req.ActualRequester = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+                req.ActualRequester.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
+            }
+
+            return Ok(req);
+        }
+
+        [Authorize(Roles = "requester,decider")]
+        [HttpGet("Requests/ToLiquidate/AvanceVoyage")]
+        public async Task<IActionResult> GetAvanceVoyageToLiquidateDetails([FromQuery] int requestId)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var req = await _avanceVoyageRepository.GetAvanceVoyageDetailsForLiquidationAsync(requestId);
+
+            if (req == null) return BadRequest("Request Not Found");
+
+            // if the request is on behalf of someone, get the requester data from the DB
+            if (req.OnBehalf)
+            {
+                ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByAvanceCaisseIdAsync(req.Id);
+                req.ActualRequester = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+                req.ActualRequester.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
+            }
+
+            return Ok(req);
+        }
+
+
+        // TABLES
         [Authorize(Roles = "requester,decider")]
         [HttpGet("Requester/Table")]
-        public async Task<IActionResult> LiquidationsTable()
+        public async Task<IActionResult> LiquidationsRequesterTable()
         {
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
 

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using OTAS.Data;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
+using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
@@ -60,29 +61,18 @@ namespace OTAS.Services
                 decimal actualTotal = 0.0m;
 
                 // Providing the actual spent amount the old trips
-                foreach (TripLiquidationPostDTO tripRequest in avanceVoyageLiquidation.TripsLiquidations)
+                foreach (TripLiquidationPutDTO tripRequest in avanceVoyageLiquidation.TripsLiquidations)
                 {
                     var tripDB = await _tripRepository.GetTripAsync(tripRequest.TripId);
-                    if(tripDB.Unit == "KM")
-                    {
-                        tripDB.HighwayFee = tripRequest.ActualHighwayFee;
-                        tripDB.Value = tripRequest.ActualValue;
-                        tripDB.ActualFee = _miscService.CalculateTripEstimatedFee(tripDB);
-                        actualTotal += tripDB.ActualFee;
-                    }
-                    else
-                    {
-                        tripDB.ActualFee = tripRequest.ActualValue;
-                        actualTotal += tripDB.ActualFee;
-                    }
-
+                    tripDB.ActualFee = tripRequest.ActualValue;
+                    actualTotal += tripDB.ActualFee;
                     tripDB.UpdateDate = DateTime.Now;
                     result = await _tripRepository.UpdateTrip(tripDB);
                     if(!result.Success) return result;
                 }
 
                 // Providing the actual spent amount the old expenses
-                foreach (ExpenseLiquidationPostDTO expenseRequest in avanceVoyageLiquidation.ExpensesLiquidations)
+                foreach (ExpenseLiquidationPutDTO expenseRequest in avanceVoyageLiquidation.ExpensesLiquidations)
                 {
                     var expenseDB = await _expenseRepository.GetExpenseAsync(expenseRequest.ExpenseId);
                     expenseDB.ActualFee = expenseRequest.ActualFee;
@@ -115,7 +105,7 @@ namespace OTAS.Services
                 }
 
                 // Adding new Expenses
-                foreach (ExpensePostDTO newExpense in avanceVoyageLiquidation.NewExpenses)
+                foreach (var newExpense in avanceVoyageLiquidation.NewExpenses)
                 {
                     var mappedExpense = _mapper.Map<Expense>(newExpense);
                     mappedExpense.AvanceVoyageId = avanceVoyageLiquidation.AvanceVoyageId;
@@ -146,7 +136,7 @@ namespace OTAS.Services
                 }
                 /* Create file name by concatenating a random string + DC + username + .pdf extension */
                 var user = await _userRepository.GetUserByUserIdAsync(userId);
-                string uniqueReceiptsFileName = _miscService.GenerateRandomString(10) + "_LQ_" + user.Username + ".pdf";
+                string uniqueReceiptsFileName = _miscService.GenerateRandomString(10) + "_LQ_AV_" + user.Username + ".pdf";
                 /* Combine the folder path with the file name to create full path */
                 var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
                 /* The creation of the file occurs after the commitment of DB changes */
@@ -167,7 +157,7 @@ namespace OTAS.Services
 
                 if (!result.Success)
                 {
-                    result.Message += " (depenseCaisse)";
+                    result.Message += " (avanceCaisse)";
                     return result;
                 }
 
@@ -184,7 +174,7 @@ namespace OTAS.Services
             }
 
             result.Success = true;
-            result.Message = "Liquidation for this AvanceVoayage has been successfully saved!";
+            result.Message = "Liquidation for this AvanceVoyage has been successfully saved!";
             return result;
         }
 
@@ -197,8 +187,8 @@ namespace OTAS.Services
             {
                 decimal actualTotal = 0.0m;
 
-                // Providing the actual spent amount the old expenses
-                foreach (ExpenseLiquidationPostDTO expenseRequest in avanceCaisseLiquidation.ExpensesLiquidations)
+                // Providing the actual spent amount for the old expenses
+                foreach (ExpenseLiquidationPutDTO expenseRequest in avanceCaisseLiquidation.ExpensesLiquidations)
                 {
                     var expenseDB = await _expenseRepository.GetExpenseAsync(expenseRequest.ExpenseId);
                     expenseDB.ActualFee = expenseRequest.ActualFee;
@@ -210,7 +200,7 @@ namespace OTAS.Services
 
 
                 // Adding new Expenses
-                foreach (ExpensePostDTO newExpense in avanceCaisseLiquidation.NewExpenses)
+                foreach (var newExpense in avanceCaisseLiquidation.NewExpenses)
                 {
                     var mappedExpense = _mapper.Map<Expense>(newExpense);
                     mappedExpense.AvanceCaisseId = avanceCaisseLiquidation.AvanceCaisseId;
@@ -234,14 +224,14 @@ namespace OTAS.Services
 
 
                 /* _webHostEnvironment.WebRootPath == wwwroot\ (the default folder to store files) */
-                var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Liquidation-Avance-Voyage-Receipts");
+                var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Liquidation-Avance-Caisse-Receipts");
                 if (!Directory.Exists(uploadsFolderPath))
                 {
                     Directory.CreateDirectory(uploadsFolderPath);
                 }
                 /* Create file name by concatenating a random string + DC + username + .pdf extension */
                 var user = await _userRepository.GetUserByUserIdAsync(userId);
-                string uniqueReceiptsFileName = _miscService.GenerateRandomString(10) + "_LQ_" + user.Username + ".pdf";
+                string uniqueReceiptsFileName = _miscService.GenerateRandomString(10) + "_LQ_AC_" + user.Username + ".pdf";
                 /* Combine the folder path with the file name to create full path */
                 var filePath = Path.Combine(uploadsFolderPath, uniqueReceiptsFileName);
                 /* The creation of the file occurs after the commitment of DB changes */
@@ -262,7 +252,7 @@ namespace OTAS.Services
 
                 if (!result.Success)
                 {
-                    result.Message += " (depenseCaisse)";
+                    result.Message += " (avanceCaisse)";
                     return result;
                 }
 
@@ -279,7 +269,7 @@ namespace OTAS.Services
             }
 
             result.Success = true;
-            result.Message = "Liquidation for this AvanceVoayage has been successfully saved!";
+            result.Message = "Liquidation for this AvanceCaisse has been successfully saved!";
             return result;
         }
 

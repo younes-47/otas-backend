@@ -7,6 +7,7 @@ using OTAS.Services;
 using OTAS.DTO.Get;
 using System.Collections.Generic;
 using Azure.Core;
+using System.Reflection.Metadata.Ecma335;
 
 namespace OTAS.Repository
 {
@@ -56,6 +57,30 @@ namespace OTAS.Repository
                 }).ToListAsync();
               
             return liquidations;
+        }
+
+        public async Task<List<RequestToLiquidate>> GetRequestsToLiquidatesByTypeAsync(string type, int userId)
+        {
+            List<RequestToLiquidate> reqs = new();
+            if(type == "AV")
+            {
+                reqs.AddRange(await _context.AvanceVoyages.Where(av => av.UserId == userId).Where(av => av.LatestStatus == 10).Select(av => new RequestToLiquidate
+                {
+                    Id = av.Id,
+                    Description = av.OrdreMission.Description,
+                }).ToListAsync());
+            }
+
+            if (type == "AC")
+            {
+                reqs.AddRange(await _context.AvanceCaisses.Where(ac => ac.UserId == userId).Where(ac => ac.LatestStatus == 10).Select(ac => new RequestToLiquidate
+                {
+                    Id = ac.Id,
+                    Description = ac.Description,
+                }).ToListAsync());
+            }
+
+            return reqs;
         }
 
         public async Task<List<LiquidationTableDTO>> GetLiquidationsTableForDecider(int deciderUserId)

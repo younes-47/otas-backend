@@ -313,5 +313,20 @@ namespace OTAS.Repository
             var saved = await _context.SaveChangesAsync();
             return saved > 0;
         }
+
+        public async Task<LiquidateAvanceVoyageViewDTO> GetAvanceVoyageDetailsForLiquidationAsync(int requestId)
+        {
+            return await _context.AvanceVoyages.Where(av => av.Id == requestId).Select(av => new LiquidateAvanceVoyageViewDTO
+            {
+                Id = av.Id,
+                OnBehalf = av.OnBehalf,
+                Description = av.OrdreMission.Description,
+                Currency = av.Currency,
+                EstimatedTotal = av.EstimatedTotal,
+                CreateDate = av.CreateDate,
+                Expenses = _mapper.Map<List<ExpenseDTO>>(av.Expenses),
+                Trips = _mapper.Map<List<TripDTO>>(av.Trips),
+            }).FirstAsync();
+        }
     }
 }

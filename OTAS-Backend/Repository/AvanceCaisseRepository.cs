@@ -278,6 +278,20 @@ namespace OTAS.Repository
             return lastCreated;
         }
 
+        public async Task<LiquidateAvanceCaisseViewDTO> GetAvanceCaisseDetailsForLiquidationAsync(int requestId)
+        {
+            return await _context.AvanceCaisses.Where(ac => ac.Id == requestId).Select(ac => new LiquidateAvanceCaisseViewDTO
+            {
+                Id = ac.Id,
+                OnBehalf = ac.OnBehalf,
+                Description = ac.Description,
+                Currency = ac.Currency,
+                EstimatedTotal = ac.EstimatedTotal,
+                CreateDate = ac.CreateDate,
+                Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses),
+            }).FirstAsync();
+        }
+
 
         public async Task<string?> DecodeStatusAsync(int statusCode)
         {

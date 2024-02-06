@@ -263,6 +263,7 @@ namespace OTAS.Controllers
             {
                 ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByAvanceCaisseIdAsync(avanceCaisse.Id);
                 avanceCaisse.ActualRequester = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+                avanceCaisse.ActualRequester.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
             }
 
             // adding those more detailed status that are not in the DB
