@@ -314,9 +314,9 @@ namespace OTAS.Repository
             return saved > 0;
         }
 
-        public async Task<LiquidateAvanceVoyageViewDTO> GetAvanceVoyageDetailsForLiquidationAsync(int requestId)
+        public async Task<LiquidationRequestDetailsDTO> GetAvanceVoyageDetailsForLiquidationAsync(int requestId)
         {
-            return await _context.AvanceVoyages.Where(av => av.Id == requestId).Select(av => new LiquidateAvanceVoyageViewDTO
+            return await _context.AvanceVoyages.Where(av => av.Id == requestId).Select(av => new LiquidationRequestDetailsDTO
             {
                 Id = av.Id,
                 OnBehalf = av.OnBehalf,

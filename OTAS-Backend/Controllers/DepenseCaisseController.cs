@@ -294,8 +294,8 @@ namespace OTAS.Controllers
 
             result = await _depenseCaisseService.DeleteDraftedDepenseCaisse(depenseCaisse);
             if (!result.Success) return BadRequest(result.Message);
-            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
 
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
             var depenseCaisses = await _depenseCaisseRepository.GetDepensesCaisseByUserIdAsync(user.Id);
 

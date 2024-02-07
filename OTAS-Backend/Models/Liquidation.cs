@@ -17,7 +17,7 @@ public partial class Liquidation
 
     public decimal? ActualTotal { get; set; }
 
-    public string? ReceiptsFileName { get; set; }
+    public string ReceiptsFileName { get; set; } = null!;
 
     public int? Result { get; set; }
 

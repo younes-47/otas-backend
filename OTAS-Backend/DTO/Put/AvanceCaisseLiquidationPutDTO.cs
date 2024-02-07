@@ -1,11 +1,10 @@
-﻿using OTAS.DTO.Put;
+﻿using OTAS.DTO.Post;
 
-namespace OTAS.DTO.Post
+namespace OTAS.DTO.Put
 {
-    public class AvanceCaisseLiquidationPostDTO
+    public class AvanceCaisseLiquidationPutDTO
     {
-        public int AvanceCaisseId { get; set; }
-        public Byte[] ReceiptsFile { get; set; } = null!;
+        public Byte[]? ReceiptsFile { get; set; }
         public virtual List<ExpenseLiquidationPutDTO> ExpensesLiquidations { get; set; } = null!;
         public virtual List<ExpenseNoCurrencyPostDTO> NewExpenses { get; set; } = new List<ExpenseNoCurrencyPostDTO>();
     }

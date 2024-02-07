@@ -21,7 +21,7 @@ namespace OTAS.Interfaces.IRepository
         Task<string?> DecodeStatusAsync(int statusCode);
         Task<decimal[]> GetRequesterAllTimeRequestedAmountsByUserIdAsync(int userId);
         Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId);
-        Task<LiquidateAvanceCaisseViewDTO> GetAvanceCaisseDetailsForLiquidationAsync(int requestId);
+        Task<LiquidationRequestDetailsDTO> GetAvanceCaisseDetailsForLiquidationAsync(int requestId);
         Task<bool> SaveAsync();
 
     }

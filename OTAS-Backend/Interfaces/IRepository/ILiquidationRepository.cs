@@ -7,6 +7,9 @@ namespace OTAS.Interfaces.IRepository
 {
     public interface ILiquidationRepository
     {
+        Task<Liquidation?> FindLiquidationAsync(int liquidationId);
+        Task<ServiceResult> DeleteLiquidationAync(Liquidation liquidation);
+        Task<LiquidationViewDTO> GetLiquidationFullDetailsByIdForRequester(int liquidationId);
         Task<Liquidation> GetLiquidationByIdAsync(int id);
         Task<ServiceResult> AddLiquidationAsync(Liquidation liquidation);
         Task<List<LiquidationTableDTO>> GetLiquidationsTableForRequster(int userId);

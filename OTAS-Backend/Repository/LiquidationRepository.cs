@@ -19,6 +19,51 @@ namespace OTAS.Repository
             _context = context;
         }
 
+        public async Task<Liquidation?> FindLiquidationAsync(int liquidationId)
+        {
+            return await _context.Liquidations.FindAsync(liquidationId);
+        }
+
+        public async Task<ServiceResult> DeleteLiquidationAync(Liquidation liquidation)
+        {
+            ServiceResult result = new();
+            _context.Remove(liquidation);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "Liquidation has been deleted successfully" : "Something went wrong while deleting the Liquidation from DB.";
+            return result;
+        }
+
+        public async Task<LiquidationViewDTO> GetLiquidationFullDetailsByIdForRequester(int liquidationId)
+        {
+            return await _context.Liquidations
+                .Where(lq => lq.Id == liquidationId)
+                .Include(lq => lq.AvanceCaisse)
+                .Include(lq => lq.AvanceVoyage)
+                .Include(lq => lq.LatestStatusNavigation)
+                .Include(lq => lq.StatusHistories)
+                .Select(lq => new LiquidationViewDTO
+                {
+                    Id = lq.Id,
+                    RequestId = lq.AvanceVoyageId != null ? (int)lq.AvanceVoyageId : (int)lq.AvanceCaisseId,
+                    RequestType = lq.AvanceVoyageId != null ? "AV" : "AC",
+                    ActualTotal = (decimal)lq.ActualTotal,
+                    OnBehalf = lq.OnBehalf,
+                    DeciderComment = lq.DeciderComment,
+                    CreateDate = lq.CreateDate,
+                    LatestStatus = lq.LatestStatusNavigation.StatusString,
+                    ReceiptsFileName = lq.ReceiptsFileName,
+                    StatusHistory = lq.StatusHistories.Select(sh => new StatusHistoryDTO
+                    {
+                        Status = sh.StatusNavigation.StatusString,
+                        DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
+                        DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
+                        DeciderComment = sh.DeciderComment,
+                        CreateDate = sh.CreateDate
+                    }).ToList(),
+                }).FirstAsync();
+        }
+
+
         public async Task<Liquidation> GetLiquidationByIdAsync(int id)
         {
             return await _context.Liquidations.Where(lq => lq.Id == id).FirstAsync();
@@ -37,7 +82,6 @@ namespace OTAS.Repository
         {
             List<LiquidationTableDTO> liquidations = await _context.Liquidations
                 .Where(lq => lq.UserId == userId)
-                .Where(lq => lq.AvanceCaisseId != null && lq.AvanceVoyageId != null)
                 .Include(lq => lq.LatestStatusNavigation)
                 .Include(lq => lq.AvanceCaisse)
                 .Include(lq => lq.AvanceVoyage)

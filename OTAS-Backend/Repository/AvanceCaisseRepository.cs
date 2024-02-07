@@ -278,9 +278,9 @@ namespace OTAS.Repository
             return lastCreated;
         }
 
-        public async Task<LiquidateAvanceCaisseViewDTO> GetAvanceCaisseDetailsForLiquidationAsync(int requestId)
+        public async Task<LiquidationRequestDetailsDTO> GetAvanceCaisseDetailsForLiquidationAsync(int requestId)
         {
-            return await _context.AvanceCaisses.Where(ac => ac.Id == requestId).Select(ac => new LiquidateAvanceCaisseViewDTO
+            return await _context.AvanceCaisses.Where(ac => ac.Id == requestId).Select(ac => new LiquidationRequestDetailsDTO
             {
                 Id = ac.Id,
                 OnBehalf = ac.OnBehalf,

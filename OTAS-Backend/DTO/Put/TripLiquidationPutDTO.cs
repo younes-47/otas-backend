@@ -3,6 +3,6 @@
     public class TripLiquidationPutDTO
     {
         public int TripId { get; set; }
-        public decimal ActualValue { get; set; }
+        public decimal ActualFee { get; set; }
     }
 }
