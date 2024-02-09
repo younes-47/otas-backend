@@ -1,20 +1,22 @@
-﻿using Microsoft.EntityFrameworkCore.Diagnostics;
-
-namespace OTAS.DTO.Get
+﻿namespace OTAS.DTO.Get
 {
-    public class LiquidationViewDTO
+    public class LiquidationDeciderViewDTO
     {
         public int Id { get; set; }
+
+        public int UserId { get; set; }
 
         public int RequestId { get; set; }
 
         public string RequestType { get; set; } = null!;
 
-        public bool OnBehalf {  get; set; }
+        public virtual UserInfoDTO Requester { get; set; } = new UserInfoDTO();
+
+        public bool OnBehalf { get; set; }
 
         public decimal ActualTotal { get; set; }
 
-        public decimal Result {  get; set; }
+        public decimal Result { get; set; }
 
         public byte[] ReceiptsFile { get; set; } = null!;
 
@@ -29,7 +31,5 @@ namespace OTAS.DTO.Get
         public LiquidationRequestDetailsDTO RequestDetails { get; set; } = null!;
 
         public virtual List<StatusHistoryDTO> StatusHistory { get; set; } = new List<StatusHistoryDTO>();
-
-
     }
 }

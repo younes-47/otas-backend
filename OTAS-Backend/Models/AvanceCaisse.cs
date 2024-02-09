@@ -37,7 +37,7 @@ public partial class AvanceCaisse
 
     public virtual StatusCode LatestStatusNavigation { get; set; } = null!;
 
-    public virtual ICollection<Liquidation> Liquidations { get; set; } = new List<Liquidation>();
+    public virtual Liquidation? Liquidation { get; set; }
 
     public virtual ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
 

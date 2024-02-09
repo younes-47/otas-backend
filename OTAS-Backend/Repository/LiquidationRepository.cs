@@ -14,9 +14,12 @@ namespace OTAS.Repository
     public class LiquidationRepository : ILiquidationRepository
     {
         private readonly OtasContext _context;
-        public LiquidationRepository(OtasContext context)
+        private readonly IDeciderRepository _deciderRepository;
+
+        public LiquidationRepository(OtasContext context, IDeciderRepository deciderRepository)
         {
             _context = context;
+            _deciderRepository = deciderRepository;
         }
 
         public async Task<Liquidation?> FindLiquidationAsync(int liquidationId)
@@ -47,6 +50,7 @@ namespace OTAS.Repository
                     RequestId = lq.AvanceVoyageId != null ? (int)lq.AvanceVoyageId : (int)lq.AvanceCaisseId,
                     RequestType = lq.AvanceVoyageId != null ? "AV" : "AC",
                     ActualTotal = (decimal)lq.ActualTotal,
+                    Result = lq.Result,
                     OnBehalf = lq.OnBehalf,
                     DeciderComment = lq.DeciderComment,
                     CreateDate = lq.CreateDate,
@@ -108,7 +112,12 @@ namespace OTAS.Repository
             List<RequestToLiquidate> reqs = new();
             if(type == "AV")
             {
-                reqs.AddRange(await _context.AvanceVoyages.Where(av => av.UserId == userId).Where(av => av.LatestStatus == 10).Select(av => new RequestToLiquidate
+                reqs.AddRange(await _context.AvanceVoyages
+                    .Include(av => av.Liquidation)
+                    .Where(av => av.UserId == userId)
+                    .Where(av => av.LatestStatus == 10)
+                    .Where(av => av.Liquidation == null && av.Liquidation.AvanceVoyage == null && av.Liquidation.AvanceVoyageId != av.Id)
+                    .Select(av => new RequestToLiquidate
                 {
                     Id = av.Id,
                     Description = av.OrdreMission.Description,
@@ -117,7 +126,12 @@ namespace OTAS.Repository
 
             if (type == "AC")
             {
-                reqs.AddRange(await _context.AvanceCaisses.Where(ac => ac.UserId == userId).Where(ac => ac.LatestStatus == 10).Select(ac => new RequestToLiquidate
+                reqs.AddRange(await _context.AvanceCaisses
+                    .Include(av => av.Liquidation)
+                    .Where(ac => ac.UserId == userId)
+                    .Where(ac => ac.LatestStatus == 10)
+                    .Where(av => av.Liquidation == null && av.Liquidation.AvanceCaisse == null && av.Liquidation.AvanceCaisseId != av.Id)
+                    .Select(ac => new RequestToLiquidate
                 {
                     Id = ac.Id,
                     Description = ac.Description,
@@ -127,58 +141,137 @@ namespace OTAS.Repository
             return reqs;
         }
 
-        public async Task<List<LiquidationTableDTO>> GetLiquidationsTableForDecider(int deciderUserId)
+        public async Task<List<LiquidationDeciderTableDTO>> GetLiquidationsTableForDecider(int deciderUserId)
         {
             /* Get the records that needs to be decided upon now */
-            List<LiquidationTableDTO> liquidations = await _context.Liquidations
-                            .Where(lq => lq.NextDeciderUserId == deciderUserId)
-                            .Where(lq => lq.AvanceCaisseId != null && lq.AvanceVoyageId != null)
-                            .Include(lq => lq.LatestStatusNavigation)
-                            .Include(lq => lq.AvanceCaisse)
-                            .Include(lq => lq.AvanceVoyage)
-                            .Select(lq => new LiquidationTableDTO()
-                            {
-                                Id = lq.Id,
-                                OnBehalf = lq.OnBehalf,
-                                ActualTotal = lq.ActualTotal,
-                                ReceiptsFileName = lq.ReceiptsFileName,
-                                Result = lq.Result,
-                                CreateDate = lq.CreateDate,
-                                LatestStatus = lq.LatestStatusNavigation.StatusString,
-                                RequestType = lq.AvanceCaisseId != null ? "AC" : "AV",
-                                RequestId = lq.AvanceCaisseId != null ? (int)lq.AvanceCaisseId : (int)lq.AvanceVoyageId,
-                                Description = lq.AvanceCaisseId != null ? lq.AvanceCaisse.Description : lq.AvanceVoyage.OrdreMission.Description,
-                                Currency = lq.AvanceCaisseId != null ? lq.AvanceCaisse.Currency : lq.AvanceVoyage.Currency,
-                            }).ToListAsync();
+            List<LiquidationDeciderTableDTO> liquidations = await _context.Liquidations
+                .Include(lq => lq.LatestStatusNavigation)
+                .Include(lq => lq.AvanceCaisse)
+                .Include(lq => lq.AvanceVoyage)
+                .Where(lq => lq.NextDeciderUserId == deciderUserId)
+                .Select(lq => new LiquidationDeciderTableDTO
+                {
+                    Id = lq.Id,
+                    RequestType = lq.AvanceCaisseId != null ? "AC" : "AV",
+                    RequestId = lq.AvanceCaisseId != null ? (int)lq.AvanceCaisseId : (int)lq.AvanceVoyageId,
+                    ActualTotal = lq.ActualTotal,
+                    NextDeciderUserName = lq.NextDecider != null ? lq.NextDecider.Username : null,
+                    ReceiptsFileName = lq.ReceiptsFileName,
+                    OnBehalf = lq.OnBehalf,
+                    Description = lq.AvanceCaisseId != null ? lq.AvanceCaisse.Description : lq.AvanceVoyage.OrdreMission.Description,
+                    Currency = lq.Currency,
+                    CreateDate = lq.CreateDate,
+                    Result = lq.Result,
+                })
+                .ToListAsync();
+
 
             /* Get the records that have been already decided upon and add it to the previous list */
-            var notMappedliquidations = await _context.StatusHistories
-                .Where(sh => sh.DeciderUserId == deciderUserId)
-                .Select(sh => sh.Liquidation).ToListAsync();
-
-            List<LiquidationTableDTO> mappedLiquidations = new();
-
-            foreach (var liquidation in notMappedliquidations)
+            if (_context.StatusHistories.Where(sh => sh.LiquidationId != null && sh.DeciderUserId == deciderUserId).Any())
             {
-                LiquidationTableDTO mappedLiquidation = new();
-                mappedLiquidation.Id = liquidation.Id;
-                mappedLiquidation.OnBehalf = liquidation.OnBehalf;
-                mappedLiquidation.ActualTotal = liquidation.ActualTotal;
-                mappedLiquidation.ReceiptsFileName = liquidation.ReceiptsFileName;
-                mappedLiquidation.Result = liquidation.Result;
-                mappedLiquidation.CreateDate = liquidation.CreateDate;
-                mappedLiquidation.LatestStatus = liquidation.LatestStatusNavigation.StatusString;
-                mappedLiquidation.RequestType = liquidation.AvanceCaisseId != null ? "AC" : "AV";
-                mappedLiquidation.RequestId = liquidation.AvanceCaisseId != null ? (int)liquidation.AvanceCaisseId : (int)liquidation.AvanceVoyageId;
-                mappedLiquidation.Description = liquidation.AvanceCaisseId != null ? liquidation.AvanceCaisse.Description : liquidation.AvanceVoyage.OrdreMission.Description;
-                mappedLiquidation.Currency = liquidation.AvanceCaisseId != null ? liquidation.AvanceCaisse.Currency : liquidation.AvanceVoyage.Currency;
-
-                mappedLiquidations.Add(mappedLiquidation);
+                List<LiquidationDeciderTableDTO> liquidations2 = await _context.StatusHistories
+                        .Where(sh => sh.DeciderUserId == deciderUserId && sh.LiquidationId != null)
+                        .Include(sh => sh.Liquidation)
+                        .Select(sh => new LiquidationDeciderTableDTO
+                        {
+                            Id = sh.Liquidation.Id,
+                            RequestType = sh.Liquidation.AvanceCaisseId != null ? "AC" : "AV",
+                            RequestId = sh.Liquidation.AvanceCaisseId != null ? (int)sh.Liquidation.AvanceCaisseId : (int)sh.Liquidation.AvanceVoyageId,
+                            ActualTotal = sh.Liquidation.ActualTotal,
+                            NextDeciderUserName = sh.Liquidation.NextDecider != null ? sh.Liquidation.NextDecider.Username : null,
+                            ReceiptsFileName = sh.Liquidation.ReceiptsFileName,
+                            OnBehalf = sh.Liquidation.OnBehalf,
+                            Description = sh.Liquidation.AvanceCaisseId != null ? sh.Liquidation.AvanceCaisse.Description : sh.Liquidation.AvanceVoyage.OrdreMission.Description,
+                            Currency = sh.Liquidation.Currency,
+                            CreateDate = sh.Liquidation.CreateDate,
+                            Result = sh.Liquidation.Result,
+                        })
+                        .ToListAsync();
+                liquidations.AddRange(liquidations2);
             }
 
-            liquidations.AddRange(mappedLiquidations);
 
-            return liquidations;
+            return liquidations.Distinct(new LiquidationDeciderTableDTO()).ToList();
+        }
+
+        public async Task<ServiceResult> UpdateLiquidationAsync(Liquidation liquidation)
+        {
+            ServiceResult result = new();
+            _context.Update(liquidation);
+            result.Success = await SaveAsync();
+            result.Message = result.Success == true ? "Liquidation has been updated successfully" : "Something went wrong while updating the liquidation";
+            return result;
+        }
+
+        public async Task<int> GetLiquidationNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false)
+        {
+            int deciderUserId;
+            switch (currentlevel)
+            {
+                case "MG":
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("FM");
+                    break;
+
+                case "FM":
+                    if (isReturnedToTRbyFM == true)
+                    {
+                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR"); /* in case FM returns it to TR */
+                        break;
+                    }
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("GD");
+                    break;
+
+                case "GD":
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
+                    break;
+
+                case "TR":
+                    if (isReturnedToFMByTR == true)
+                    {
+                        deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("FM"); /* In case TR returns it to FM */
+                        break;
+                    }
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR"); /* In case TR aprroves it, the next decider is still TR*/
+                    break;
+                default:
+                    deciderUserId = await _deciderRepository.GetDeciderUserIdByDeciderLevel("TR");
+                    break;
+            }
+
+            return deciderUserId;
+        }
+
+        public async Task<LiquidationDeciderViewDTO> GetLiquidationFullDetailsByIdForDecider(int liquidationId)
+        {
+            return await _context.Liquidations
+                .Where(lq => lq.Id == liquidationId)
+                .Include(lq => lq.LatestStatusNavigation)
+                .Include(lq => lq.StatusHistories)
+                .Include(lq => lq.AvanceCaisse)
+                .Include(lq => lq.AvanceVoyage)
+                .Select(lq => new LiquidationDeciderViewDTO
+                {
+                    Id = lq.Id,
+                    UserId = lq.UserId,
+                    RequestId = lq.AvanceVoyageId != null ? (int)lq.AvanceVoyageId : (int)lq.AvanceCaisseId,
+                    RequestType = lq.AvanceVoyageId != null ? "AV" : "AC",
+                    DeciderComment = lq.DeciderComment != null ? lq.DeciderComment : null,
+                    ActualTotal = lq.ActualTotal,
+                    Result = lq.Result,
+                    OnBehalf = lq.OnBehalf,
+                    LatestStatus = lq.LatestStatusNavigation.StatusString,
+                    CreateDate = lq.CreateDate,
+                    ReceiptsFileName = lq.ReceiptsFileName,
+                    StatusHistory = lq.StatusHistories.Select(sh => new StatusHistoryDTO
+                    {
+                        Status = sh.StatusNavigation.StatusString,
+                        DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
+                        DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
+                        DeciderComment = sh.DeciderComment,
+                        CreateDate = sh.CreateDate
+                    }).ToList(),
+                })
+                .FirstAsync();
         }
 
         // Save context state

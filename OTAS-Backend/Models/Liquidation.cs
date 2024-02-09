@@ -15,11 +15,13 @@ public partial class Liquidation
 
     public int? AvanceCaisseId { get; set; }
 
-    public decimal? ActualTotal { get; set; }
+    public decimal ActualTotal { get; set; }
+
+    public string Currency { get; set; } = null!;
 
     public string ReceiptsFileName { get; set; } = null!;
 
-    public int? Result { get; set; }
+    public decimal Result { get; set; }
 
     public int LatestStatus { get; set; }
 

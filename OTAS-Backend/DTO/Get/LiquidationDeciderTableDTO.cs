@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Http.Features;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace OTAS.DTO.Get
 {
-    public class LiquidationTableDTO
+    public class LiquidationDeciderTableDTO : IEqualityComparer<LiquidationDeciderTableDTO>
     {
         public int Id { get; set; }
 
@@ -14,6 +14,8 @@ namespace OTAS.DTO.Get
 
         public string? Description { get; set; }
 
+        public string NextDeciderUserName { get; set; } = null!;
+
         public decimal ActualTotal { get; set; }
 
         public string Currency { get; set; } = null!;
@@ -22,9 +24,16 @@ namespace OTAS.DTO.Get
 
         public decimal Result { get; set; }
 
-        public string LatestStatus { get; set; } = null!;
-
         public DateTime CreateDate { get; set; }
 
+        public bool Equals(LiquidationDeciderTableDTO? x, LiquidationDeciderTableDTO? y)
+        {
+            return x != null && y != null && x.Id == y.Id;
+        }
+
+        public int GetHashCode([DisallowNull] LiquidationDeciderTableDTO obj)
+        {
+            return obj.Id.GetHashCode();
+        }
     }
 }

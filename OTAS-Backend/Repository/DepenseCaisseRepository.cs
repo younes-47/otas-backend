@@ -90,8 +90,6 @@ namespace OTAS.Repository
         }
 
 
-
-
         public async Task<ServiceResult> AddDepenseCaisseAsync(DepenseCaisse depenseCaisse)
         {
             ServiceResult result = new();

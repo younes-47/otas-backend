@@ -26,6 +26,7 @@ namespace OTAS.Controllers
         private readonly ILdapAuthenticationService _ldapAuthenticationService;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IUserRepository _userRepository;
+        private readonly IMiscService _miscService;
         private readonly IMapper _mapper;
 
         public DepenseCaisseController(IDepenseCaisseService depenseCaisseService,
@@ -34,6 +35,7 @@ namespace OTAS.Controllers
             ILdapAuthenticationService ldapAuthenticationService,
             IWebHostEnvironment webHostEnvironment,
             IUserRepository userRepository,
+            IMiscService miscService,
             IMapper mapper)
         {
             _depenseCaisseService = depenseCaisseService;
@@ -42,6 +44,7 @@ namespace OTAS.Controllers
             _ldapAuthenticationService = ldapAuthenticationService;
             _webHostEnvironment = webHostEnvironment;
             _userRepository = userRepository;
+            _miscService = miscService;
             _mapper = mapper;
         }
 
@@ -133,45 +136,7 @@ namespace OTAS.Controllers
             }
 
             // adding those more detailed status that are not in the DB
-            for (int i = depenseCaisseDetails.StatusHistory.Count - 1; i >= 0; i--)
-            {
-                StatusHistoryDTO statusHistory = depenseCaisseDetails.StatusHistory[i];
-                StatusHistoryDTO explicitStatusHistory = new();
-                switch (statusHistory.Status)
-                {
-                    case "Pending Manager's Approval":
-                        explicitStatusHistory.Status = "Submitted";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        break;
-                    case "Pending HR's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Finance Department's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending General Director's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Vice President's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    default:
-                        continue;
-                }
-                depenseCaisseDetails.StatusHistory.Insert(i, explicitStatusHistory);
-            }
+            depenseCaisseDetails.StatusHistory = _miscService.IllustrateStatusHistory(depenseCaisseDetails.StatusHistory);
 
             return Ok(depenseCaisseDetails);
         }
@@ -359,45 +324,8 @@ namespace OTAS.Controllers
             }
 
             // adding those more detailed status that are not in the DB
-            for (int i = depenseCaisse.StatusHistory.Count - 1; i >= 0; i--)
-            {
-                StatusHistoryDTO statusHistory = depenseCaisse.StatusHistory[i];
-                StatusHistoryDTO explicitStatusHistory = new();
-                switch (statusHistory.Status)
-                {
-                    case "Pending Manager's Approval":
-                        explicitStatusHistory.Status = "Submitted";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        break;
-                    case "Pending HR's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Finance Department's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending General Director's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Vice President's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    default:
-                        continue;
-                }
-                depenseCaisse.StatusHistory.Insert(i, explicitStatusHistory);
-            }
+            depenseCaisse.StatusHistory = _miscService.IllustrateStatusHistory(depenseCaisse.StatusHistory);
+
             return Ok(depenseCaisse);
         }
 

@@ -5,11 +5,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
+using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
 using OTAS.Services;
+using TMA_App.Services;
 
 namespace OTAS.Controllers
 {
@@ -25,6 +27,8 @@ namespace OTAS.Controllers
         private readonly IAvanceCaisseRepository _avanceCaisseRepository;
         private readonly ITripRepository _tripRepository;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly ILdapAuthenticationService _ldapAuthenticationService;
+        private readonly IMiscService _miscService;
         private readonly IMapper _mapper;
         private readonly IExpenseRepository _expenseRepository;
         private readonly IUserRepository _userRepository;
@@ -36,6 +40,8 @@ namespace OTAS.Controllers
             IAvanceCaisseRepository avanceCaisseRepository,
             ITripRepository tripRepository,
             IWebHostEnvironment webHostEnvironment,
+            ILdapAuthenticationService ldapAuthenticationService,
+            IMiscService miscService,
             IMapper mapper,
             IExpenseRepository expenseRepository,
             IUserRepository userRepository)
@@ -47,6 +53,8 @@ namespace OTAS.Controllers
             _avanceCaisseRepository = avanceCaisseRepository;
             _tripRepository = tripRepository;
             _webHostEnvironment = webHostEnvironment;
+            _ldapAuthenticationService = ldapAuthenticationService;
+            _miscService = miscService;
             _mapper = mapper;
             _expenseRepository = expenseRepository;
             _userRepository = userRepository;
@@ -104,7 +112,7 @@ namespace OTAS.Controllers
 
         [Authorize(Roles = "requester , decider")]
         [HttpDelete("Delete")]
-        public async Task<IActionResult> DeleteDraftedLiquidation(int Id) // Id = depenseCaisseId
+        public async Task<IActionResult> DeleteDraftedLiquidation(int Id) // Id = liquidationId
         {
             ServiceResult result = new();
             
@@ -139,16 +147,14 @@ namespace OTAS.Controllers
             {
                 liquidationDetails.RequestDetails =
                     await _avanceVoyageRepository.GetAvanceVoyageDetailsForLiquidationAsync(liquidationDetails.RequestId);
-
-
-                var av = await _avanceVoyageRepository.GetAvanceVoyageByIdAsync(liquidationDetails.RequestId);
-
+    
                 // if the request is on behalf of someone, get the requester data from the DB
                 if (liquidationDetails.OnBehalf)
                 {
+                    var av = await _avanceVoyageRepository.GetAvanceVoyageByIdAsync(liquidationDetails.RequestId);
                     ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByOrdreMissionIdAsync(av.OrdreMissionId);
-                    liquidationDetails.RequesterInfo = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
-                    liquidationDetails.RequesterInfo.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
+                    liquidationDetails.RequestDetails.ActualRequester = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+                    liquidationDetails.RequestDetails.ActualRequester.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
                 }
                 try
                 {
@@ -177,8 +183,8 @@ namespace OTAS.Controllers
                 if (liquidationDetails.OnBehalf)
                 {
                     ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByAvanceCaisseIdAsync(liquidationDetails.RequestId);
-                    liquidationDetails.RequesterInfo = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
-                    liquidationDetails.RequesterInfo.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
+                    liquidationDetails.RequestDetails.ActualRequester = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+                    liquidationDetails.RequestDetails.ActualRequester.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
                 }
 
                 try
@@ -201,55 +207,15 @@ namespace OTAS.Controllers
                 }
             }
 
-            
-
-            // adding those more detailed status that are not in the DB
-            for (int i = liquidationDetails.StatusHistory.Count - 1; i >= 0; i--)
-            {
-                StatusHistoryDTO statusHistory = liquidationDetails.StatusHistory[i];
-                StatusHistoryDTO explicitStatusHistory = new();
-                switch (statusHistory.Status)
-                {
-                    case "Pending Manager's Approval":
-                        explicitStatusHistory.Status = "Submitted";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        break;
-                    case "Pending HR's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Finance Department's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending General Director's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Vice President's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    default:
-                        continue;
-                }
-                liquidationDetails.StatusHistory.Insert(i, explicitStatusHistory);
-            }
+            // adding more detailed status that are not in the DB
+            liquidationDetails.StatusHistory = _miscService.IllustrateStatusHistory(liquidationDetails.StatusHistory);
 
             return Ok(liquidationDetails);
         }
 
         [Authorize(Roles = "requester,decider")]
         [HttpGet("ReceiptsFile/Download")]
-        public IActionResult DownloadDepenseCaisseReceiptsFile(string fileName)
+        public IActionResult DownloadLiquidationReceiptsFile(string fileName)
         {
             try
             {
@@ -283,6 +249,240 @@ namespace OTAS.Controllers
             }
         }
 
+        [Authorize(Roles = "requester,decider")]
+        [HttpPut("Modify")]
+        public async Task<IActionResult> ModifyLiquidation([FromBody] LiquidationPutDTO liquidation)
+        {
+            // REQUEST VALIDATIONS
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (await _liquidationRepository.FindLiquidationAsync(liquidation.Id) == null) return NotFound("Request is not found");
+
+            bool isActionValid = liquidation.Action.ToLower() == "save" || liquidation.Action.ToLower() == "submit";
+            if (!isActionValid) return BadRequest("Action is invalid! If you are seeing this error, you are probably trying to manipulate the system. If not, please report the IT department with the issue.");
+
+            Liquidation liquidation_DB = await _liquidationRepository.GetLiquidationByIdAsync(liquidation.Id);
+
+            if (liquidation.Action.ToLower() == "save" && (liquidation_DB.LatestStatus == 98 || liquidation_DB.LatestStatus == 97))
+                return BadRequest("You cannot save a returned or a rejected request as a draft!");
+
+            ServiceResult result = new();
+
+            if (liquidation_DB.LatestStatus == 97)
+            {
+                result.Success = false;
+                result.Message = "You can't modify or resubmit a rejected request!";
+                return BadRequest(result);
+            }
+            if (liquidation_DB.LatestStatus != 98 && liquidation_DB.LatestStatus != 99 && liquidation_DB.LatestStatus != 15)
+            {
+                result.Success = false;
+                result.Message = "The DP you are trying to modify is not a draft nor returned! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
+                return BadRequest(result);
+            }
+            if (liquidation.Action.ToLower() == "save" && liquidation_DB.LatestStatus == 98)
+            {
+                result.Success = false;
+                result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
+                return BadRequest(result);
+            }
+
+            if(liquidation.RequestType == "AV")
+            {
+                var db_expenses = await _expenseRepository.GetAvanceVoyageExpensesByAvIdAsync(liquidation.RequestId);
+                List<Expense> required_to_liquidate_expenses = new();
+                foreach(var expense in db_expenses)
+                {
+                    if(expense.EstimatedFee > 0)
+                    {
+                        required_to_liquidate_expenses.Add(expense);
+                    }
+                }
+                if (liquidation.ExpensesLiquidations.Count != required_to_liquidate_expenses.Count)
+                    return BadRequest("Not All expenses are liquidated! You must liquidate all of the expenses you previously mentioned");
+                foreach(var expense in required_to_liquidate_expenses)
+                {
+                    bool isExistant = liquidation.ExpensesLiquidations.Any(ex => ex.ExpenseId == expense.Id);
+                    if (!isExistant)
+                        return BadRequest("One of the expenses related to the request is not liquidated!");
+                }
+
+                var db_trips = await _tripRepository.GetAvanceVoyageTripsByAvIdAsync(liquidation.RequestId);
+                List<Trip> required_to_liquidate_trips = new();
+                foreach (var trip in db_trips)
+                {
+                    if (trip.EstimatedFee > 0)
+                    {
+                        required_to_liquidate_trips.Add(trip);
+                    }
+                }
+                if (liquidation.TripsLiquidations.Count != required_to_liquidate_trips.Count)
+                    return BadRequest("Not All trips are liquidated! You must liquidate all of the trips you previously mentioned");
+                foreach (var trip in required_to_liquidate_trips)
+                {
+                    bool isExistant = liquidation.TripsLiquidations.Any(ex => ex.TripId == trip.Id);
+                    if (!isExistant)
+                        return BadRequest("One of the trips related to the request is not liquidated!");
+                }
+            }
+            else
+            {
+                var db_expenses = await _expenseRepository.GetAvanceCaisseExpensesByAcIdAsync(liquidation.RequestId);
+                List<Expense> required_to_liquidate_expenses = new();
+                foreach (var expense in db_expenses)
+                {
+                    if (expense.EstimatedFee > 0)
+                    {
+                        required_to_liquidate_expenses.Add(expense);
+                    }
+                }
+                if (liquidation.ExpensesLiquidations.Count != required_to_liquidate_expenses.Count)
+                    return BadRequest("Not All expenses are liquidated! You must liquidate all of the expenses you previously mentioned");
+                foreach (var expense in required_to_liquidate_expenses)
+                {
+                    bool isExistant = liquidation.ExpensesLiquidations.Any(ex => ex.ExpenseId == expense.Id);
+                    if (!isExistant)
+                        return BadRequest("One of the expenses related to the request is not liquidated!");
+                }
+            }
+
+
+            result = await _liquidationService.ModifyLiquidation(liquidation, liquidation_DB);
+            if (!result.Success) return BadRequest(result.Message);
+            return Ok(result.Id);
+        }
+
+        [Authorize(Roles = "requester,decider")]
+        [HttpPut("Submit")]
+        public async Task<IActionResult> SubmitLiquidation(int Id)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (await _liquidationRepository.FindLiquidationAsync(Id) == null) return NotFound("Liquidation is not found!");
+            ServiceResult result = new();
+            var testAC = await _liquidationRepository.GetLiquidationByIdAsync(Id);
+            if (testAC.LatestStatus == 1)
+            {
+                result.Success = false;
+                result.Message = "You've already submitted this Liquidation!";
+                return BadRequest(result);
+            }
+            result = await _liquidationService.SubmitLiquidation(Id);
+            if (!result.Success) return BadRequest(result.Message);
+
+            return Ok(result.Message);
+        }
+
+        [Authorize(Roles = "decider")]
+        [HttpPut("Decide")]
+        public async Task<IActionResult> DecideOnLiquidation(DecisionOnRequestPostDTO decision)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (await _liquidationRepository.FindLiquidationAsync(decision.RequestId) == null)
+                return NotFound("Liquidation is not found!");
+
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null)
+                return NotFound("Decider is not found");
+
+            bool isDecisionValid = decision.DecisionString.ToLower() == "approve" || decision.DecisionString.ToLower() == "return" || decision.DecisionString.ToLower() == "reject";
+            if (!isDecisionValid) return BadRequest("Decision is invalid!");
+
+
+            if (await _userRepository.FindUserByUserIdAsync(user.Id) == null)
+                return BadRequest("User not found!");
+
+            int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
+            if (deciderRole != 3)
+                return BadRequest("You are not authorized to decide upon requests!");
+
+            ServiceResult result = await _liquidationService.DecideOnLiquidation(decision, user.Id);
+            if (!result.Success)
+                return BadRequest(result.Message);
+            return Ok(result.Message);
+        }
+
+        [Authorize(Roles = "decider")]
+        [HttpGet("DecideOnRequests/View")]
+        public async Task<IActionResult> ShowLiquidationDetailsPageForDecider(int Id)
+        {
+            if (await _liquidationRepository.FindLiquidationAsync(Id) == null)
+                return NotFound("Liquidation is not found");
+
+            LiquidationDeciderViewDTO liquidation = await _liquidationRepository.GetLiquidationFullDetailsByIdForDecider(Id);
+
+            // Fill the requester data
+            string username = await _userRepository.GetUsernameByUserIdAsync(liquidation.UserId);
+            var userInfo = _ldapAuthenticationService.GetUserInformation(username);
+            liquidation.Requester = userInfo;
+
+            // fill request details
+            if(liquidation.RequestType == "AV")
+            {
+                liquidation.RequestDetails = await _avanceVoyageRepository.GetAvanceVoyageDetailsForLiquidationAsync(liquidation.RequestId);
+
+                // if the request is on behalf of someone, get the requester data from the DB
+                if (liquidation.OnBehalf)
+                {
+                    var av = await _avanceVoyageRepository.GetAvanceVoyageByIdAsync(liquidation.RequestId);
+                    ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByOrdreMissionIdAsync(av.OrdreMissionId);
+                    liquidation.RequestDetails.ActualRequester = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+                    liquidation.RequestDetails.ActualRequester.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
+                }
+                try
+                {
+                    string filePath = Path.Combine(_webHostEnvironment.WebRootPath + "\\liquidation-Avance-Voyage-Receipts", liquidation.ReceiptsFileName);
+
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        liquidation.ReceiptsFile = System.IO.File.ReadAllBytes(filePath);
+                    }
+                    else
+                    {
+                        liquidation.ReceiptsFile = Array.Empty<byte>();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest("Something went wrong while trying to retrieve the file" + ex.Message);
+                }
+            }
+            else
+            {
+                liquidation.RequestDetails = await _avanceCaisseRepository.GetAvanceCaisseDetailsForLiquidationAsync(liquidation.RequestId);
+
+                // if the request is on behalf of someone, get the requester data from the DB
+                if (liquidation.OnBehalf)
+                {
+                    ActualRequester? actualRequesterInfo = await _actualRequesterRepository.FindActualrequesterInfoByAvanceCaisseIdAsync(liquidation.RequestId);
+                    liquidation.RequestDetails.ActualRequester = _mapper.Map<ActualRequesterDTO>(actualRequesterInfo);
+                    liquidation.RequestDetails.ActualRequester.ManagerUserName = await _userRepository.GetUsernameByUserIdAsync(actualRequesterInfo.ManagerUserId);
+                }
+                try
+                {
+                    string filePath = Path.Combine(_webHostEnvironment.WebRootPath + "\\liquidation-Avance-Caisse-Receipts", liquidation.ReceiptsFileName);
+
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        liquidation.ReceiptsFile = System.IO.File.ReadAllBytes(filePath);
+                    }
+                    else
+                    {
+                        liquidation.ReceiptsFile = Array.Empty<byte>();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest("Something went wrong while trying to retrieve the file" + ex.Message);
+                }
+            }
+
+
+            // adding those more detailed status that are not in the DB
+            liquidation.StatusHistory = _miscService.IllustrateStatusHistory(liquidation.StatusHistory);
+
+            return Ok(liquidation);
+        }
 
 
         // REQS THAT MEANT TO BE LIQUIDATED
@@ -369,7 +569,7 @@ namespace OTAS.Controllers
 
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
 
-            List<LiquidationTableDTO> liquidations = await _liquidationRepository.GetLiquidationsTableForDecider(user.Id);
+            List<LiquidationDeciderTableDTO> liquidations = await _liquidationRepository.GetLiquidationsTableForDecider(user.Id);
 
             return Ok(liquidations);
         }

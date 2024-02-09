@@ -56,6 +56,11 @@ namespace OTAS.Repository
             return await _context.StatusHistories.Where(sh => sh.DepenseCaisseId == dcId).FirstAsync();
         }
 
+        public async Task<StatusHistory> GetLatestLiquidationStatusHistroyById(int lqId)
+        {
+            return await _context.StatusHistories.Where(sh => sh.LiquidationId == lqId).FirstAsync();
+        }
+
         public async Task<ServiceResult> UpdateStatusHistoryTotal(int requestId, string requestType, decimal total)
         {
             ServiceResult result = new() { Success = false, Message = "Switch statement has not been executed while updating the SH" };
@@ -77,6 +82,12 @@ namespace OTAS.Repository
                     var SH_DC = await GetLatestDepenseCaisseStatusHistroyById(requestId);
                     SH_DC.Total = total;
                     _context.StatusHistories.Update(SH_DC);
+                    result.Success = await SaveAsync();
+                    break;
+                case "LQ":
+                    var SH_LQ = await GetLatestLiquidationStatusHistroyById(requestId);
+                    SH_LQ.Total = total;
+                    _context.StatusHistories.Update(SH_LQ);
                     result.Success = await SaveAsync();
                     break;
                 default:

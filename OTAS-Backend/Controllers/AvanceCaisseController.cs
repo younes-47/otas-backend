@@ -1,5 +1,7 @@
-﻿using AutoMapper;
+﻿using Aspose.Pdf;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
@@ -24,6 +26,8 @@ namespace OTAS.Controllers
         private readonly ILdapAuthenticationService _ldapAuthenticationService;
         private readonly IAvanceCaisseService _avanceCaisseService;
         private readonly IUserRepository _userRepository;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IMiscService _miscService;
         private readonly IDeciderRepository _deciderRepository;
         private readonly IMapper _mapper;
 
@@ -32,6 +36,8 @@ namespace OTAS.Controllers
             ILdapAuthenticationService ldapAuthenticationService,
             IAvanceCaisseService avanceCaisseService,
             IUserRepository userRepository,
+            IWebHostEnvironment webHostEnvironment,
+            IMiscService miscService,
             IDeciderRepository deciderRepository,
             IMapper mapper)
         {
@@ -40,6 +46,8 @@ namespace OTAS.Controllers
             _ldapAuthenticationService = ldapAuthenticationService;
             _avanceCaisseService = avanceCaisseService;
             _userRepository = userRepository;
+            _webHostEnvironment = webHostEnvironment;
+            _miscService = miscService;
             _deciderRepository = deciderRepository;
             _mapper = mapper;
         }
@@ -156,46 +164,7 @@ namespace OTAS.Controllers
             }
 
             // adding those more detailed status that are not in the DB
-            for (int i = avanceCaisseDetails.StatusHistory.Count - 1; i >= 0; i--)
-            {
-                StatusHistoryDTO statusHistory = avanceCaisseDetails.StatusHistory[i];
-                StatusHistoryDTO explicitStatusHistory = new();
-                switch (statusHistory.Status)
-                {
-                    case "Pending Manager's Approval":
-                        explicitStatusHistory.Status = "Submitted";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        break;
-                    case "Pending HR's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Finance Department's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending General Director's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Vice President's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    default:
-                        continue;
-                }
-                avanceCaisseDetails.StatusHistory.Insert(i, explicitStatusHistory);
-            }
-
+            avanceCaisseDetails.StatusHistory = _miscService.IllustrateStatusHistory(avanceCaisseDetails.StatusHistory);
             return Ok(avanceCaisseDetails);
         }
 
@@ -223,6 +192,33 @@ namespace OTAS.Controllers
             var mappedACs = await _avanceCaisseRepository.GetAvancesCaisseByUserIdAsync(user.Id);
 
             return Ok(mappedACs);
+        }
+
+        [Authorize(Roles = "requester,decider")]
+        [HttpDelete("Document/Download")]
+        public async Task<IActionResult> DownloadAvanceCaisseDocument(int Id)
+        {
+
+            // The path to the documents directory.
+            String directory = Path.Combine(_webHostEnvironment.WebRootPath, "Avance-Caisse-Documents");
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+            // Initialize document object
+            Document document = new();
+            // Add page
+            Page page = document.Pages.Add();
+            // Add text to new page
+            page.Paragraphs.Add(new Aspose.Pdf.Text.TextFragment("Hello World!"));
+
+
+            /* Create file name by concatenating a random string + AC + AC_ID + .pdf extension */
+            string uniqueDocName = _miscService.GenerateRandomString(10) + "_DC_" + user.Username + ".pdf";
+
+            // Save updated PDF
+            document.Save(directory + uniqueDocName);
+
         }
 
         /*
@@ -267,45 +263,8 @@ namespace OTAS.Controllers
             }
 
             // adding those more detailed status that are not in the DB
-            for (int i = avanceCaisse.StatusHistory.Count - 1; i >= 0; i--)
-            {
-                StatusHistoryDTO statusHistory = avanceCaisse.StatusHistory[i];
-                StatusHistoryDTO explicitStatusHistory = new();
-                switch (statusHistory.Status)
-                {
-                    case "Pending Manager's Approval":
-                        explicitStatusHistory.Status = "Submitted";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        break;
-                    case "Pending HR's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Finance Department's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending General Director's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Vice President's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    default:
-                        continue;
-                }
-                avanceCaisse.StatusHistory.Insert(i, explicitStatusHistory);
-            }
+            avanceCaisse.StatusHistory = _miscService.IllustrateStatusHistory(avanceCaisse.StatusHistory);
+
             return Ok(avanceCaisse);
         }
 

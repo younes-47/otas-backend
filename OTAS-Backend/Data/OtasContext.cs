@@ -289,6 +289,10 @@ public partial class OtasContext : DbContext
             entity.ToTable("Liquidation");
 
             entity.Property(e => e.ActualTotal).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.Result).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.Currency)
+                  .HasMaxLength(10)
+                  .IsUnicode(false);
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
@@ -298,12 +302,13 @@ public partial class OtasContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false);
 
-            entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.Liquidations)
-                .HasForeignKey(d => d.AvanceCaisseId)
+
+            entity.HasOne(d => d.AvanceCaisse).WithOne(p => p.Liquidation)
+                .HasForeignKey<Liquidation>(d => d.AvanceCaisseId)
                 .HasConstraintName("FK_AC_Liquidation");
 
-            entity.HasOne(d => d.AvanceVoyage).WithMany(p => p.Liquidations)
-                .HasForeignKey(d => d.AvanceVoyageId)
+            entity.HasOne(d => d.AvanceVoyage).WithOne(p => p.Liquidation)
+                .HasForeignKey<Liquidation>(d => d.AvanceVoyageId)
                 .HasConstraintName("FK_AV_Liquidation");
 
             entity.HasOne(d => d.LatestStatusNavigation).WithMany(p => p.Liquidations)
@@ -515,6 +520,11 @@ public partial class OtasContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__User__3214EC076D2914FA");
 
             entity.ToTable("User");
+
+            modelBuilder.Entity<User>()
+                .Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .UseIdentityColumn(2, 1); // Id 1 is reserved for system user
 
             entity.Property(e => e.FirstName)
                 .HasMaxLength(30)

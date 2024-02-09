@@ -1,5 +1,7 @@
-﻿using OTAS.Interfaces.IService;
+﻿using OTAS.DTO.Get;
+using OTAS.Interfaces.IService;
 using OTAS.Models;
+using System.Collections.Generic;
 using System.Text;
 
 namespace OTAS.Services
@@ -85,6 +87,108 @@ namespace OTAS.Services
             return sb.ToString();
         }
 
+        public List<StatusHistoryDTO> IllustrateStatusHistory(List<StatusHistoryDTO> statusHistories)
+        {
+            List<StatusHistoryDTO> illustratedStatusHistory = statusHistories;
+
+            for (int i = illustratedStatusHistory.Count - 1; i >= 0; i--)
+            {
+                StatusHistoryDTO statusHistory = illustratedStatusHistory[i];
+                StatusHistoryDTO explicitStatusHistory = new();
+                switch (statusHistory.Status)
+                {
+                    case "Pending Manager's Approval":
+                        explicitStatusHistory.Status = "Submitted";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        break;
+                    case "Pending HR's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Finance Department's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending General Director's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Vice President's Approval":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Pending Treasury's Validation":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    case "Preparing Funds":
+                        explicitStatusHistory.Status = "Approved";
+                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        break;
+                    default:
+                        continue;
+                }
+                illustratedStatusHistory.Insert(i, explicitStatusHistory);
+            }
+
+            return illustratedStatusHistory;
+        }
+
+        public string GetDeciderLevelByStatus(int status, string requestType)
+        {
+            string level = "";
+            switch (status)
+            {
+                case 2:
+                    level = "MG";
+                    break;
+                case 3:
+                    if(requestType == "OM")
+                    {
+                        level = "HR";
+                    }
+                    else
+                    {
+                        level = "MG";
+                    }
+                    break;
+                case 4:
+                    level = "FM";
+                    break;
+                case 5:
+                    level = "GD";
+                    break;
+                case 7:
+                    if (requestType == "OM")
+                    {
+                        level = "GD";
+                    }
+                    else
+                    {
+                        level = "VP";
+                    }
+                    break;
+                case 8:
+                    level = "GD";
+                    break;
+                default:
+                    break;
+            }
+
+            return level;
+        }
 
     }
 }

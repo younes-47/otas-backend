@@ -22,6 +22,8 @@ namespace OTAS.Interfaces.IRepository
 
         Task<StatusHistory> GetLatestDepenseCaisseStatusHistroyById(int dcId);
 
+        Task<StatusHistory> GetLatestLiquidationStatusHistroyById(int lqId);
+
         Task<ServiceResult> UpdateStatusHistoryTotal(int requestId, string requestType, decimal total);
 
         Task<ServiceResult> DeleteStatusHistories(List<StatusHistory> statusHistories);

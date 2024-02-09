@@ -22,6 +22,7 @@ namespace OTAS.Controllers
         private readonly IDeciderRepository _deciderRepository;
         private readonly IActualRequesterRepository _actualRequesterRepository;
         private readonly ILdapAuthenticationService _ldapAuthenticationService;
+        private readonly IMiscService _miscService;
         private readonly IMapper _mapper;
         private readonly IUserRepository _userRepository;
 
@@ -30,6 +31,7 @@ namespace OTAS.Controllers
             IDeciderRepository deciderRepository,
             IActualRequesterRepository actualRequesterRepository,
             ILdapAuthenticationService ldapAuthenticationService,
+            IMiscService miscService,
             IMapper mapper,
             IUserRepository userRepository)
         {
@@ -38,6 +40,7 @@ namespace OTAS.Controllers
             _deciderRepository = deciderRepository;
             _actualRequesterRepository = actualRequesterRepository;
             _ldapAuthenticationService = ldapAuthenticationService;
+            _miscService = miscService;
             _mapper = mapper;
             _userRepository = userRepository;
         }
@@ -62,45 +65,8 @@ namespace OTAS.Controllers
 
 
             // adding those more detailed status that are not in the DB
-            for (int i = avanceVoyage.StatusHistory.Count - 1; i >= 0; i--)
-            {
-                StatusHistoryDTO statusHistory = avanceVoyage.StatusHistory[i];
-                StatusHistoryDTO explicitStatusHistory = new();
-                switch (statusHistory.Status)
-                {
-                    case "Pending Manager's Approval":
-                        explicitStatusHistory.Status = "Submitted";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        break;
-                    case "Pending HR's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Finance Department's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending General Director's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Vice President's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    default:
-                        continue;
-                }
-                avanceVoyage.StatusHistory.Insert(i, explicitStatusHistory);
-            }
+            avanceVoyage.StatusHistory = _miscService.IllustrateStatusHistory(avanceVoyage.StatusHistory);
+
             return Ok(avanceVoyage);
         }
 
@@ -152,45 +118,7 @@ namespace OTAS.Controllers
             }
 
             // adding those more detailed status that are not in the DB
-            for (int i = avanceVoyage.StatusHistory.Count - 1; i >= 0; i--)
-            {
-                StatusHistoryDTO statusHistory = avanceVoyage.StatusHistory[i];
-                StatusHistoryDTO explicitStatusHistory = new();
-                switch (statusHistory.Status)
-                {
-                    case "Pending Manager's Approval":
-                        explicitStatusHistory.Status = "Submitted";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        break;
-                    case "Pending HR's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Finance Department's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending General Director's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    case "Pending Vice President's Approval":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
-                        break;
-                    default:
-                        continue;
-                }
-                avanceVoyage.StatusHistory.Insert(i, explicitStatusHistory);
-            }
+            avanceVoyage.StatusHistory = _miscService.IllustrateStatusHistory(avanceVoyage.StatusHistory);
             return Ok(avanceVoyage);
         }
 

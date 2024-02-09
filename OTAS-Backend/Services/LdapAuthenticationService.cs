@@ -152,6 +152,15 @@ namespace TMA_App.Services
                         throw new Exception($"error while retrieving user:\"{username}\" sn"); 
                     };
 
+                    if (result.Properties.Contains("employeeID") && result.Properties["employeeID"].Count > 0)
+                    {
+                        userInfo.RegistrationNumber = result.Properties["employeeID"][0].ToString();
+                    }
+                    else
+                    {
+                        throw new Exception($"error while retrieving user:\"{username}\" sn");
+                    };
+
                     if (result.Properties.Contains("manager") && result.Properties["manager"].Count > 0)
                     {
                         string managerFullField = result.Properties["manager"][0].ToString();
@@ -160,16 +169,10 @@ namespace TMA_App.Services
                     }
                     else
                     {
-                        throw new Exception($"error while retrieving user:\"{username}\" sn");
-                    };
-
-                    if (result.Properties.Contains("employeeID") && result.Properties["employeeID"].Count > 0)
-                    {
-                        userInfo.RegistrationNumber = result.Properties["employeeID"][0].ToString();
-                    }
-                    else
-                    {
-                        throw new Exception($"error while retrieving user:\"{username}\" sn");
+                        if(userInfo.RegistrationNumber.Trim() != "1")
+                        {
+                            throw new Exception($"error while retrieving user:\"{username}\" sn");
+                        }
                     };
 
                     if (result.Properties.Contains("title") && result.Properties["title"].Count > 0)

@@ -8,6 +8,7 @@ using OTAS.DTO.Get;
 using AutoMapper;
 using System.Collections.Generic;
 using System.Linq;
+using OTAS.Interfaces.IService;
 
 namespace OTAS.Repository
 {
@@ -16,12 +17,14 @@ namespace OTAS.Repository
         private readonly OtasContext _context;
         private readonly IDeciderRepository _deciderRepository;
         private readonly IMapper _mapper;
+        private readonly IMiscService _miscService;
 
-        public AvanceCaisseRepository(OtasContext context, IDeciderRepository deciderRepository, IMapper mapper)
+        public AvanceCaisseRepository(OtasContext context, IDeciderRepository deciderRepository, IMapper mapper, IMiscService miscService)
         {
             _context = context;
             _deciderRepository = deciderRepository;
             _mapper = mapper;
+            _miscService = miscService;
         }
 
         public async Task<ServiceResult> AddAvanceCaisseAsync(AvanceCaisse avanceCaisse)
@@ -291,6 +294,38 @@ namespace OTAS.Repository
                 Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses),
             }).FirstAsync();
         }
+
+        public async Task<AvanceCaisseDocumentDetailsDTO> GetAvanceCaisseDocumentDetailsByIdAsync(int avanceCaisseId)
+        {
+            return await _context.AvanceCaisses.Where(ac => ac.Id == avanceCaisseId)
+                        .Include(ac => ac.Expenses)
+                        .Include(ac => ac.StatusHistories)
+                        .Select(ac => new AvanceCaisseDocumentDetailsDTO
+                        {
+                            Id = ac.Id,
+                            UserId = ac.UserId,
+                            Description = ac.Description,
+                            Currency = ac.Currency,
+                            EstimatedTotal = ac.EstimatedTotal,
+                            ActualTotal = ac.ActualTotal,
+                            ConfirmationNumber = ac.ConfirmationNumber,
+                            CreateDate = ac.CreateDate,
+                            Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses),
+                            Signers = ac.StatusHistories
+                                        .Where(lq => lq.AvanceCaisseId == avanceCaisseId)
+                                        .Where(lq => lq.DeciderUserId != null)
+                                        .Where(lq => lq.Id > from ac.StatusHistories where )
+                                        .Select(sh => new Signatory
+                                        {
+                                            FirstName = sh.Decider.FirstName,
+                                            LastName = sh.Decider.FirstName,
+                                            Level = _miscService.GetDeciderLevelByStatus(sh.Status, "AC"),
+                                        })
+                                        .ToList()
+                        }).FirstAsync();
+        }
+
+        
 
 
         public async Task<string?> DecodeStatusAsync(int statusCode)
