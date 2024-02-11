@@ -20,6 +20,9 @@ namespace OTAS.Interfaces.IRepository
         Task<AvanceCaisseDeciderViewDTO> GetAvanceCaisseFullDetailsByIdForDecider(int avanceCaisseId);
         Task<string?> DecodeStatusAsync(int statusCode);
         Task<decimal[]> GetRequesterAllTimeRequestedAmountsByUserIdAsync(int userId);
+
+        Task<decimal[]> GetDeciderAllTimeDecidedUponAmountsByUserIdAsync(int userId);
+
         Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId);
         Task<LiquidationRequestDetailsDTO> GetAvanceCaisseDetailsForLiquidationAsync(int requestId);
         Task<bool> SaveAsync();

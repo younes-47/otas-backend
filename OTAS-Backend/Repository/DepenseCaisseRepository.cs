@@ -272,6 +272,47 @@ namespace OTAS.Repository
             return totalAmounts;
         }
 
+        public async Task<decimal[]> GetDeciderAllTimeDecidedUponAmountsByUserIdAsync(int userId)
+        {
+            decimal[] totalAmounts = new decimal[2];
+            decimal AllTimeTotalMAD = 0.0m;
+            decimal AllTimeTotalEUR = 0.0m;
+
+            List<decimal> resultMAD = await _context.StatusHistories
+                                        .Include(sh => sh.DepenseCaisse)
+                                        .Where(sh => sh.DepenseCaisseId != null && sh.DeciderUserId == userId)
+                                        .Where(sh => sh.DepenseCaisse.Currency == "MAD")
+                                        .Select(sh => sh.DepenseCaisse.Total)
+                                        .ToListAsync();
+            List<decimal> resultEUR = await _context.StatusHistories
+                                        .Include(sh => sh.DepenseCaisse)
+                                        .Where(sh => sh.DepenseCaisseId != null && sh.DeciderUserId == userId)
+                                        .Where(sh => sh.DepenseCaisse.Currency == "EUR")
+                                        .Select(sh => sh.DepenseCaisse.Total)
+                                        .ToListAsync();
+
+            if (resultMAD.Count > 0)
+            {
+                foreach (var item in resultMAD)
+                {
+                    AllTimeTotalMAD += item;
+                }
+            }
+
+            if (resultEUR.Count > 0)
+            {
+                foreach (var item in resultMAD)
+                {
+                    AllTimeTotalEUR += item;
+                }
+            }
+
+            totalAmounts[0] = AllTimeTotalMAD;
+            totalAmounts[1] = AllTimeTotalEUR;
+
+            return totalAmounts;
+        }
+
         public async Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId)
         {
             DateTime? lastCreated = null;
