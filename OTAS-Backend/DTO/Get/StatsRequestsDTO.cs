@@ -6,7 +6,7 @@
 
         public int AllOngoingRequestsCount { get; set; } = 0;
 
-        public int? HoursPassedSinceLastRequest { get; set; }
+        public decimal? HoursPassedSinceLastRequest { get; set; }
 
         public int OrdreMissionsAllTimeCount { get; set; } = 0;
 

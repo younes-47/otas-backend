@@ -1,5 +1,8 @@
-﻿using Aspose.Pdf;
+﻿using Aspose.Cells.Revisions;
+using Aspose.Pdf;
+using Aspose.Pdf.Plugins;
 using AutoMapper;
+using Humanizer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Features;
@@ -12,7 +15,20 @@ using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
 using OTAS.Services;
+using System.Globalization;
 using TMA_App.Services;
+using System.Collections;
+using Aspose.Pdf.Text;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+using System.Linq;
+using System.IO;
+using System.IO.Packaging;
+using iText.Kernel.Pdf;
+using iText.PdfCleanup.Autosweep;
+using iText.PdfCleanup;
+using iText.Layout;
+using iText.Kernel.Colors;
 
 namespace OTAS.Controllers
 {
@@ -194,30 +210,44 @@ namespace OTAS.Controllers
             return Ok(mappedACs);
         }
 
-        [Authorize(Roles = "requester,decider")]
-        [HttpDelete("Document/Download")]
+        [Authorize(Roles = "requester")]
+        [HttpGet("Document/Download")]
         public async Task<IActionResult> DownloadAvanceCaisseDocument(int Id)
         {
+            if(await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null)
+                return NotFound("Request Not Found");
 
-            // The path to the documents directory.
-            String directory = Path.Combine(_webHostEnvironment.WebRootPath, "Avance-Caisse-Documents");
-            if (!Directory.Exists(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-            // Initialize document object
-            Document document = new();
-            // Add page
-            Page page = document.Pages.Add();
-            // Add text to new page
-            page.Paragraphs.Add(new Aspose.Pdf.Text.TextFragment("Hello World!"));
+            string watermarkedFileName = await _avanceCaisseService.GenerateWaterMarkedAvanceCaisseDocument(Id);
+            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+            var watermarkedFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", watermarkedFileName + ".pdf");
 
+            // Remove Watermark
+            CompositeCleanupStrategy strategy = new();
+            strategy.Add(new RegexBasedCleanupStrategy("Evaluation Only. Created with Aspose.PDF. Copyright 2002-2023 Aspose Pty Ltd.")
+                            .SetRedactionColor(ColorConstants.WHITE));
 
-            /* Create file name by concatenating a random string + AC + AC_ID + .pdf extension */
-            string uniqueDocName = _miscService.GenerateRandomString(10) + "_DC_" + user.Username + ".pdf";
+            Guid tempName = Guid.NewGuid();
+            var cleanedDocPath = Path.Combine(tempDir, tempName.ToString() + ".pdf");
 
-            // Save updated PDF
-            document.Save(directory + uniqueDocName);
+            PdfDocument cleanedDoc = new PdfDocument(new PdfReader(watermarkedFilePath), new PdfWriter(cleanedDocPath).SetCompressionLevel(0));
+
+               
+            // Do the magic
+            PdfCleaner.AutoSweepCleanUp(cleanedDoc, strategy);
+
+            cleanedDoc.Close();
+
+            byte[] base64String = System.IO.File.ReadAllBytes(cleanedDocPath);
+
+            /* Delete temp files */
+            System.IO.File.Delete(watermarkedFilePath);
+            System.IO.File.Delete(cleanedDocPath);
+
+            
+
+            Response.Headers.Add($"Content-Disposition", $"attachment; filename=AVANCE_CAISSE_{Id}_DOCUMENT.pdf");
+
+            return Ok(File(base64String, "application/pdf", $"AVANCE_CAISSE_{Id}_DOCUMENT.pdf"));
 
         }
 
@@ -291,6 +321,10 @@ namespace OTAS.Controllers
             if (await _userRepository.GetUserRoleByUserIdAsync(user.Id) != 3) 
                 return BadRequest("You are not authorized to decide upon requests!");
 
+            List<string> levels = await _deciderRepository.GetDeciderLevelsByUserId(user.Id);
+            if (levels.Contains("TR") && decision.DecisionString.ToLower() == "return")
+                return BadRequest("You are not authorized to return requests");
+
             ServiceResult result = await _avanceCaisseService.DecideOnAvanceCaisse(decision, user.Id);
             if (!result.Success) 
                 return BadRequest(result.Message);
@@ -309,8 +343,9 @@ namespace OTAS.Controllers
             if (await _userRepository.GetUserRoleByUserIdAsync(user.Id) != 3)
                 return BadRequest("You are not authorized to decide upon requests!");
 
-            if(await _deciderRepository.GetDeciderLevelByUserId(user.Id) != "TR")
-                return BadRequest("You are not authorized to do this action!");
+            List<string> levels = await _deciderRepository.GetDeciderLevelsByUserId(user.Id);
+            if (levels.Contains("TR") == false)
+                return BadRequest("You are not authorized to perform this action");
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -340,8 +375,10 @@ namespace OTAS.Controllers
             if (await _userRepository.GetUserRoleByUserIdAsync(user.Id) != 3)
                 return BadRequest("You are not authorized to decide upon requests!");
 
-            if (await _deciderRepository.GetDeciderLevelByUserId(user.Id) != "TR")
-                return BadRequest("You are not authorized to do this action!");
+            List<string> levels = await _deciderRepository.GetDeciderLevelsByUserId(user.Id);
+            if (levels.Contains("TR") == false)
+                return BadRequest("You are not authorized to perform this action");
+
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);

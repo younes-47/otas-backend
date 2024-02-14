@@ -15,5 +15,7 @@ namespace OTAS.Interfaces.IService
         Task<ServiceResult> SubmitAvanceCaisse(AvanceCaisse avanceCaisse);
         Task<ServiceResult> ModifyAvanceCaisse(AvanceCaissePutDTO avanceCaisse);
         Task<ServiceResult> DeleteDraftedAvanceCaisse(AvanceCaisse avanceCaisse);
+
+        Task<string> GenerateWaterMarkedAvanceCaisseDocument(int avanceCaisseId);
     }
 }

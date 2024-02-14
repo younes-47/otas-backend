@@ -24,6 +24,7 @@ namespace OTAS.Controllers
         private readonly ILdapAuthenticationService _ldapAuthenticationService;
         private readonly IActualRequesterRepository _actualRequesterRepository;
         private readonly IMiscService _miscService;
+        private readonly IDeciderRepository _deciderRepository;
         private readonly IMapper _mapper;
 
         public OrdreMissionController(IOrdreMissionService ordreMissionService,
@@ -32,6 +33,7 @@ namespace OTAS.Controllers
             ILdapAuthenticationService ldapAuthenticationService,
             IActualRequesterRepository actualRequesterRepository,
             IMiscService miscService,
+            IDeciderRepository deciderRepository,
             IMapper mapper)
         {
             _ordreMissionService = ordreMissionService;
@@ -40,6 +42,7 @@ namespace OTAS.Controllers
             _ldapAuthenticationService = ldapAuthenticationService;
             _actualRequesterRepository = actualRequesterRepository;
             _miscService = miscService;
+            _deciderRepository = deciderRepository;
             _mapper = mapper;
         }
 
@@ -255,6 +258,11 @@ namespace OTAS.Controllers
 
             int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
             if (deciderRole != 3) return BadRequest("You are not authorized to decide upon requests!");
+
+            List<string> levels = await _deciderRepository.GetDeciderLevelsByUserId(user.Id);
+            if (levels.Contains("TR"))
+                return BadRequest("You are not authorized to decide upon Mission Orders");
+
 
             ServiceResult result = await _ordreMissionService.DecideOnOrdreMission(decision,user.Id);
             if (!result.Success) return BadRequest(result.Message);

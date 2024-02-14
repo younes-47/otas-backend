@@ -1,11 +1,25 @@
-﻿using OTAS.DTO.Get;
+﻿using AutoMapper.Execution;
+using OTAS.DTO.Get;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
+using Humanizer;
+using Aspose.Cells;
+using System.Text.RegularExpressions;
+using Aspose.Pdf;
+using Aspose.Pdf.Text;
 
 namespace OTAS.Services
 {
+    /*
+     
+        THIS SERVICE IS INTENDED FOR CALLING HELPER FUNCTIONS THAT CAN BE USED THROUGHOUT THE APPLICATION
+        IT IS NOT RELATED TO ANY SPECIFIC SERVICE
+
+    */
     public class MiscService : IMiscService
     {
         public decimal CalculateExpensesEstimatedTotal(List<Expense> expenses)
@@ -126,10 +140,20 @@ namespace OTAS.Services
                         explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
                         break;
                     case "Pending Treasury's Validation":
-                        explicitStatusHistory.Status = "Approved";
-                        explicitStatusHistory.CreateDate = statusHistory.CreateDate;
-                        explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
-                        explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        if (explicitStatusHistory.DeciderFirstName != null)
+                        {
+                            explicitStatusHistory.Status = "Approved";
+                            explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                            explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
+                            explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        }
+                        else
+                        {
+                            explicitStatusHistory.Status = "Resubmitted";
+                            explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                            explicitStatusHistory.DeciderFirstName = "";
+                            explicitStatusHistory.DeciderLastName = "";
+                        }
                         break;
                     case "Preparing Funds":
                         explicitStatusHistory.Status = "Approved";
@@ -190,5 +214,109 @@ namespace OTAS.Services
             return level;
         }
 
+        public bool IsRequestDecidable(string deciderUsername, string  nextDeciderUsername, string latestStatus)
+        {
+            if(deciderUsername == nextDeciderUsername && latestStatus != "Funds Collected" 
+                && latestStatus != "Finalized" && latestStatus != "Approved")
+                return true;
+
+            return false;
+        }
+
+        public Aspose.Pdf.Table GenerateTripsTableForDocuments(List<TripDTO> trips)
+        {
+            Aspose.Pdf.Table table = new Aspose.Pdf.Table
+            {
+                Border = new Aspose.Pdf.BorderInfo(Aspose.Pdf.BorderSide.All, .5f, Color.Black),
+                DefaultCellBorder = new Aspose.Pdf.BorderInfo(Aspose.Pdf.BorderSide.All, .5f, Color.Black),
+                ColumnWidths = "15% 15% 15% 15% 15% 15% 15%",
+                Alignment = HorizontalAlignment.FullJustify
+
+            };
+            
+
+            Aspose.Pdf.Row headersRows = table.Rows.Add();
+            headersRows.Cells.Add("Depart");
+            headersRows.Cells.Add("Arrive");
+            headersRows.Cells.Add("Methode de transport");
+            headersRows.Cells.Add("Unite");
+            headersRows.Cells.Add("Valeur");
+            headersRows.Cells.Add("Autoroute");
+            headersRows.Cells.Add("Frais Estime");
+
+            foreach (TripDTO trip in trips)
+            {
+                Aspose.Pdf.Row valuesRow = table.Rows.Add();
+                valuesRow.Cells.Add(trip.DepartureDate.ToString("dd/MM/yyyy"));
+                valuesRow.Cells.Add(trip.ArrivalDate.ToString("dd/MM/yyyy"));
+                valuesRow.Cells.Add(trip.TransportationMethod.ToString());
+                valuesRow.Cells.Add(trip.Unit);
+                valuesRow.Cells.Add(trip.Value.ToString().FormatWith(new CultureInfo("fr-FR")));
+                valuesRow.Cells.Add(trip.HighwayFee.ToString().FormatWith(new CultureInfo("fr-FR")));
+                valuesRow.Cells.Add(trip.EstimatedFee.ToString().FormatWith(new CultureInfo("fr-FR")));
+
+            }
+            
+            return table;
+        }
+
+
+        public Aspose.Pdf.Table GenerateSignatoriesTableForDocuments(List<Signatory> signers)
+        {
+            Aspose.Pdf.Table table = new Aspose.Pdf.Table
+            {
+                Border = new Aspose.Pdf.BorderInfo(Aspose.Pdf.BorderSide.All, .5f, Color.Black),
+                DefaultCellBorder = new Aspose.Pdf.BorderInfo(Aspose.Pdf.BorderSide.All, .5f, Color.Black),
+                ColumnWidths = "20% 20% 20% 20% 20%",
+                Alignment = HorizontalAlignment.FullJustify
+
+            };
+
+
+            Aspose.Pdf.Row headersRows = table.Rows.Add();
+            headersRows.Cells.Add("BENEFICIAIRE");
+            headersRows.Cells.Add("MANAGER DEPARTEMENT");
+            headersRows.Cells.Add("TRESORERIE");
+            headersRows.Cells.Add("DIRECTEUR FINANCIER");
+            headersRows.Cells.Add("DIRECTEUR GENERAL");
+
+            Aspose.Pdf.Row valuesRow = table.Rows.Add();
+
+            // Requester
+            valuesRow.Cells.Add("");
+
+            if (signers.Any(s => s.Level == "MG") == true)
+            {
+                valuesRow.Cells.Add(signers.Where(s => s.Level == "MG").Select(s => $"{s.FirstName} {s.LastName}").First());
+            }
+            else
+            {
+                valuesRow.Cells.Add("");
+            }
+
+            // TR
+            valuesRow.Cells.Add("");
+
+            if (signers.Any(s => s.Level == "FM") == true)
+            {
+                valuesRow.Cells.Add(signers.Where(s => s.Level == "FM").Select(s => $"{s.FirstName} {s.LastName}").First());
+            }
+            else
+            {
+                valuesRow.Cells.Add("");
+            }
+
+            if (signers.Any(s => s.Level == "GD") == true)
+            {
+                valuesRow.Cells.Add(signers.Where(s => s.Level == "GD").Select(s => $"{s.FirstName} {s.LastName}").First());
+            }
+            else
+            {
+                valuesRow.Cells.Add("");
+            }
+
+
+            return table;
+        }
     }
 }

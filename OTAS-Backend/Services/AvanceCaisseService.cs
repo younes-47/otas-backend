@@ -1,5 +1,9 @@
-﻿using AutoMapper;
+﻿using Aspose.Pdf.Text;
+using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Humanizer;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OTAS.Data;
 using OTAS.DTO.Get;
@@ -10,6 +14,7 @@ using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
 using System;
+using System.Globalization;
 using System.Text;
 
 
@@ -20,6 +25,7 @@ namespace OTAS.Services
         private readonly IAvanceCaisseRepository _avanceCaisseRepository;
         private readonly IStatusHistoryRepository _statusHistoryRepository;
         private readonly IActualRequesterRepository _actualRequesterRepository;
+        private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IExpenseRepository _expenseRepository;
         private readonly IDeciderRepository _deciderRepository;
         private readonly IUserRepository _userRepository;
@@ -30,6 +36,7 @@ namespace OTAS.Services
         public AvanceCaisseService(IAvanceCaisseRepository avanceCaisseRepository,
             IStatusHistoryRepository statusHistoryRepository,
             IActualRequesterRepository actualRequesterRepository,
+            IWebHostEnvironment webHostEnvironment,
             IExpenseRepository expenseRepository,
             IDeciderRepository deciderRepository,
             IUserRepository userRepository,
@@ -40,6 +47,7 @@ namespace OTAS.Services
             _avanceCaisseRepository = avanceCaisseRepository;
             _statusHistoryRepository = statusHistoryRepository;
             _actualRequesterRepository = actualRequesterRepository;
+            _webHostEnvironment = webHostEnvironment;
             _expenseRepository = expenseRepository;
             _deciderRepository = deciderRepository;
             _userRepository = userRepository;
@@ -54,7 +62,7 @@ namespace OTAS.Services
             ServiceResult result = new();
             try
             {
-                
+
                 var mappedAC = _mapper.Map<AvanceCaisse>(avanceCaisse);
                 List<Expense> expenses = _mapper.Map<List<Expense>>(avanceCaisse.Expenses);
                 mappedAC.EstimatedTotal = _miscService.CalculateExpensesEstimatedTotal(expenses);
@@ -151,7 +159,6 @@ namespace OTAS.Services
             return result;
 
         }
-
 
 
         public async Task<ServiceResult> DecideOnAvanceCaisse(DecisionOnRequestPostDTO decision, int deciderUserId)
@@ -274,7 +281,7 @@ namespace OTAS.Services
                  */
                 decidedAvanceCaisse.ConfirmationNumber = _miscService.GenerateRandomNumber(8); //  
                 result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(decidedAvanceCaisse);
-                if(!result.Success) return result;
+                if (!result.Success) return result;
 
                 StatusHistory decidedAvanceCaisse_SH = new()
                 {
@@ -295,7 +302,7 @@ namespace OTAS.Services
                 result.Message = exception.Message;
                 return result;
             }
-        
+
 
             result.Success = true;
             result.Message = "AvanceCaisse has been decided upon successfully";
@@ -310,7 +317,7 @@ namespace OTAS.Services
             {
                 AvanceCaisse avanceCaisse_DB = await _avanceCaisseRepository.GetAvanceCaisseByIdAsync(avanceCaisseId);
 
-                if( avanceCaisse_DB.ConfirmationNumber != confirmationNumber)
+                if (avanceCaisse_DB.ConfirmationNumber != confirmationNumber)
                 {
                     result.Success = false;
                     result.Message = "Wrong number!";
@@ -322,7 +329,7 @@ namespace OTAS.Services
                 avanceCaisse_DB.LatestStatus = 10;
 
                 result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(avanceCaisse_DB);
-                if(!result.Success) return result;
+                if (!result.Success) return result;
 
                 StatusHistory decidedAvanceCaisse_SH = new()
                 {
@@ -363,7 +370,7 @@ namespace OTAS.Services
                 {
                     //Delete actualrequester info first regardless
                     ActualRequester? actualRequester = await _actualRequesterRepository.FindActualrequesterInfoByAvanceCaisseIdAsync(avanceCaisse.Id);
-                    if(actualRequester != null)
+                    if (actualRequester != null)
                     {
                         result = await _actualRequesterRepository.DeleteActualRequesterInfoAsync(actualRequester);
                         if (!result.Success) return result;
@@ -400,7 +407,7 @@ namespace OTAS.Services
                     expense.Currency = avanceCaisse.Currency;
                 }
                 result = await _expenseRepository.AddExpensesAsync(mappedExpenses);
-                if(!result.Success) return result;
+                if (!result.Success) return result;
 
                 // Map the fetched AC from the DB with the new values and update it
                 avanceCaisse_DB.DeciderComment = null;
@@ -479,7 +486,7 @@ namespace OTAS.Services
 
                 result = await _statusHistoryRepository.DeleteStatusHistories(statusHistories);
                 if (!result.Success) return result;
-                
+
 
                 if (avanceCaisse.OnBehalf == true)
                 {
@@ -506,6 +513,92 @@ namespace OTAS.Services
             result.Message = "\"AvanceCaisse\" has been deleted successfully";
             return result;
         }
+
+        public async Task<string> GenerateWaterMarkedAvanceCaisseDocument(int avanceCaisseId)
+        {
+            AvanceCaisseDocumentDetailsDTO avanceCaisseDetails = await _avanceCaisseRepository.GetAvanceCaisseDocumentDetailsByIdAsync(avanceCaisseId);
+
+
+            var docPath = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files", "AVANCE_CAISSE_DOCUMENT.pdf");
+            Aspose.Pdf.Document pdf = new Aspose.Pdf.Document(docPath);
+            Guid tempName = Guid.NewGuid();
+            // Load PDF file
+            using (pdf)
+            {
+                #pragma warning disable CS8604 // null warning.
+                var placeholders = new Dictionary<string, string>
+                        {
+                            { "<id>", avanceCaisseDetails.Id.ToString() },
+                            { "<full_name>", avanceCaisseDetails.FirstName + " " + avanceCaisseDetails.LastName },
+                            { "<confirmation_number>", avanceCaisseDetails.ConfirmationNumber != null ?
+                                                            avanceCaisseDetails.ConfirmationNumber.ToString()
+                                                            : "N/A"},
+                            { "<date>", DateTime.Now.ToString("dd/MM/yyyy") },
+                            { "<amount>", avanceCaisseDetails.EstimatedTotal.ToString().FormatWith(new CultureInfo("fr-FR")) },
+                            { "<worded_amount>", ((int)avanceCaisseDetails.EstimatedTotal).ToWords(new CultureInfo("fr-FR")) },
+                            { "<currency>", avanceCaisseDetails.Currency.ToString() },
+                            { "<description>", avanceCaisseDetails.Description },
+                            { "<expenses>", string.Join(Environment.NewLine, avanceCaisseDetails.Expenses
+                                            .Select(expense => $"{expense.Description} ......... {expense.Currency} {expense.EstimatedFee.ToString().FormatWith(new CultureInfo("fr-FR"))}"))
+                            },
+                            { "<mg_signature>", avanceCaisseDetails.Signers.Any(s => s.Level == "MG") == true ?
+                                                avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
+                                                        .Select(s => $"{s.FirstName} {s.LastName}")
+                                                        .First()
+                                                : ""
+                            },
+                            { "<fm_signature>", avanceCaisseDetails.Signers.Any(s => s.Level == "FM") == true ?
+                                                avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
+                                                        .Select(s => $"{s.FirstName} {s.LastName}")
+                                                        .First()
+                                                : ""
+                            },
+                            { "<dg_signature>", avanceCaisseDetails.Signers.Any(s => s.Level == "GD") == true ?
+                                                avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
+                                                        .Select(s => $"{s.FirstName} {s.LastName}")
+                                                        .First()
+                                                : ""
+                            },
+                        };
+                #pragma warning restore CS8604 // null warning
+
+                foreach (KeyValuePair<string, string> item in placeholders)
+                {
+                    TextFragmentAbsorber absorber = new Aspose.Pdf.Text.TextFragmentAbsorber(item.Key);
+                    pdf.Pages[1].Accept(absorber);
+
+                    foreach (var textFragment in absorber.TextFragments)
+                    {
+                        textFragment.Text = item.Value;
+                    }
+                }
+                MemoryStream memoryStream = new();
+
+                pdf.Save(memoryStream);
+
+
+                // SAVE FILE TEMPORARLY IN DISK
+                var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+                if (!Directory.Exists(tempDir))
+                {
+                    Directory.CreateDirectory(tempDir);
+                }
+
+                
+                var filePath = Path.Combine(tempDir, tempName.ToString() + ".pdf");
+
+                await using (memoryStream)
+                {
+                    await System.IO.File.WriteAllBytesAsync(filePath, memoryStream.ToArray());
+                }
+
+            }
+
+            return tempName.ToString();
+
+        }
+
+
 
 
 

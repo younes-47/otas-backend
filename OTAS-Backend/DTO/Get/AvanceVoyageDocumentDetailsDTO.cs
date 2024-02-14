@@ -1,8 +1,6 @@
-﻿using OTAS.Models;
-
-namespace OTAS.DTO.Get
+﻿namespace OTAS.DTO.Get
 {
-    public class AvanceCaisseDocumentDetailsDTO
+    public class AvanceVoyageDocumentDetailsDTO
     {
         public int Id { get; set; }
 
@@ -19,6 +17,8 @@ namespace OTAS.DTO.Get
         public int? ConfirmationNumber { get; set; }
 
         public List<Signatory> Signers { get; set; } = new List<Signatory>();
+
+        public virtual List<TripDTO> Trips { get; set; } = new List<TripDTO>();
 
         public virtual List<ExpenseDTO> Expenses { get; set; } = new List<ExpenseDTO>();
 

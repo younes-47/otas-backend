@@ -1,5 +1,8 @@
-﻿using AutoMapper;
+﻿using Aspose.Pdf.Text;
+using AutoMapper;
+using Microsoft.AspNetCore.Hosting;
 using OTAS.Data;
+using OTAS.DTO.Get;
 using OTAS.DTO.Post;
 using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
@@ -7,6 +10,9 @@ using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
 using System;
+using System.Globalization;
+using Humanizer;
+using Aspose.Pdf.Operators;
 
 namespace OTAS.Services
 {
@@ -17,6 +23,7 @@ namespace OTAS.Services
         private readonly IUserRepository _userRepository;
         private readonly IDeciderRepository _deciderRepository;
         private readonly IStatusHistoryRepository _statusHistoryRepository;
+        private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly ITripRepository _tripRepository;
         private readonly IExpenseRepository _expenseRepository;
         private readonly IMiscService _miscService;
@@ -28,6 +35,7 @@ namespace OTAS.Services
             IUserRepository userRepository,
             IDeciderRepository deciderRepository,
             IStatusHistoryRepository statusHistoryRepository,
+            IWebHostEnvironment webHostEnvironment,
             ITripRepository tripRepository,
             IExpenseRepository expenseRepository,
             IMiscService miscService,
@@ -39,6 +47,7 @@ namespace OTAS.Services
             _userRepository = userRepository;
             _deciderRepository = deciderRepository;
             _statusHistoryRepository = statusHistoryRepository;
+            _webHostEnvironment = webHostEnvironment;
             _tripRepository = tripRepository;
             _expenseRepository = expenseRepository;
             _miscService = miscService;
@@ -1183,6 +1192,137 @@ namespace OTAS.Services
             return result;
         }
 
+        public async Task<string> GenerateWaterMarkedAvanceVoyageDocument(int avanceVoyageId)
+        {
+            AvanceVoyageDocumentDetailsDTO avanceVoyageDetails = await _avanceVoyageRepository.GetAvanceVoyageDocumentDetailsByIdAsync(avanceVoyageId);
+
+
+            var docPath = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files", "AVANCE_VOYAGE_DOCUMENT.pdf");
+            Aspose.Pdf.Document pdf = new Aspose.Pdf.Document(docPath);
+            Guid tempName = Guid.NewGuid();
+            // Load PDF file
+            using (pdf)
+            {
+                #pragma warning disable CS8604 // null warning.
+                var placeholders = new Dictionary<string, string>
+                {
+                            { "<id>", avanceVoyageDetails.Id.ToString() },
+                            { "<full_name>", avanceVoyageDetails.FirstName + " " + avanceVoyageDetails.LastName },
+                            { "<confirmation_number>", avanceVoyageDetails.ConfirmationNumber != null ?
+                                                            avanceVoyageDetails.ConfirmationNumber.ToString()
+                                                            : "N/A"},
+                            { "<date>", DateTime.Now.ToString("dd/MM/yyyy") },
+                            { "<amount>", avanceVoyageDetails.EstimatedTotal.ToString().FormatWith(new CultureInfo("fr-FR")) },
+                            { "<worded_amount>", ((int)avanceVoyageDetails.EstimatedTotal).ToWords(new CultureInfo("fr-FR")) },
+                            { "<currency>", avanceVoyageDetails.Currency.ToString() },
+                            { "<description>", avanceVoyageDetails.Description },
+                            { "<expenses>", string.Join(Environment.NewLine, avanceVoyageDetails.Expenses
+                                            .Select(expense => $"{expense.Description} ......... {expense.Currency} {expense.EstimatedFee.ToString().FormatWith(new CultureInfo("fr-FR"))}"))
+                            },
+                };
+                var signatoriesPlaceholders = new Dictionary<string, string>
+                {
+                            { "<mg_signature>", avanceVoyageDetails.Signers.Any(s => s.Level == "MG") == true ?
+                                                avanceVoyageDetails.Signers.Where(s => s.Level == "MG")
+                                                        .Select(s => $"{s.FirstName} {s.LastName}")
+                                                        .First()
+                                                : ""
+                            },
+                            { "<fm_signature>", avanceVoyageDetails.Signers.Any(s => s.Level == "FM") == true ?
+                                                avanceVoyageDetails.Signers.Where(s => s.Level == "FM")
+                                                        .Select(s => $"{s.FirstName} {s.LastName}")
+                                                        .First()
+                                                : ""
+                            },
+                            { "<dg_signature>", avanceVoyageDetails.Signers.Any(s => s.Level == "GD") == true ?
+                                                avanceVoyageDetails.Signers.Where(s => s.Level == "GD")
+                                                        .Select(s => $"{s.FirstName} {s.LastName}")
+                                                        .First()
+                                                : ""
+                            },
+                };
+                #pragma warning restore CS8604 // null warning
+
+                // replace normal string fragments which exists in the first page
+                foreach (KeyValuePair<string, string> item in placeholders)
+                {
+                    TextFragmentAbsorber absorber = new Aspose.Pdf.Text.TextFragmentAbsorber(item.Key);
+                    pdf.Pages[1].Accept(absorber);
+                    foreach (var textFragment in absorber.TextFragments)
+                    {
+                        textFragment.Text = item.Value;
+                    }
+                }
+
+                // replace trips fragment with a dynamic table
+                TextFragmentAbsorber tripsAbsorber = new Aspose.Pdf.Text.TextFragmentAbsorber("<trips>");
+                pdf.Pages[1].Accept(tripsAbsorber);
+                foreach (var textFragment in tripsAbsorber.TextFragments)
+                {
+                    double x = textFragment.Rectangle.LLX;
+                    double y = textFragment.Rectangle.LLY + 10;
+
+                    textFragment.Text = "";
+          
+                    Aspose.Pdf.Table tripsTable = _miscService.GenerateTripsTableForDocuments(avanceVoyageDetails.Trips);
+                    tripsTable.Left = (float)x;
+                    tripsTable.Top = (float)y;
+
+                    pdf.Pages[1].Paragraphs.Add(tripsTable);
+                }
+
+                // replace signatories placeholders
+                foreach (KeyValuePair <string, string> item in signatoriesPlaceholders)
+                {
+                    TextFragmentAbsorber signatoryAbsorber = new Aspose.Pdf.Text.TextFragmentAbsorber(item.Key);
+                    if(pdf.Pages.Count > 1)
+                    {
+                        foreach (Aspose.Pdf.Page page in pdf.Pages)
+                        {
+                            // Accept the absorber on each page
+                            page.Accept(signatoryAbsorber);
+                            foreach (var textFragment in signatoryAbsorber.TextFragments)
+                            {
+                                textFragment.Text = item.Value;
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        pdf.Pages[1].Accept(signatoryAbsorber);
+                        foreach (var textFragment in signatoryAbsorber.TextFragments)
+                        {
+                            textFragment.Text = item.Value;
+                        }
+                    }
+                }
+
+                MemoryStream memoryStream = new();
+
+                pdf.Save(memoryStream);
+
+
+                // SAVE FILE TEMPORARLY IN DISK
+                var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+                if (!Directory.Exists(tempDir))
+                {
+                    Directory.CreateDirectory(tempDir);
+                }
+
+
+                var filePath = Path.Combine(tempDir, tempName.ToString() + ".pdf");
+
+                await using (memoryStream)
+                {
+                    await System.IO.File.WriteAllBytesAsync(filePath, memoryStream.ToArray());
+                }
+
+            }
+
+            return tempName.ToString();
+
+        }
 
 
 

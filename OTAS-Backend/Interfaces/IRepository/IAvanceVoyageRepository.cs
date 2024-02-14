@@ -11,6 +11,7 @@ namespace OTAS.Interfaces.IRepository
         Task<AvanceVoyage?> FindAvanceVoyageByIdAsync(int avanceVoyageId);
         Task<List<AvanceVoyageTableDTO>> GetAvancesVoyageByUserIdAsync(int userId);
         Task<AvanceVoyageViewDTO> GetAvancesVoyageViewDetailsByIdAsync(int id);
+        Task<AvanceVoyageDocumentDetailsDTO> GetAvanceVoyageDocumentDetailsByIdAsync(int avanceVoyageId);
         Task<AvanceVoyageDeciderViewDTO> GetAvanceVoyageFullDetailsByIdForDecider(int avanceVoyageId);
         Task<List<AvanceVoyage>> GetAvancesVoyageByStatusAsync(int status);
         Task<List<AvanceVoyage>> GetAvancesVoyageByOrdreMissionIdAsync(int ordreMissionId);

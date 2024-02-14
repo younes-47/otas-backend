@@ -8,7 +8,7 @@ namespace OTAS.DTO.Get
 
         public bool OnBehalf { get; set; }
 
-        public string NextDeciderUserName { get; set; } = null!;
+        public bool IsDecidable { get; set; }
 
         public string Description { get; set; } = null!;
 

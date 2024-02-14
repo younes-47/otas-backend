@@ -106,10 +106,10 @@ namespace OTAS.Controllers
             moneyStats.AvanceVoyagesAllTimeAmountEUR += av_Totals[1];
 
             moneyStats.AvanceCaissesAllTimeAmountMAD += ac_Totals[0];
-            moneyStats.AvanceCaissesAllTimeAmountMAD += ac_Totals[1];
+            moneyStats.AvanceCaissesAllTimeAmountEUR += ac_Totals[1];
 
             moneyStats.DepenseCaissesAllTimeAmountMAD += dc_Totals[0];
-            moneyStats.DepenseCaissesAllTimeAmountMAD += dc_Totals[1];
+            moneyStats.DepenseCaissesAllTimeAmountEUR += dc_Totals[1];
 
             moneyStats.AllTimeAmountMAD += av_Totals[0] + ac_Totals[0] + dc_Totals[0];
             moneyStats.AllTimeAmountEUR += av_Totals[1] + ac_Totals[1] + dc_Totals[1];
@@ -170,7 +170,7 @@ namespace OTAS.Controllers
             if (lastCreatedReq != DateTime.MinValue)
             {
                 TimeSpan difference = (TimeSpan)(DateTime.Now - lastCreatedReq);
-                requestsStats.HoursPassedSinceLastRequest = difference.Hours;
+                requestsStats.HoursPassedSinceLastRequest = (decimal)difference.TotalHours;
             }
             else
             {
@@ -201,39 +201,38 @@ namespace OTAS.Controllers
             moneyStats.AvanceVoyagesAllTimeAmountEUR += av_Totals[1];
 
             moneyStats.AvanceCaissesAllTimeAmountMAD += ac_Totals[0];
-            moneyStats.AvanceCaissesAllTimeAmountMAD += ac_Totals[1];
+            moneyStats.AvanceCaissesAllTimeAmountEUR += ac_Totals[1];
 
             moneyStats.DepenseCaissesAllTimeAmountMAD += dc_Totals[0];
-            moneyStats.DepenseCaissesAllTimeAmountMAD += dc_Totals[1];
+            moneyStats.DepenseCaissesAllTimeAmountEUR += dc_Totals[1];
 
             moneyStats.AllTimeAmountMAD += av_Totals[0] + ac_Totals[0] + dc_Totals[0];
             moneyStats.AllTimeAmountEUR += av_Totals[1] + ac_Totals[1] + dc_Totals[1];
 
             stats.MoneyStats = moneyStats;
 
-
-            stats.RequestsStats.AvanceVoyagesAllTimeCount = await _context.StatusHistories
-                                                                .Include(sh => sh.AvanceVoyage)
+            requestsStats.AvanceVoyagesAllTimeCount += _context.StatusHistories
                                                                 .Where(sh => sh.AvanceVoyageId != null && sh.DeciderUserId == userId)
-                                                                .GroupBy(sh => sh.DeciderUserId)
-                                                                .CountAsync();
+                                                                .GroupBy(sh => sh.AvanceVoyageId)
+                                                                .Select(sh => sh.Count())
+                                                                .Count();
 
-            stats.RequestsStats.AvanceCaissesAllTimeCount = await _context.StatusHistories
+            requestsStats.AvanceCaissesAllTimeCount += await _context.StatusHistories
                                                                 .Include(sh => sh.AvanceCaisse)
-                                                                .Where(sh => sh.AvanceCaisseId != null && sh.DeciderUserId == userId)
-                                                                .GroupBy(sh => sh.DeciderUserId)
+                                                                .Where(sh => sh.AvanceCaisseId != null && sh.DeciderUserId == userId && sh.AvanceCaisse != null)
+                                                                .GroupBy(sh => sh.AvanceCaisseId)
                                                                 .CountAsync();
 
-            stats.RequestsStats.DepenseCaissesAllTimeCount = await _context.StatusHistories
+            requestsStats.DepenseCaissesAllTimeCount += await _context.StatusHistories
                                                                 .Include(sh => sh.DepenseCaisse)
-                                                                .Where(sh => sh.DepenseCaisseId != null && sh.DeciderUserId == userId)
-                                                                .GroupBy(sh => sh.DeciderUserId)
+                                                                .Where(sh => sh.DepenseCaisseId != null && sh.DeciderUserId == userId && sh.DepenseCaisse != null)
+                                                                .GroupBy(sh => sh.DepenseCaisseId)
                                                                 .CountAsync();
 
             requestsStats.OrdreMissionsAllTimeCount = await _context.StatusHistories
                                                                 .Include(sh => sh.OrdreMission)
-                                                                .Where(sh => sh.OrdreMissionId != null && sh.DeciderUserId == userId)
-                                                                .GroupBy(sh => sh.DeciderUserId)
+                                                                .Where(sh => sh.OrdreMissionId != null && sh.DeciderUserId == userId && sh.OrdreMission != null)
+                                                                .GroupBy(sh => sh.OrdreMissionId)
                                                                 .CountAsync();
 
             requestsStats.AllTimeCount = requestsStats.OrdreMissionsAllTimeCount + requestsStats.AvanceVoyagesAllTimeCount
@@ -251,7 +250,7 @@ namespace OTAS.Controllers
             requestsStats.AllOngoingRequestsCount += await _context.Liquidations.Where(av => av.NextDeciderUserId == userId).CountAsync();
 
 
-            DateTime? lastCreatedReq = DateTime.MaxValue;
+            DateTime? lastCreatedReq = DateTime.MinValue;
 
             DateTime? tempDate = await _context.StatusHistories.Where(sh => sh.DeciderUserId == userId)
                                                            .OrderByDescending(sh => sh.CreateDate)
@@ -259,21 +258,23 @@ namespace OTAS.Controllers
                                                            .FirstOrDefaultAsync();
             if (tempDate != null)
             {
-                if (tempDate < lastCreatedReq)
+                if (tempDate > lastCreatedReq)
                 {
                     lastCreatedReq = tempDate;
                 }
             }
 
-            if (lastCreatedReq != DateTime.MaxValue)
+            if (lastCreatedReq != DateTime.MinValue)
             {
                 TimeSpan difference = (TimeSpan)(DateTime.Now - lastCreatedReq);
-                stats.RequestsStats.HoursPassedSinceLastRequest = difference.Days;
+                requestsStats.HoursPassedSinceLastRequest = (decimal)difference.TotalHours;
             }
             else
             {
                 requestsStats.HoursPassedSinceLastRequest = null;
             }
+
+            stats.RequestsStats = requestsStats;
 
             return Ok(stats);
         }

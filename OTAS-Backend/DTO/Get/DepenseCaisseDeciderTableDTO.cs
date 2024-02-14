@@ -8,13 +8,13 @@ namespace OTAS.DTO.Get
 
         public bool OnBehalf { get; set; }
 
-        public string NextDeciderUserName { get; set; } = null!;
-
         public string Description { get; set; } = null!;
 
         public string Currency { get; set; } = null!;
 
         public decimal Total { get; set; }
+
+        public bool IsDecidable { get; set; }
 
         public string ReceiptsFileName { get; set; } = null!;
 

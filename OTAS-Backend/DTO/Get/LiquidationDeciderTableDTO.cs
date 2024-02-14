@@ -14,11 +14,11 @@ namespace OTAS.DTO.Get
 
         public string? Description { get; set; }
 
-        public string NextDeciderUserName { get; set; } = null!;
-
         public decimal ActualTotal { get; set; }
 
         public string Currency { get; set; } = null!;
+
+        public bool IsDecidable { get; set; }
 
         public string? ReceiptsFileName { get; set; }
 

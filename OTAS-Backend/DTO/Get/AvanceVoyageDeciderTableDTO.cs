@@ -8,8 +8,6 @@ namespace OTAS.DTO.Get
 
         public decimal EstimatedTotal { get; set; }
 
-        public string NextDeciderUserName { get; set; } = null!;
-
         public bool OnBehalf { get; set; }
 
         public int OrdreMissionId { get; set; }
@@ -17,6 +15,9 @@ namespace OTAS.DTO.Get
         public string OrdreMissionDescription { get; set; } = null!;
 
         public string Currency { get; set; } = null!;
+
+        public bool IsDecidable { get; set; }
+
 
         public DateTime CreateDate { get; set; }
 

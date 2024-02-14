@@ -25,6 +25,7 @@ namespace OTAS.Controllers
         private readonly IDepenseCaisseRepository _depenseCaisseRepository;
         private readonly ILdapAuthenticationService _ldapAuthenticationService;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IDeciderRepository _deciderRepository;
         private readonly IUserRepository _userRepository;
         private readonly IMiscService _miscService;
         private readonly IMapper _mapper;
@@ -34,6 +35,7 @@ namespace OTAS.Controllers
             IDepenseCaisseRepository depenseCaisseRepository,
             ILdapAuthenticationService ldapAuthenticationService,
             IWebHostEnvironment webHostEnvironment,
+            IDeciderRepository deciderRepository,
             IUserRepository userRepository,
             IMiscService miscService,
             IMapper mapper)
@@ -43,6 +45,7 @@ namespace OTAS.Controllers
             _depenseCaisseRepository = depenseCaisseRepository;
             _ldapAuthenticationService = ldapAuthenticationService;
             _webHostEnvironment = webHostEnvironment;
+            _deciderRepository = deciderRepository;
             _userRepository = userRepository;
             _miscService = miscService;
             _mapper = mapper;
@@ -352,6 +355,13 @@ namespace OTAS.Controllers
             int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
             if (deciderRole != 3) 
                 return BadRequest("You are not authorized to decide upon requests!");
+
+            List<string> levels = await _deciderRepository.GetDeciderLevelsByUserId(user.Id);
+            if (levels.Contains("TR") && decision.DecisionString.ToLower() == "return"
+                && decision.ReturnedToRequesterByTR == false
+                && decision.ReturnedToFMByTR == false)
+                return BadRequest("If you are returning a request, you should specify to whom!");
+
 
             ServiceResult result = await _depenseCaisseService.DecideOnDepenseCaisse(decision, user.Id);
             if (!result.Success) 

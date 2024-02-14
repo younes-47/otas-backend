@@ -25,6 +25,7 @@ namespace OTAS.Interfaces.IRepository
 
         Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId);
         Task<LiquidationRequestDetailsDTO> GetAvanceCaisseDetailsForLiquidationAsync(int requestId);
+        Task<AvanceCaisseDocumentDetailsDTO> GetAvanceCaisseDocumentDetailsByIdAsync(int avanceCaisseId);
         Task<bool> SaveAsync();
 
     }

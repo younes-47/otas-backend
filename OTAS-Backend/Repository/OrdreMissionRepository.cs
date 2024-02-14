@@ -5,6 +5,7 @@ using Microsoft.Identity.Client;
 using OTAS.Data;
 using OTAS.DTO.Get;
 using OTAS.Interfaces.IRepository;
+using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Services;
 using System.Collections.Generic;
@@ -17,14 +18,19 @@ namespace OTAS.Repository
         private readonly IMapper _mapper;
         private readonly IDeciderRepository _deciderRepository;
         private readonly IAvanceVoyageRepository _avanceVoyageRepository;
+        private readonly IMiscService _miscService;
         private readonly IUserRepository _userRepository;
 
-        public OrdreMissionRepository(OtasContext context, IMapper mapper, IDeciderRepository deciderRepository, IUserRepository userRepository, IAvanceVoyageRepository avanceVoyageRepository)
+        public OrdreMissionRepository(OtasContext context, IMapper mapper, IDeciderRepository deciderRepository, 
+            IUserRepository userRepository, 
+            IAvanceVoyageRepository avanceVoyageRepository,
+            IMiscService miscService)
         {
             _context = context;
             _mapper = mapper;
             _deciderRepository = deciderRepository;
             _avanceVoyageRepository = avanceVoyageRepository;
+            _miscService = miscService;
             _userRepository = userRepository;
         }
 
@@ -41,13 +47,16 @@ namespace OTAS.Repository
                 .Include(om => om.AvanceVoyages)
                 .Where(om => (om.AvanceVoyages.Where(av => av.LatestStatus == om.LatestStatus).Count() == om.AvanceVoyages.Count()) || isDeciderHR)
                 .Include(om => om.NextDecider)
+                .Include(om => om.LatestStatusString)
                 .Select(om => new OrdreMissionDeciderTableDTO
                 {
                     Id = om.Id,
-                    NextDeciderUserName = om.NextDecider != null ? om.NextDecider.Username : null,
                     Description = om.Description,
                     Abroad = om.Abroad,
                     OnBehalf = om.OnBehalf,
+                    IsDecidable = om.LatestStatusString.StatusString != "Funds Collected" &&
+                                  om.LatestStatusString.StatusString != "Finalized" &&
+                                  om.LatestStatusString.StatusString != "Approved",
                     DepartureDate = om.DepartureDate,
                     ReturnDate = om.ReturnDate,
                     CreateDate = om.CreateDate,
@@ -62,13 +71,14 @@ namespace OTAS.Repository
                 List<OrdreMissionDeciderTableDTO> ordreMissions2 = await _context.StatusHistories
                    .Where(sh => sh.DeciderUserId == deciderUserId && sh.OrdreMissionId != null)
                    .Include(sh => sh.OrdreMission)
+                   .Include(sh => sh.StatusNavigation)
                    .Select(sh => new OrdreMissionDeciderTableDTO
                    {
                        Id = sh.OrdreMission.Id,
-                       NextDeciderUserName = sh.OrdreMission.NextDecider != null ? sh.OrdreMission.NextDecider.Username : null,
                        Description = sh.OrdreMission.Description,
                        Abroad = sh.OrdreMission.Abroad,
                        OnBehalf = sh.OrdreMission.OnBehalf,
+                       IsDecidable = false,
                        DepartureDate = sh.OrdreMission.DepartureDate,
                        ReturnDate = sh.OrdreMission.ReturnDate,
                        CreateDate = sh.OrdreMission.CreateDate,

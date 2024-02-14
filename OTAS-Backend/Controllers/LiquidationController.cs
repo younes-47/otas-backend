@@ -32,6 +32,7 @@ namespace OTAS.Controllers
         private readonly IMapper _mapper;
         private readonly IExpenseRepository _expenseRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IDeciderRepository _deciderRepository;
 
         public LiquidationController(ILiquidationRepository liquidationRepository,
             IActualRequesterRepository actualRequesterRepository,
@@ -44,7 +45,8 @@ namespace OTAS.Controllers
             IMiscService miscService,
             IMapper mapper,
             IExpenseRepository expenseRepository,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            IDeciderRepository deciderRepository)
         {
             _liquidationRepository = liquidationRepository;
             _actualRequesterRepository = actualRequesterRepository;
@@ -58,6 +60,7 @@ namespace OTAS.Controllers
             _mapper = mapper;
             _expenseRepository = expenseRepository;
             _userRepository = userRepository;
+            _deciderRepository = deciderRepository;
         }
 
         // LIQUIDATE ACTIONS
@@ -395,6 +398,13 @@ namespace OTAS.Controllers
             int deciderRole = await _userRepository.GetUserRoleByUserIdAsync(user.Id);
             if (deciderRole != 3)
                 return BadRequest("You are not authorized to decide upon requests!");
+
+            List<string> levels = await _deciderRepository.GetDeciderLevelsByUserId(user.Id);
+            if (levels.Contains("TR") && decision.DecisionString.ToLower() == "return" 
+                && decision.ReturnedToRequesterByTR == false 
+                && decision.ReturnedToFMByTR == false)
+                return BadRequest("If you are returning a request, you should specify to whom!");
+
 
             ServiceResult result = await _liquidationService.DecideOnLiquidation(decision, user.Id);
             if (!result.Success)

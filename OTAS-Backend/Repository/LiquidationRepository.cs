@@ -8,6 +8,8 @@ using OTAS.DTO.Get;
 using System.Collections.Generic;
 using Azure.Core;
 using System.Reflection.Metadata.Ecma335;
+using OTAS.Interfaces.IService;
+using Microsoft.Extensions.Logging.Console;
 
 namespace OTAS.Repository
 {
@@ -15,11 +17,16 @@ namespace OTAS.Repository
     {
         private readonly OtasContext _context;
         private readonly IDeciderRepository _deciderRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly IMiscService _miscService;
 
-        public LiquidationRepository(OtasContext context, IDeciderRepository deciderRepository)
+        public LiquidationRepository(OtasContext context, IDeciderRepository deciderRepository,
+                                IUserRepository userRepository, IMiscService miscService)
         {
             _context = context;
             _deciderRepository = deciderRepository;
+            _userRepository = userRepository;
+            _miscService = miscService;
         }
 
         public async Task<Liquidation?> FindLiquidationAsync(int liquidationId)
@@ -155,7 +162,9 @@ namespace OTAS.Repository
                     RequestType = lq.AvanceCaisseId != null ? "AC" : "AV",
                     RequestId = lq.AvanceCaisseId != null ? (int)lq.AvanceCaisseId : (int)lq.AvanceVoyageId,
                     ActualTotal = lq.ActualTotal,
-                    NextDeciderUserName = lq.NextDecider != null ? lq.NextDecider.Username : null,
+                    IsDecidable = lq.LatestStatusNavigation.StatusString != "Funds Collected" &&
+                                  lq.LatestStatusNavigation.StatusString != "Finalized" &&
+                                  lq.LatestStatusNavigation.StatusString != "Approved",
                     ReceiptsFileName = lq.ReceiptsFileName,
                     OnBehalf = lq.OnBehalf,
                     Description = lq.AvanceCaisseId != null ? lq.AvanceCaisse.Description : lq.AvanceVoyage.OrdreMission.Description,
@@ -172,18 +181,19 @@ namespace OTAS.Repository
                 List<LiquidationDeciderTableDTO> liquidations2 = await _context.StatusHistories
                         .Where(sh => sh.DeciderUserId == deciderUserId && sh.LiquidationId != null)
                         .Include(sh => sh.Liquidation)
+                        .Include(sh => sh.StatusNavigation)
                         .Select(sh => new LiquidationDeciderTableDTO
                         {
                             Id = sh.Liquidation.Id,
                             RequestType = sh.Liquidation.AvanceCaisseId != null ? "AC" : "AV",
                             RequestId = sh.Liquidation.AvanceCaisseId != null ? (int)sh.Liquidation.AvanceCaisseId : (int)sh.Liquidation.AvanceVoyageId,
                             ActualTotal = sh.Liquidation.ActualTotal,
-                            NextDeciderUserName = sh.Liquidation.NextDecider != null ? sh.Liquidation.NextDecider.Username : null,
                             ReceiptsFileName = sh.Liquidation.ReceiptsFileName,
                             OnBehalf = sh.Liquidation.OnBehalf,
                             Description = sh.Liquidation.AvanceCaisseId != null ? sh.Liquidation.AvanceCaisse.Description : sh.Liquidation.AvanceVoyage.OrdreMission.Description,
                             Currency = sh.Liquidation.Currency,
                             CreateDate = sh.Liquidation.CreateDate,
+                            IsDecidable = false,
                             Result = sh.Liquidation.Result,
                         })
                         .ToListAsync();

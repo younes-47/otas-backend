@@ -7,6 +7,7 @@ using Azure.Core;
 using OTAS.DTO.Get;
 using AutoMapper;
 using System.Linq;
+using OTAS.Interfaces.IService;
 
 namespace OTAS.Repository
 {
@@ -16,12 +17,17 @@ namespace OTAS.Repository
         private readonly OtasContext _context;
         private readonly IMapper _mapper;
         private readonly IDeciderRepository _deciderRepository;
+        private readonly IMiscService _miscService;
+        private readonly IUserRepository _userRepository;
 
-        public DepenseCaisseRepository(OtasContext context, IMapper mapper, IDeciderRepository deciderRepository)
+        public DepenseCaisseRepository(OtasContext context, IMapper mapper, IDeciderRepository deciderRepository, 
+            IMiscService miscService, IUserRepository userRepository)
         {
             _context = context;
             _mapper = mapper;
             _deciderRepository = deciderRepository;
+            _miscService = miscService;
+            _userRepository = userRepository;
         }
 
         public async Task<DepenseCaisse?> FindDepenseCaisseAsync(int depenseCaisseId)
@@ -169,11 +175,13 @@ namespace OTAS.Repository
                 {
                     Id = dc.Id,
                     Total = dc.Total,
-                    NextDeciderUserName = dc.NextDecider != null ? dc.NextDecider.Username : null,
                     ReceiptsFileName= dc.ReceiptsFileName,
                     OnBehalf = dc.OnBehalf,
                     Description = dc.Description,
                     Currency = dc.Currency,
+                    IsDecidable = dc.LatestStatusNavigation.StatusString != "Funds Collected" &&
+                                  dc.LatestStatusNavigation.StatusString != "Finalized" &&
+                                  dc.LatestStatusNavigation.StatusString != "Approved",
                     CreateDate = dc.CreateDate,
                 })
                 .ToListAsync();
@@ -185,11 +193,12 @@ namespace OTAS.Repository
                 List<DepenseCaisseDeciderTableDTO> depenseCaisses2 = await _context.StatusHistories
                         .Where(sh => sh.DeciderUserId == deciderUserId && sh.DepenseCaisseId != null)
                         .Include(sh => sh.DepenseCaisse)
+                        .Include(sh => sh.StatusNavigation)
                         .Select(sh => new DepenseCaisseDeciderTableDTO
                         {
                             Id = sh.DepenseCaisse.Id,
                             Total = sh.DepenseCaisse.Total,
-                            NextDeciderUserName = sh.DepenseCaisse.NextDecider != null ? sh.DepenseCaisse.NextDecider.Username : null,
+                            IsDecidable = false,
                             OnBehalf = sh.DepenseCaisse.OnBehalf,
                             ReceiptsFileName = sh.DepenseCaisse.ReceiptsFileName,
                             Description = sh.DepenseCaisse.Description,

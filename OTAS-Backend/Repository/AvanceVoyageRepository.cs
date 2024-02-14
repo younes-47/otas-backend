@@ -15,14 +15,16 @@ namespace OTAS.Repository
     {
         private readonly OtasContext _context;
         private readonly IDeciderRepository _deciderRepository;
-        private readonly IMiscService _misc;
+        private readonly IUserRepository _userRepository;
+        private readonly IMiscService _miscService;
         private readonly IMapper _mapper;
 
-        public AvanceVoyageRepository(OtasContext context, IDeciderRepository deciderRepository, IMiscService miscService, IMapper mapper)
+        public AvanceVoyageRepository(OtasContext context, IDeciderRepository deciderRepository, IUserRepository userRepository, IMiscService miscService, IMapper mapper)
         {
             _context = context;
             _deciderRepository = deciderRepository;
-            _misc = miscService;
+            _userRepository = userRepository;
+            _miscService = miscService;
             _mapper = mapper;
         }
 
@@ -79,11 +81,13 @@ namespace OTAS.Repository
                 {
                     Id = av.Id,
                     EstimatedTotal = av.EstimatedTotal,
-                    NextDeciderUserName = av.NextDecider != null ? av.NextDecider.Username : null,
                     OnBehalf = av.OnBehalf,
                     OrdreMissionId = av.OrdreMission.Id,
                     OrdreMissionDescription = av.OrdreMission.Description,
                     Currency = av.Currency,
+                    IsDecidable = av.LatestStatusNavigation.StatusString != "Funds Collected" &&
+                                  av.LatestStatusNavigation.StatusString != "Finalized" &&
+                                  av.LatestStatusNavigation.StatusString != "Approved",
                     CreateDate = av.CreateDate,
                 })
                 .ToListAsync();
@@ -94,11 +98,12 @@ namespace OTAS.Repository
                 List<AvanceVoyageDeciderTableDTO> avanceVoyages2 = await _context.StatusHistories
                 .Where(sh => sh.DeciderUserId == deciderUserId && sh.AvanceVoyageId != null)
                 .Include(sh => sh.AvanceVoyage)
+                .Include(sh => sh.StatusNavigation)
                 .Select(sh => new AvanceVoyageDeciderTableDTO
                 {
                     Id = sh.AvanceVoyage.Id,
                     EstimatedTotal = sh.AvanceVoyage.EstimatedTotal,
-                    NextDeciderUserName = sh.AvanceVoyage.NextDecider != null ? sh.AvanceVoyage.NextDecider.Username : null,
+                    IsDecidable = false,
                     OnBehalf = sh.AvanceVoyage.OnBehalf,
                     OrdreMissionId = sh.AvanceVoyage.OrdreMission.Id,
                     OrdreMissionDescription = sh.AvanceVoyage.OrdreMission.Description,
@@ -185,6 +190,44 @@ namespace OTAS.Repository
                 })
                 .FirstAsync();
         }
+
+        public async Task<AvanceVoyageDocumentDetailsDTO> GetAvanceVoyageDocumentDetailsByIdAsync(int avanceVoyageId)
+        {
+            int satatusHistoryBreakRowId = _context.StatusHistories
+                                                .Where(lq => lq.Status == 1 && lq.AvanceVoyageId == avanceVoyageId)
+                                                .OrderByDescending(lq => lq.Id)
+                                                .Select(lq => lq.Id)
+                                                .First();
+
+            return await _context.AvanceVoyages.Where(ac => ac.Id == avanceVoyageId)
+                        .Include(ac => ac.Expenses)
+                        .Include(ac => ac.StatusHistories)
+                        .Include(ac => ac.User)
+                        .Select(ac => new AvanceVoyageDocumentDetailsDTO
+                        {
+                            Id = ac.Id,
+                            FirstName = ac.User.FirstName,
+                            LastName = ac.User.LastName,
+                            Description = ac.OrdreMission.Description,
+                            Currency = ac.Currency,
+                            EstimatedTotal = ac.EstimatedTotal,
+                            ConfirmationNumber = ac.ConfirmationNumber,
+                            Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses),
+                            Trips = _mapper.Map<List<TripDTO>>(ac.Trips),
+                            Signers = ac.StatusHistories
+                                        .Where(lq => lq.AvanceVoyageId == avanceVoyageId)
+                                        .Where(lq => lq.DeciderUserId != null)
+                                        .Where(lq => lq.Id > satatusHistoryBreakRowId)
+                                        .Select(sh => new Signatory
+                                        {
+                                            FirstName = sh.Decider.FirstName,
+                                            LastName = sh.Decider.LastName,
+                                            Level = _miscService.GetDeciderLevelByStatus(sh.Status, "AC"),
+                                        })
+                                        .ToList()
+                        }).FirstAsync();
+        }
+
 
         public async Task<AvanceVoyageDeciderViewDTO> GetAvanceVoyageFullDetailsByIdForDecider(int avanceVoyageId)
         {
