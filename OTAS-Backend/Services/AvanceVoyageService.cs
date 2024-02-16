@@ -94,6 +94,7 @@ namespace OTAS.Services
                     StatusHistory decidedAvanceVoyage_SH = new()
                     {
                         AvanceVoyageId = decision.RequestId,
+                        Total = decidedAvanceVoyage.EstimatedTotal,
                         DeciderUserId = deciderUserId,
                         DeciderComment = decision.DeciderComment,
                         Status = decidedAvanceVoyage.LatestStatus,
@@ -166,6 +167,7 @@ namespace OTAS.Services
 
                     StatusHistory decidedAvanceVoyage_SH = new()
                     {
+                        Total = decidedAvanceVoyage.EstimatedTotal,
                         AvanceVoyageId = decision.RequestId,
                         DeciderUserId = deciderUserId,
                         DeciderComment = decision.DeciderComment,

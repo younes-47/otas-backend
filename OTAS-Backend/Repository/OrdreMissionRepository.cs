@@ -117,6 +117,7 @@ namespace OTAS.Repository
                         DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
                         DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
                         DeciderComment = sh.DeciderComment,
+                        Total = sh.Total,
                         CreateDate = sh.CreateDate
                     }).ToList(),
                     AvanceVoyagesDetails = om.AvanceVoyages.Select(av => new OrdreMissionAvanceDetailsDTO
@@ -156,6 +157,7 @@ namespace OTAS.Repository
                         DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
                         DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
                         DeciderComment = sh.DeciderComment,
+                        Total = sh.Total,
                         CreateDate = sh.CreateDate
                     }).ToList(),
                     AvanceVoyagesDetails = om.AvanceVoyages.Select(av => new OrdreMissionAvanceDetailsDTO

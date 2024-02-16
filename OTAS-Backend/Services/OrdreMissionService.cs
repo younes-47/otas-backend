@@ -230,6 +230,7 @@ namespace OTAS.Services
 
                         StatusHistory decidedAvanceVoyage_SH = new()
                         {
+                            Total = av.EstimatedTotal,
                             AvanceVoyageId = av.Id,
                             DeciderUserId = av.DeciderUserId,
                             DeciderComment = av.DeciderComment,
@@ -455,8 +456,6 @@ namespace OTAS.Services
             return result;
         }
 
-        
-
         public async Task<ServiceResult> DeleteDraftedOrdreMissionWithAvanceVoyages(OrdreMission ordreMission)
         {
             ServiceResult result = new();
@@ -504,7 +503,7 @@ namespace OTAS.Services
                 result = await _avanceVoyageRepository.DeleteAvanceVoyagesRangeAsync(avanceVoyages);
                 if(!result.Success) return result;
 
-                // delete AV
+                // delete OM
                 result = await _ordreMissionRepository.DeleteOrdreMissionAsync(ordreMission);
                 if (!result.Success) return result;
 
@@ -521,6 +520,125 @@ namespace OTAS.Services
             }
             result.Success = true;
             result.Message = "\"OrdreMission\" has been deleted successfully";
+            return result;
+        }
+
+        public async Task<ServiceResult> ApproveOrdreMissionWithAvanceVoyage(int ordreMissionId, int deciderUserId)
+        {
+            // Verify Request
+            ServiceResult result = new();
+            OrdreMission tempOM = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMissionId);
+
+            //Test if the request is on a state where the decider is not supposed to decide upon it
+            if (tempOM.NextDeciderUserId != deciderUserId)
+            {
+                result.Success = false;
+                result.Message = "You can't decide on this request in this state! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
+                return result;
+            }
+
+            bool IS_LONGER_THAN_ONEDAY = true;
+            if (tempOM.ReturnDate.Day == tempOM.DepartureDate.Day) IS_LONGER_THAN_ONEDAY = false;
+            // Verify Request
+
+            var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                // Handle OrdreMission
+                var decidedOrdreMission = await _ordreMissionRepository.GetOrdreMissionByIdAsync(ordreMissionId);
+                decidedOrdreMission.DeciderUserId = deciderUserId;
+
+                switch (decidedOrdreMission.LatestStatus)
+                {
+                    case 1:
+                        decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("MG");
+                        decidedOrdreMission.LatestStatus = 2;
+                        break;
+                    case 2:
+                        throw new Exception("This decider cannot use the function approve all");
+                    case 3:
+                        decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("FM");
+                        decidedOrdreMission.LatestStatus = 4;
+                        break;
+                    case 4:
+                        decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("GD", IS_LONGER_THAN_ONEDAY);
+                        decidedOrdreMission.LatestStatus = IS_LONGER_THAN_ONEDAY ? 5 : 7;  /* if it is not longer than one day skip VP*/
+                        break;
+                    case 5:
+                        //decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("VP");
+                        decidedOrdreMission.NextDeciderUserId = null; // end of process for Ordre Mission
+
+                        decidedOrdreMission.LatestStatus = 7;
+                        break;
+                }
+                result = await _ordreMissionRepository.UpdateOrdreMission(decidedOrdreMission);
+                if (!result.Success) return result;
+
+                StatusHistory decidedOrdreMission_SH = new()
+                {
+                    OrdreMissionId = ordreMissionId,
+                    DeciderUserId = deciderUserId,
+                    DeciderComment = null,
+                    Status = decidedOrdreMission.LatestStatus,
+                    NextDeciderUserId = decidedOrdreMission.NextDeciderUserId,
+                };
+                result = await _statusHistoryRepository.AddStatusAsync(decidedOrdreMission_SH);
+                if (!result.Success) return result;
+                // Handle OrdreMission
+                // Handle AvanceVoyage
+                List<AvanceVoyage> DB_AvanceVoyages = await _avanceVoyageRepository.GetAvancesVoyageByOrdreMissionIdAsync(ordreMissionId);
+                foreach (AvanceVoyage decidedAvanceVoyage in DB_AvanceVoyages)
+                {
+
+                    decidedAvanceVoyage.DeciderUserId = deciderUserId;
+
+                    switch (decidedAvanceVoyage.LatestStatus)
+                    {
+                        case 1:
+                            decidedAvanceVoyage.NextDeciderUserId = await _avanceVoyageRepository.GetAvanceVoyageNextDeciderUserId("MG");
+                            decidedAvanceVoyage.LatestStatus = 3;
+                            break;
+                        case 3:
+                            decidedAvanceVoyage.NextDeciderUserId = await _avanceVoyageRepository.GetAvanceVoyageNextDeciderUserId("FM");
+                            decidedAvanceVoyage.LatestStatus = 4;
+                            break;
+                        case 4:
+                            decidedAvanceVoyage.NextDeciderUserId = await _avanceVoyageRepository.GetAvanceVoyageNextDeciderUserId("GD", IS_LONGER_THAN_ONEDAY);
+                            decidedAvanceVoyage.LatestStatus = IS_LONGER_THAN_ONEDAY ? 5 : 8;  /* if it is not longer than one day skip VP*/
+                            break;
+                        case 5:
+                            decidedAvanceVoyage.NextDeciderUserId = await _avanceVoyageRepository.GetAvanceVoyageNextDeciderUserId("VP");
+                            decidedAvanceVoyage.LatestStatus = 8;
+                            break;
+                    }
+
+                    result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(decidedAvanceVoyage);
+                    if (!result.Success) return result;
+
+                    StatusHistory decidedAvanceVoyage_SH = new()
+                    {
+                        AvanceVoyageId = decidedAvanceVoyage.Id,
+                        DeciderUserId = deciderUserId,
+                        DeciderComment = null,
+                        Status = decidedAvanceVoyage.LatestStatus,
+                        NextDeciderUserId = decidedAvanceVoyage.NextDeciderUserId,
+                    };
+                    result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceVoyage_SH);
+                    if (!result.Success) return result;
+                }
+                // Handle AvanceVoyage
+
+                await transaction.CommitAsync();
+            }
+            catch (Exception exception)
+            {
+                result.Success = false;
+                result.Message = exception.Message;
+                return result;
+            }
+
+            result.Success = true;
+            result.Message = "OrdreMission & AvanceVoyage(s) are Approved successfully";
             return result;
         }
 

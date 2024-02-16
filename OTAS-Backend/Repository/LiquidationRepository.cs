@@ -69,6 +69,7 @@ namespace OTAS.Repository
                         DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
                         DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
                         DeciderComment = sh.DeciderComment,
+                        Total = sh.Total,
                         CreateDate = sh.CreateDate
                     }).ToList(),
                 }).FirstAsync();
@@ -278,6 +279,7 @@ namespace OTAS.Repository
                         DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
                         DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
                         DeciderComment = sh.DeciderComment,
+                        Total = sh.Total,
                         CreateDate = sh.CreateDate
                     }).ToList(),
                 })

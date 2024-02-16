@@ -18,6 +18,8 @@ namespace OTAS.DTO.Get
 
         public int? ConfirmationNumber { get; set; }
 
+        public DateTime SubmitDate { get; set; }
+
         public List<Signatory> Signers { get; set; } = new List<Signatory>();
 
         public virtual List<ExpenseDTO> Expenses { get; set; } = new List<ExpenseDTO>();

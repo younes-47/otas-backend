@@ -217,7 +217,7 @@ namespace OTAS.Controllers
             if(await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null)
                 return NotFound("Request Not Found");
 
-            string watermarkedFileName = await _avanceCaisseService.GenerateWaterMarkedAvanceCaisseDocument(Id);
+            string watermarkedFileName = await _avanceCaisseService.GenerateAvanceCaisseWordDocument(Id);
             var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
             var watermarkedFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", watermarkedFileName + ".pdf");
 

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using OTAS.Data;
+using OTAS.DTO.Get;
 using OTAS.Interfaces.IRepository;
 using OTAS.Models;
 
@@ -63,9 +64,16 @@ namespace OTAS.Repository
             return await _context.Deciders.Where(d => d.UserId == userId).FirstOrDefaultAsync();
         }
 
-        public async Task<List<string>> GetManagersUsernames()
+        public async Task<List<ManagerInfoDTO>> GetManagersInfo()
         {
-            return await _context.Deciders.Where(d => d.Level == "MG").Include(d => d.User).Select(d => d.User.Username).ToListAsync();
+            return await _context.Deciders.Where(d => d.Level == "MG")
+                .Include(d => d.User)
+                .Select(d => new ManagerInfoDTO 
+                { 
+                    FirstName = d.User.FirstName,
+                    LastName = d.User.LastName,
+                    Username = d.User.Username,
+                }).ToListAsync();
         }
     }
 }

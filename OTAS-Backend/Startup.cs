@@ -99,7 +99,6 @@ namespace OTAS
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IDeciderRepository, DeciderRepository>();
             services.AddScoped<IActualRequesterRepository, ActualRequesterRepository>();
-            services.AddScoped<ITestingRepository, TestingRepository>();
             services.AddScoped<IJWTManagerRepository, JWTManagerRepository>();
 
             //Services

@@ -1,4 +1,7 @@
-﻿using Aspose.Pdf.Text;
+﻿using Aspose.Pdf;
+using Aspose.Pdf.Operators;
+using Aspose.Pdf.Text;
+using Aspose.Words.Replacing;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Humanizer;
@@ -16,6 +19,9 @@ using OTAS.Repository;
 using System;
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
+using Xceed.Document.NET;
+using Xceed.Words.NET;
 
 
 namespace OTAS.Services
@@ -533,7 +539,7 @@ namespace OTAS.Services
                             { "<confirmation_number>", avanceCaisseDetails.ConfirmationNumber != null ?
                                                             avanceCaisseDetails.ConfirmationNumber.ToString()
                                                             : "N/A"},
-                            { "<date>", DateTime.Now.ToString("dd/MM/yyyy") },
+                            { "<date>", avanceCaisseDetails.SubmitDate.ToString("dd/MM/yyyy") },
                             { "<amount>", avanceCaisseDetails.EstimatedTotal.ToString().FormatWith(new CultureInfo("fr-FR")) },
                             { "<worded_amount>", ((int)avanceCaisseDetails.EstimatedTotal).ToWords(new CultureInfo("fr-FR")) },
                             { "<currency>", avanceCaisseDetails.Currency.ToString() },
@@ -596,6 +602,90 @@ namespace OTAS.Services
 
             return tempName.ToString();
 
+        }
+
+        public async Task<string> GenerateAvanceCaisseWordDocument(int avanceCaisseId)
+        {
+            AvanceCaisseDocumentDetailsDTO avanceCaisseDetails = await _avanceCaisseRepository.GetAvanceCaisseDocumentDetailsByIdAsync(avanceCaisseId);
+            
+
+            var docPath = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files", "AVANCE_CAISSE_DOCUMENT.docx");
+
+            Guid tempName = Guid.NewGuid();
+            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+
+            if (!Directory.Exists(tempDir))
+            {
+                Directory.CreateDirectory(tempDir);
+            }
+            var tempFile = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", tempName.ToString());
+
+            Xceed.Words.NET.DocX docx = DocX.Load(docPath);
+
+            // the following regex is to find all the placeholders in the document that are between "<" and ">"
+            if (docx.FindUniqueByPattern(@"<([^>]+)>", RegexOptions.IgnoreCase).Count > 0)
+            {
+                var replaceTextOptions = new FunctionReplaceTextOptions()
+                {
+                    FindPattern = "<(.*?)>",
+                    RegexMatchHandler = (match) => {     
+                       return ReplaceAvanceCaisseDocumentPlaceHolders(match, avanceCaisseDetails);
+                    },
+                    RegExOptions = RegexOptions.IgnoreCase,
+                    NewFormatting = new Formatting() { FontFamily = new Xceed.Document.NET.Font("Arial") }
+                };
+                docx.ReplaceText(replaceTextOptions);
+                #pragma warning disable CS0618 // func is obsolete
+                docx.ReplaceTextWithObject("expenses", _miscService.GenerateExpesnesTableForDocuments(docx, avanceCaisseDetails.Expenses));
+                #pragma warning restore CS0618 // func is obsolete
+                docx.SaveAs(tempFile);
+            }
+            
+
+            return tempName.ToString();
+
+        }
+
+        public string ReplaceAvanceCaisseDocumentPlaceHolders(string placeHolder, AvanceCaisseDocumentDetailsDTO avanceCaisseDetails)
+        {
+            #pragma warning disable CS8604 // null warning.
+            Dictionary<string, string> _replacePatterns = new Dictionary<string, string>()
+              {
+                { "id", avanceCaisseDetails.Id.ToString() },
+                { "full_name", avanceCaisseDetails.FirstName + " " + avanceCaisseDetails.LastName },
+                { "confirmation_number", avanceCaisseDetails.ConfirmationNumber != null ?
+                                                avanceCaisseDetails.ConfirmationNumber.ToString()
+                                                : "N/A"},
+                { "date", avanceCaisseDetails.SubmitDate.ToString("dd/MM/yyyy") },
+                { "amount", avanceCaisseDetails.EstimatedTotal.ToString().FormatWith(new CultureInfo("fr-FR")) },
+                { "worded_amount", ((int)avanceCaisseDetails.EstimatedTotal).ToWords(new CultureInfo("fr-FR")) },
+                { "currency", avanceCaisseDetails.Currency.ToString() },
+                { "description", avanceCaisseDetails.Description },
+                { "mg_signature", avanceCaisseDetails.Signers.Any(s => s.Level == "MG") == true ?
+                                    avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
+                                            .Select(s => $"{s.FirstName} {s.LastName}")
+                                            .First()
+                                    : ""
+                },
+                { "fm_signature", avanceCaisseDetails.Signers.Any(s => s.Level == "FM") == true ?
+                                    avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
+                                            .Select(s => $"{s.FirstName} {s.LastName}")
+                                            .First()
+                                    : ""
+                },
+                { "dg_signature", avanceCaisseDetails.Signers.Any(s => s.Level == "GD") == true ?
+                                    avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
+                                            .Select(s => $"{s.FirstName} {s.LastName}")
+                                            .First()
+                                    : ""
+                },
+              };
+            #pragma warning restore CS8604 // null warning
+            if (_replacePatterns.ContainsKey(placeHolder))
+            {
+                return _replacePatterns[placeHolder];
+            }
+            return placeHolder;
         }
 
 

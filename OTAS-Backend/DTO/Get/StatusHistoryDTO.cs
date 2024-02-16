@@ -12,6 +12,8 @@ namespace OTAS.DTO.Get
 
         public string? DeciderComment { get; set; }
 
+        public decimal? Total {  get; set; }
+
         public DateTime CreateDate { get; set; }
 
     }

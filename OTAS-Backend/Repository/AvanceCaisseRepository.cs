@@ -139,6 +139,7 @@ namespace OTAS.Repository
                         DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
                         DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
                         DeciderComment = sh.DeciderComment,
+                        Total = sh.Total,
                         CreateDate = sh.CreateDate
                     }).ToList(),
                     Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses)
@@ -198,6 +199,7 @@ namespace OTAS.Repository
                         DeciderFirstName = sh.Decider != null ? sh.Decider.FirstName : null,
                         DeciderLastName = sh.Decider != null ? sh.Decider.LastName : null,
                         DeciderComment = sh.DeciderComment,
+                        Total = sh.Total,
                         CreateDate = sh.CreateDate
                     }).ToList(),
                     Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses),
@@ -359,6 +361,11 @@ namespace OTAS.Repository
                             LastName = ac.User.LastName,
                             Description = ac.Description,
                             Currency = ac.Currency,
+                            SubmitDate = _context.StatusHistories
+                                        .Where(lq => lq.AvanceCaisseId == avanceCaisseId && lq.Status == 1)
+                                        .OrderByDescending(lq => lq.CreateDate)
+                                        .Select(lq => lq.CreateDate)
+                                        .First(),
                             EstimatedTotal = ac.EstimatedTotal,
                             ConfirmationNumber = ac.ConfirmationNumber,
                             Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses),

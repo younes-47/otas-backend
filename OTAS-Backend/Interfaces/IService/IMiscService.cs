@@ -18,5 +18,7 @@ namespace OTAS.Interfaces.IService
 
         Aspose.Pdf.Table GenerateTripsTableForDocuments(List<TripDTO> trips);
         Aspose.Pdf.Table GenerateSignatoriesTableForDocuments(List<Signatory> signers);
+        Xceed.Document.NET.Table GenerateExpesnesTableForDocuments(Xceed.Words.NET.DocX docx, List<ExpenseDTO> expenses);
+
     }
 }

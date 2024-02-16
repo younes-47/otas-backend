@@ -1,4 +1,5 @@
-﻿using OTAS.Models;
+﻿using OTAS.DTO.Get;
+using OTAS.Models;
 
 namespace OTAS.Interfaces.IRepository
 {
@@ -9,6 +10,6 @@ namespace OTAS.Interfaces.IRepository
         Task<List<string>?> GetDeciderLevelsByUserId(int deciderUserId);
         Task<string?> GetDeciderLevelByUserId(int deciderUserId);
         Task<Decider?> FindDeciderByUserIdAsync(int Id);
-        Task<List<string>> GetManagersUsernames();
+        Task<List<ManagerInfoDTO>> GetManagersInfo();
     }
 }

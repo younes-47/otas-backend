@@ -70,7 +70,7 @@ namespace OTAS.Controllers
         {
             ActualRequesterStaticInfoDTO staticData = new();
             staticData.Departments = await _context.Departments.Select(dp => dp.Name).ToListAsync();
-            staticData.ManagersUsernames = await _deciderRepository.GetManagersUsernames();
+            staticData.Managers = await _deciderRepository.GetManagersInfo();
             staticData.JobTitles = _ldapAuthenticationService.GetJobTitles();
 
             return Ok(staticData);

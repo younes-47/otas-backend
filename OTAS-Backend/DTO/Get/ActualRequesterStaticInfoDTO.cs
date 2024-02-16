@@ -2,7 +2,7 @@
 {
     public class ActualRequesterStaticInfoDTO
     {
-        public List<string> ManagersUsernames { get; set; } = new List<string>();
+        public List<ManagerInfoDTO> Managers { get; set; } = new List<ManagerInfoDTO>();
         public List<string> Departments { get; set; } = new List<string>();
         public List<string> JobTitles { get; set; } = new List<string>();
     }

@@ -114,30 +114,35 @@ namespace OTAS.Services
                     case "Pending Manager's Approval":
                         explicitStatusHistory.Status = "Submitted";
                         explicitStatusHistory.CreateDate = statusHistory.CreateDate;
+                        explicitStatusHistory.Total = statusHistory.Total;
                         break;
                     case "Pending HR's Approval":
                         explicitStatusHistory.Status = "Approved";
                         explicitStatusHistory.CreateDate = statusHistory.CreateDate;
                         explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
                         explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        explicitStatusHistory.Total = statusHistory.Total;
                         break;
                     case "Pending Finance Department's Approval":
                         explicitStatusHistory.Status = "Approved";
                         explicitStatusHistory.CreateDate = statusHistory.CreateDate;
                         explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
                         explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        explicitStatusHistory.Total = statusHistory.Total;
                         break;
                     case "Pending General Director's Approval":
                         explicitStatusHistory.Status = "Approved";
                         explicitStatusHistory.CreateDate = statusHistory.CreateDate;
                         explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
                         explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        explicitStatusHistory.Total = statusHistory.Total;
                         break;
                     case "Pending Vice President's Approval":
                         explicitStatusHistory.Status = "Approved";
                         explicitStatusHistory.CreateDate = statusHistory.CreateDate;
                         explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
                         explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        explicitStatusHistory.Total = statusHistory.Total;
                         break;
                     case "Pending Treasury's Validation":
                         if (explicitStatusHistory.DeciderFirstName != null)
@@ -146,6 +151,7 @@ namespace OTAS.Services
                             explicitStatusHistory.CreateDate = statusHistory.CreateDate;
                             explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
                             explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                            explicitStatusHistory.Total = statusHistory.Total;
                         }
                         else
                         {
@@ -153,6 +159,7 @@ namespace OTAS.Services
                             explicitStatusHistory.CreateDate = statusHistory.CreateDate;
                             explicitStatusHistory.DeciderFirstName = "";
                             explicitStatusHistory.DeciderLastName = "";
+                            explicitStatusHistory.Total = statusHistory.Total;
                         }
                         break;
                     case "Preparing Funds":
@@ -160,6 +167,7 @@ namespace OTAS.Services
                         explicitStatusHistory.CreateDate = statusHistory.CreateDate;
                         explicitStatusHistory.DeciderFirstName = statusHistory.DeciderFirstName;
                         explicitStatusHistory.DeciderLastName = statusHistory.DeciderLastName;
+                        explicitStatusHistory.Total = statusHistory.Total;
                         break;
                     default:
                         continue;
@@ -318,5 +326,29 @@ namespace OTAS.Services
 
             return table;
         }
+
+        public Xceed.Document.NET.Table GenerateExpesnesTableForDocuments(Xceed.Words.NET.DocX docx, List<ExpenseDTO> expenses)
+        {
+            Xceed.Document.NET.Table table = docx.AddTable(1, 2);
+
+            Xceed.Document.NET.Row headersRows = table.Rows[0];
+            headersRows.Cells[0].Paragraphs.First().Append("Description").Bold().Font("Arial").FontSize(11);
+            headersRows.Cells[1].Paragraphs.First().Append("Frais Estime").Bold().Font("Arial").FontSize(11);
+
+            table.Alignment = Xceed.Document.NET.Alignment.center;
+            table.SetWidths(new float[] { 300, 300 });
+
+            foreach (ExpenseDTO expense in expenses)
+            {
+                Xceed.Document.NET.Row valuesRow = table.InsertRow();
+                valuesRow.Cells[0].Paragraphs.First().Append(expense.Description).Font("Arial");
+                valuesRow.Cells[1].Paragraphs.First().Append(expense.Currency + " " + expense.EstimatedFee.ToString().FormatWith(new CultureInfo("fr-FR"))).Font("Arial").FontSize(11);
+            }
+
+            return table;
+        }
+
+
+
     }
 }

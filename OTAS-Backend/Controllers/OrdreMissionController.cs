@@ -251,7 +251,7 @@ namespace OTAS.Controllers
             User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null) return BadRequest("User not found!");
 
-            bool isDecisionValid = decision.DecisionString.ToLower() == "approve" || decision.DecisionString.ToLower() == "return" || decision.DecisionString.ToLower() == "reject";
+            bool isDecisionValid = new[] { "approve", "return", "reject", "approveall" }.Contains(decision.DecisionString.ToLower());
             if (!isDecisionValid)
                 return BadRequest("Decision is invalid!");
 
@@ -263,8 +263,13 @@ namespace OTAS.Controllers
             if (levels.Contains("TR"))
                 return BadRequest("You are not authorized to decide upon Mission Orders");
 
-
-            ServiceResult result = await _ordreMissionService.DecideOnOrdreMission(decision,user.Id);
+            if (decision.DecisionString.ToLower() == "approveall")
+            {
+                ServiceResult resultApproveAll = await _ordreMissionService.ApproveOrdreMissionWithAvanceVoyage(decision.RequestId, user.Id);
+                if (!resultApproveAll.Success) return BadRequest(resultApproveAll.Message);
+                return Ok(resultApproveAll.Message);
+            }
+            ServiceResult result = await _ordreMissionService.DecideOnOrdreMission(decision, user.Id);
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Message);
         }
