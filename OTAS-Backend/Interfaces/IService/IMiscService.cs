@@ -16,8 +16,6 @@ namespace OTAS.Interfaces.IService
 
         bool IsRequestDecidable(string deciderUsername, string nextDeciderUsername, string latestStatus);
 
-        Aspose.Pdf.Table GenerateTripsTableForDocuments(List<TripDTO> trips);
-        Aspose.Pdf.Table GenerateSignatoriesTableForDocuments(List<Signatory> signers);
         Xceed.Document.NET.Table GenerateExpesnesTableForDocuments(Xceed.Words.NET.DocX docx, List<ExpenseDTO> expenses);
 
     }

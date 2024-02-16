@@ -92,46 +92,46 @@ namespace OTAS.Controllers
             return Ok(mappedAVs);
         }
 
-        [Authorize(Roles = "requester")]
-        [HttpGet("Document/Download")]
-        public async Task<IActionResult> DownloadAvanceVoyageDocument(int Id)
-        {
-            if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(Id) == null)
-                return NotFound("Request Not Found");
+        //[Authorize(Roles = "requester")]
+        //[HttpGet("Document/Download")]
+        //public async Task<IActionResult> DownloadAvanceVoyageDocument(int Id)
+        //{
+        //    if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(Id) == null)
+        //        return NotFound("Request Not Found");
 
-            string watermarkedFileName = await _avanceVoyageService.GenerateWaterMarkedAvanceVoyageDocument(Id);
-            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
-            var watermarkedFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", watermarkedFileName + ".pdf");
+        //    string watermarkedFileName = await _avanceVoyageService.GenerateWaterMarkedAvanceVoyageDocument(Id);
+        //    var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+        //    var watermarkedFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", watermarkedFileName + ".pdf");
 
-            // Remove Watermark
-            CompositeCleanupStrategy strategy = new();
-            strategy.Add(new RegexBasedCleanupStrategy("Evaluation Only. Created with Aspose.PDF. Copyright 2002-2023 Aspose Pty Ltd.")
-                            .SetRedactionColor(ColorConstants.WHITE));
+        //    // Remove Watermark
+        //    CompositeCleanupStrategy strategy = new();
+        //    strategy.Add(new RegexBasedCleanupStrategy("Evaluation Only. Created with Aspose.PDF. Copyright 2002-2023 Aspose Pty Ltd.")
+        //                    .SetRedactionColor(ColorConstants.WHITE));
 
-            Guid tempName = Guid.NewGuid();
-            var cleanedDocPath = Path.Combine(tempDir, tempName.ToString() + ".pdf");
+        //    Guid tempName = Guid.NewGuid();
+        //    var cleanedDocPath = Path.Combine(tempDir, tempName.ToString() + ".pdf");
 
-            PdfDocument cleanedDoc = new PdfDocument(new PdfReader(watermarkedFilePath), new PdfWriter(cleanedDocPath).SetCompressionLevel(0));
-
-
-            // Do the magic
-            PdfCleaner.AutoSweepCleanUp(cleanedDoc, strategy);
-
-            cleanedDoc.Close();
-
-            byte[] base64String = System.IO.File.ReadAllBytes(cleanedDocPath);
-
-            /* Delete temp files */
-            System.IO.File.Delete(watermarkedFilePath);
-            System.IO.File.Delete(cleanedDocPath);
+        //    PdfDocument cleanedDoc = new PdfDocument(new PdfReader(watermarkedFilePath), new PdfWriter(cleanedDocPath).SetCompressionLevel(0));
 
 
+        //    // Do the magic
+        //    PdfCleaner.AutoSweepCleanUp(cleanedDoc, strategy);
 
-            Response.Headers.Add($"Content-Disposition", $"attachment; filename=AVANCE_VOYAGE_{Id}_DOCUMENT.pdf");
+        //    cleanedDoc.Close();
 
-            return Ok(File(base64String, "application/pdf", $"AVANCE_VOYAGE_{Id}_DOCUMENT.pdf"));
+        //    byte[] base64String = System.IO.File.ReadAllBytes(cleanedDocPath);
 
-        }
+        //    /* Delete temp files */
+        //    System.IO.File.Delete(watermarkedFilePath);
+        //    System.IO.File.Delete(cleanedDocPath);
+
+
+
+        //    Response.Headers.Add($"Content-Disposition", $"attachment; filename=AVANCE_VOYAGE_{Id}_DOCUMENT.pdf");
+
+        //    return Ok(File(base64String, "application/pdf", $"AVANCE_VOYAGE_{Id}_DOCUMENT.pdf"));
+
+        //}
 
 
 

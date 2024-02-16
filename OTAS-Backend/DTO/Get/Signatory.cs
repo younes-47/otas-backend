@@ -7,5 +7,7 @@
         public string LastName { get; set; } = null!;
 
         public string Level { get; set; } = null!;
+
+        public DateTime SignDate { get; set; }
     }
 }

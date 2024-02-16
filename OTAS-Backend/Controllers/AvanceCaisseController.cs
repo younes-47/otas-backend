@@ -29,6 +29,7 @@ using iText.PdfCleanup.Autosweep;
 using iText.PdfCleanup;
 using iText.Layout;
 using iText.Kernel.Colors;
+using Xceed.Words.NET;
 
 namespace OTAS.Controllers
 {
@@ -217,10 +218,16 @@ namespace OTAS.Controllers
             if(await _avanceCaisseRepository.FindAvanceCaisseAsync(Id) == null)
                 return NotFound("Request Not Found");
 
-            string watermarkedFileName = await _avanceCaisseService.GenerateAvanceCaisseWordDocument(Id);
+            string docxFileName = await _avanceCaisseService.GenerateAvanceCaisseWordDocument(Id);
             var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
-            var watermarkedFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", watermarkedFileName + ".pdf");
+            var docxFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", docxFileName + ".docx");
+            var watermarkedPdfPath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", docxFileName + ".pdf");
 
+            //using (var document = DocX.Load(docxFilePath))
+            //{
+            //    // Convert the Document to PDF and output to a pdf file
+            //    DocX.ConvertToPdf(document, "ConvertedDocument.pdf");
+            //}
             // Remove Watermark
             CompositeCleanupStrategy strategy = new();
             strategy.Add(new RegexBasedCleanupStrategy("Evaluation Only. Created with Aspose.PDF. Copyright 2002-2023 Aspose Pty Ltd.")
@@ -229,18 +236,16 @@ namespace OTAS.Controllers
             Guid tempName = Guid.NewGuid();
             var cleanedDocPath = Path.Combine(tempDir, tempName.ToString() + ".pdf");
 
-            PdfDocument cleanedDoc = new PdfDocument(new PdfReader(watermarkedFilePath), new PdfWriter(cleanedDocPath).SetCompressionLevel(0));
+            PdfDocument cleanedDoc = new PdfDocument(new PdfReader(watermarkedPdfPath), new PdfWriter(cleanedDocPath).SetCompressionLevel(0));
 
                
             // Do the magic
             PdfCleaner.AutoSweepCleanUp(cleanedDoc, strategy);
-
             cleanedDoc.Close();
-
             byte[] base64String = System.IO.File.ReadAllBytes(cleanedDocPath);
 
             /* Delete temp files */
-            System.IO.File.Delete(watermarkedFilePath);
+            System.IO.File.Delete(watermarkedPdfPath);
             System.IO.File.Delete(cleanedDocPath);
 
             

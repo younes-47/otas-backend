@@ -44,6 +44,7 @@
     <PackageReference Include="System.DirectoryServices" Version="7.0.1" />
     <PackageReference Include="System.DirectoryServices.Protocols" Version="7.0.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.0.3" />
+    <PackageReference Include="Xceed.Pdf" Version="3.0.23523.1209" />
   </ItemGroup>
 
   <ItemGroup>

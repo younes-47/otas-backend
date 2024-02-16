@@ -378,6 +378,7 @@ namespace OTAS.Repository
                                             FirstName = sh.Decider.FirstName,
                                             LastName = sh.Decider.LastName,
                                             Level = _miscService.GetDeciderLevelByStatus(sh.Status, "AC"),
+                                            SignDate = sh.CreateDate
                                         })
                                         .ToList()
                         }).FirstAsync();

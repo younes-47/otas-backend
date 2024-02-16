@@ -231,112 +231,16 @@ namespace OTAS.Services
             return false;
         }
 
-        public Aspose.Pdf.Table GenerateTripsTableForDocuments(List<TripDTO> trips)
-        {
-            Aspose.Pdf.Table table = new Aspose.Pdf.Table
-            {
-                Border = new Aspose.Pdf.BorderInfo(Aspose.Pdf.BorderSide.All, .5f, Color.Black),
-                DefaultCellBorder = new Aspose.Pdf.BorderInfo(Aspose.Pdf.BorderSide.All, .5f, Color.Black),
-                ColumnWidths = "15% 15% 15% 15% 15% 15% 15%",
-                Alignment = HorizontalAlignment.FullJustify
-
-            };
-            
-
-            Aspose.Pdf.Row headersRows = table.Rows.Add();
-            headersRows.Cells.Add("Depart");
-            headersRows.Cells.Add("Arrive");
-            headersRows.Cells.Add("Methode de transport");
-            headersRows.Cells.Add("Unite");
-            headersRows.Cells.Add("Valeur");
-            headersRows.Cells.Add("Autoroute");
-            headersRows.Cells.Add("Frais Estime");
-
-            foreach (TripDTO trip in trips)
-            {
-                Aspose.Pdf.Row valuesRow = table.Rows.Add();
-                valuesRow.Cells.Add(trip.DepartureDate.ToString("dd/MM/yyyy"));
-                valuesRow.Cells.Add(trip.ArrivalDate.ToString("dd/MM/yyyy"));
-                valuesRow.Cells.Add(trip.TransportationMethod.ToString());
-                valuesRow.Cells.Add(trip.Unit);
-                valuesRow.Cells.Add(trip.Value.ToString().FormatWith(new CultureInfo("fr-FR")));
-                valuesRow.Cells.Add(trip.HighwayFee.ToString().FormatWith(new CultureInfo("fr-FR")));
-                valuesRow.Cells.Add(trip.EstimatedFee.ToString().FormatWith(new CultureInfo("fr-FR")));
-
-            }
-            
-            return table;
-        }
-
-
-        public Aspose.Pdf.Table GenerateSignatoriesTableForDocuments(List<Signatory> signers)
-        {
-            Aspose.Pdf.Table table = new Aspose.Pdf.Table
-            {
-                Border = new Aspose.Pdf.BorderInfo(Aspose.Pdf.BorderSide.All, .5f, Color.Black),
-                DefaultCellBorder = new Aspose.Pdf.BorderInfo(Aspose.Pdf.BorderSide.All, .5f, Color.Black),
-                ColumnWidths = "20% 20% 20% 20% 20%",
-                Alignment = HorizontalAlignment.FullJustify
-
-            };
-
-
-            Aspose.Pdf.Row headersRows = table.Rows.Add();
-            headersRows.Cells.Add("BENEFICIAIRE");
-            headersRows.Cells.Add("MANAGER DEPARTEMENT");
-            headersRows.Cells.Add("TRESORERIE");
-            headersRows.Cells.Add("DIRECTEUR FINANCIER");
-            headersRows.Cells.Add("DIRECTEUR GENERAL");
-
-            Aspose.Pdf.Row valuesRow = table.Rows.Add();
-
-            // Requester
-            valuesRow.Cells.Add("");
-
-            if (signers.Any(s => s.Level == "MG") == true)
-            {
-                valuesRow.Cells.Add(signers.Where(s => s.Level == "MG").Select(s => $"{s.FirstName} {s.LastName}").First());
-            }
-            else
-            {
-                valuesRow.Cells.Add("");
-            }
-
-            // TR
-            valuesRow.Cells.Add("");
-
-            if (signers.Any(s => s.Level == "FM") == true)
-            {
-                valuesRow.Cells.Add(signers.Where(s => s.Level == "FM").Select(s => $"{s.FirstName} {s.LastName}").First());
-            }
-            else
-            {
-                valuesRow.Cells.Add("");
-            }
-
-            if (signers.Any(s => s.Level == "GD") == true)
-            {
-                valuesRow.Cells.Add(signers.Where(s => s.Level == "GD").Select(s => $"{s.FirstName} {s.LastName}").First());
-            }
-            else
-            {
-                valuesRow.Cells.Add("");
-            }
-
-
-            return table;
-        }
 
         public Xceed.Document.NET.Table GenerateExpesnesTableForDocuments(Xceed.Words.NET.DocX docx, List<ExpenseDTO> expenses)
         {
             Xceed.Document.NET.Table table = docx.AddTable(1, 2);
-
+            table.SetColumnWidth(0, 400, false);
+            table.SetColumnWidth(1, 150, false);
             Xceed.Document.NET.Row headersRows = table.Rows[0];
             headersRows.Cells[0].Paragraphs.First().Append("Description").Bold().Font("Arial").FontSize(11);
-            headersRows.Cells[1].Paragraphs.First().Append("Frais Estime").Bold().Font("Arial").FontSize(11);
+            headersRows.Cells[1].Paragraphs.First().Append("Frais Estimés").Bold().Font("Arial").FontSize(11);
 
-            table.Alignment = Xceed.Document.NET.Alignment.center;
-            table.SetWidths(new float[] { 300, 300 });
 
             foreach (ExpenseDTO expense in expenses)
             {

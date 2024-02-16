@@ -520,95 +520,12 @@ namespace OTAS.Services
             return result;
         }
 
-        public async Task<string> GenerateWaterMarkedAvanceCaisseDocument(int avanceCaisseId)
-        {
-            AvanceCaisseDocumentDetailsDTO avanceCaisseDetails = await _avanceCaisseRepository.GetAvanceCaisseDocumentDetailsByIdAsync(avanceCaisseId);
-
-
-            var docPath = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files", "AVANCE_CAISSE_DOCUMENT.pdf");
-            Aspose.Pdf.Document pdf = new Aspose.Pdf.Document(docPath);
-            Guid tempName = Guid.NewGuid();
-            // Load PDF file
-            using (pdf)
-            {
-                #pragma warning disable CS8604 // null warning.
-                var placeholders = new Dictionary<string, string>
-                        {
-                            { "<id>", avanceCaisseDetails.Id.ToString() },
-                            { "<full_name>", avanceCaisseDetails.FirstName + " " + avanceCaisseDetails.LastName },
-                            { "<confirmation_number>", avanceCaisseDetails.ConfirmationNumber != null ?
-                                                            avanceCaisseDetails.ConfirmationNumber.ToString()
-                                                            : "N/A"},
-                            { "<date>", avanceCaisseDetails.SubmitDate.ToString("dd/MM/yyyy") },
-                            { "<amount>", avanceCaisseDetails.EstimatedTotal.ToString().FormatWith(new CultureInfo("fr-FR")) },
-                            { "<worded_amount>", ((int)avanceCaisseDetails.EstimatedTotal).ToWords(new CultureInfo("fr-FR")) },
-                            { "<currency>", avanceCaisseDetails.Currency.ToString() },
-                            { "<description>", avanceCaisseDetails.Description },
-                            { "<expenses>", string.Join(Environment.NewLine, avanceCaisseDetails.Expenses
-                                            .Select(expense => $"{expense.Description} ......... {expense.Currency} {expense.EstimatedFee.ToString().FormatWith(new CultureInfo("fr-FR"))}"))
-                            },
-                            { "<mg_signature>", avanceCaisseDetails.Signers.Any(s => s.Level == "MG") == true ?
-                                                avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
-                                                        .Select(s => $"{s.FirstName} {s.LastName}")
-                                                        .First()
-                                                : ""
-                            },
-                            { "<fm_signature>", avanceCaisseDetails.Signers.Any(s => s.Level == "FM") == true ?
-                                                avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
-                                                        .Select(s => $"{s.FirstName} {s.LastName}")
-                                                        .First()
-                                                : ""
-                            },
-                            { "<dg_signature>", avanceCaisseDetails.Signers.Any(s => s.Level == "GD") == true ?
-                                                avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
-                                                        .Select(s => $"{s.FirstName} {s.LastName}")
-                                                        .First()
-                                                : ""
-                            },
-                        };
-                #pragma warning restore CS8604 // null warning
-
-                foreach (KeyValuePair<string, string> item in placeholders)
-                {
-                    TextFragmentAbsorber absorber = new Aspose.Pdf.Text.TextFragmentAbsorber(item.Key);
-                    pdf.Pages[1].Accept(absorber);
-
-                    foreach (var textFragment in absorber.TextFragments)
-                    {
-                        textFragment.Text = item.Value;
-                    }
-                }
-                MemoryStream memoryStream = new();
-
-                pdf.Save(memoryStream);
-
-
-                // SAVE FILE TEMPORARLY IN DISK
-                var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
-                if (!Directory.Exists(tempDir))
-                {
-                    Directory.CreateDirectory(tempDir);
-                }
-
-                
-                var filePath = Path.Combine(tempDir, tempName.ToString() + ".pdf");
-
-                await using (memoryStream)
-                {
-                    await System.IO.File.WriteAllBytesAsync(filePath, memoryStream.ToArray());
-                }
-
-            }
-
-            return tempName.ToString();
-
-        }
-
         public async Task<string> GenerateAvanceCaisseWordDocument(int avanceCaisseId)
         {
             AvanceCaisseDocumentDetailsDTO avanceCaisseDetails = await _avanceCaisseRepository.GetAvanceCaisseDocumentDetailsByIdAsync(avanceCaisseId);
             
 
+            var staticDir = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files");
             var docPath = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files", "AVANCE_CAISSE_DOCUMENT.docx");
 
             Guid tempName = Guid.NewGuid();
@@ -636,7 +553,50 @@ namespace OTAS.Services
                 };
                 docx.ReplaceText(replaceTextOptions);
                 #pragma warning disable CS0618 // func is obsolete
+
+                // Replace the expenses table
                 docx.ReplaceTextWithObject("expenses", _miscService.GenerateExpesnesTableForDocuments(docx, avanceCaisseDetails.Expenses));
+
+                // Replace the signatures
+                if (avanceCaisseDetails.Signers.Any(s => s.Level == "MG"))
+                {
+                    docx.ReplaceText("%mg_signature%", avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
+                            .Select(s => $"{s.FirstName} {s.LastName}")
+                            .First());
+                    docx.ReplaceText("%mg_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
+                            .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
+                            .First());
+
+                    Xceed.Document.NET.Image signature_img = docx.AddImage(staticDir + "\\mg_signature_img.png");
+                    Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                    docx.ReplaceTextWithObject("%mg_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                }
+                if (avanceCaisseDetails.Signers.Any(s => s.Level == "FM"))
+                {
+                    docx.ReplaceText("%fm_signature%", avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
+                            .Select(s => $"{s.FirstName} {s.LastName}")
+                            .First());
+                    docx.ReplaceText("%fm_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
+                            .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
+                            .First());
+
+                    Xceed.Document.NET.Image signature_img = docx.AddImage(staticDir + "\\fm_signature_img.png");
+                    Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                    docx.ReplaceTextWithObject("%fm_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                }
+                if (avanceCaisseDetails.Signers.Any(s => s.Level == "GD"))
+                {
+                    docx.ReplaceText("%gd_signature%", avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
+                            .Select(s => $"{s.FirstName} {s.LastName}")
+                            .First());
+                    docx.ReplaceText("%gd_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
+                            .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
+                            .First());
+
+                    Xceed.Document.NET.Image signature_img = docx.AddImage(staticDir + "\\gd_signature_img.png");
+                    Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                    docx.ReplaceTextWithObject("%gd_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                }
                 #pragma warning restore CS0618 // func is obsolete
                 docx.SaveAs(tempFile);
             }
@@ -660,25 +620,7 @@ namespace OTAS.Services
                 { "amount", avanceCaisseDetails.EstimatedTotal.ToString().FormatWith(new CultureInfo("fr-FR")) },
                 { "worded_amount", ((int)avanceCaisseDetails.EstimatedTotal).ToWords(new CultureInfo("fr-FR")) },
                 { "currency", avanceCaisseDetails.Currency.ToString() },
-                { "description", avanceCaisseDetails.Description },
-                { "mg_signature", avanceCaisseDetails.Signers.Any(s => s.Level == "MG") == true ?
-                                    avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
-                                            .Select(s => $"{s.FirstName} {s.LastName}")
-                                            .First()
-                                    : ""
-                },
-                { "fm_signature", avanceCaisseDetails.Signers.Any(s => s.Level == "FM") == true ?
-                                    avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
-                                            .Select(s => $"{s.FirstName} {s.LastName}")
-                                            .First()
-                                    : ""
-                },
-                { "dg_signature", avanceCaisseDetails.Signers.Any(s => s.Level == "GD") == true ?
-                                    avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
-                                            .Select(s => $"{s.FirstName} {s.LastName}")
-                                            .First()
-                                    : ""
-                },
+                { "description", avanceCaisseDetails.Description.ToString() },
               };
             #pragma warning restore CS8604 // null warning
             if (_replacePatterns.ContainsKey(placeHolder))
