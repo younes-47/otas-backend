@@ -551,7 +551,7 @@ namespace OTAS.Services
                             return ReplaceAvanceCaisseDocumentPlaceHolders(match, avanceCaisseDetails);
                         },
                         RegExOptions = RegexOptions.IgnoreCase,
-                        NewFormatting = new Formatting() { FontFamily = new Xceed.Document.NET.Font("Arial") }
+                        NewFormatting = new Formatting() { FontFamily = new Xceed.Document.NET.Font("Arial"), Bold = false }
                     };
                     docx.ReplaceText(replaceTextOptions);
 #pragma warning disable CS0618 // func is obsolete
@@ -566,7 +566,7 @@ namespace OTAS.Services
                                 .Select(s => $"{s.FirstName} {s.LastName}")
                                 .First());
                         docx.ReplaceText("%mg_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
-                                .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
                                 .First());
 
                         string? imgName = avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
@@ -589,7 +589,7 @@ namespace OTAS.Services
                                 .Select(s => $"{s.FirstName} {s.LastName}")
                                 .First());
                         docx.ReplaceText("%fm_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
-                                .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
                                 .First());
 
                         string? imgName = avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
@@ -612,7 +612,7 @@ namespace OTAS.Services
                                 .Select(s => $"{s.FirstName} {s.LastName}")
                                 .First());
                         docx.ReplaceText("%gd_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
-                                .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
                                 .First());
 
                         string? imgName = avanceCaisseDetails.Signers.Where(s => s.Level == "GD")

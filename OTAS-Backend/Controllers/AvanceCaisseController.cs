@@ -1,11 +1,5 @@
-﻿using Aspose.Cells.Revisions;
-using Aspose.Pdf;
-using Aspose.Pdf.Plugins;
-using AutoMapper;
-using Humanizer;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
@@ -13,32 +7,9 @@ using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
-using OTAS.Repository;
 using OTAS.Services;
-using System.Globalization;
-using System.Collections;
-using Aspose.Pdf.Text;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using System.Linq;
-using System.IO;
-using System.IO.Packaging;
-using iText.Kernel.Pdf;
-using iText.PdfCleanup.Autosweep;
-using iText.PdfCleanup;
-using iText.Layout;
-using iText.Kernel.Colors;
-using Xceed.Words.NET;
-using GrapeCity.Documents.Word;
-using GrapeCity.Documents.Word.Layout;
-using iText.IO.Source;
-using Microsoft.AspNetCore.Components.Forms;
-using DocumentFormat.OpenXml.ExtendedProperties;
-using iText.Layout.Element;
 using Microsoft.Office.Interop.Word;
-using java.io;
-using org.docx4j.openpackaging.packages;
-using org.docx4j;
+
 
 namespace OTAS.Controllers
 {
@@ -228,18 +199,27 @@ namespace OTAS.Controllers
                 return NotFound("Request Not Found");
 
             string docxFileName = await _avanceCaisseService.GenerateAvanceCaisseWordDocument(Id);
-            //var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
             var docxFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", docxFileName + ".docx");
-            //Guid tempPdfName = Guid.NewGuid();
-            byte[] base64String = System.IO.File.ReadAllBytes(docxFilePath);
+            Guid tempPdfName = Guid.NewGuid();
+            var pdfFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", tempPdfName.ToString() + ".pdf");
+
+            Application wordApplication = new Application();
+            Microsoft.Office.Interop.Word.Document wordDocument = wordApplication.Documents.Open(docxFilePath);
+            wordDocument.ExportAsFixedFormat(pdfFilePath, WdExportFormat.wdExportFormatPDF);
+            wordDocument.Close(false);
+            wordApplication.Quit();
+
+            byte[] base64String = System.IO.File.ReadAllBytes(pdfFilePath);
+
 
             /* Delete temp files */
             System.IO.File.Delete(docxFilePath);
-            //System.IO.File.Delete(tempDir + $"\\{tempPdfName}.pdf");
+            System.IO.File.Delete(pdfFilePath);
 
-            Response.Headers.Add($"Content-Disposition", $"attachment; filename=AVANCE_CAISSE_{Id}_DOCUMENT.docx");
+            Response.Headers.Add($"Content-Disposition", $"attachment; filename=AVANCE_CAISSE_{Id}_DOCUMENT.pdf");
 
-            return Ok(File(base64String, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"AVANCE_CAISSE_{Id}_DOCUMENT.docx"));
+            return Ok(File(base64String, "application/pdf", $"AVANCE_CAISSE_{Id}_DOCUMENT.pdf"));
 
         }
 
