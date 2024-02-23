@@ -257,35 +257,35 @@ namespace OTAS.Services
             Xceed.Document.NET.Table table = docx.AddTable(1, 9);
             Xceed.Document.NET.Row headersRows = table.Rows[0];
 
-            headersRows.Cells[0].Paragraphs.First().Append("Départ").Bold().Font("Arial").FontSize(9);
-            headersRows.Cells[1].Paragraphs.First().Append("Destination").Bold().Font("Arial").FontSize(9);
-            headersRows.Cells[2].Paragraphs.First().Append("Date de départ").Bold().Font("Arial").FontSize(9);
-            headersRows.Cells[3].Paragraphs.First().Append("Date d'arrivée").Bold().Font("Arial").FontSize(9);
-            headersRows.Cells[4].Paragraphs.First().Append("Transport").Bold().Font("Arial").FontSize(9);
-            headersRows.Cells[5].Paragraphs.First().Append("Unité").Bold().Font("Arial").FontSize(9);
-            headersRows.Cells[6].Paragraphs.First().Append("Valeur").Bold().Font("Arial").FontSize(9);
-            headersRows.Cells[7].Paragraphs.First().Append("Autoroute").Bold().Font("Arial").FontSize(9);
-            headersRows.Cells[8].Paragraphs.First().Append("Frais Estimés").Bold().Font("Arial").FontSize(9);
+            headersRows.Cells[0].Paragraphs.First().Append("Départ").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[1].Paragraphs.First().Append("Destination").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[2].Paragraphs.First().Append("Date de départ").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[3].Paragraphs.First().Append("Date d'arrivée").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[4].Paragraphs.First().Append("Transport").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[5].Paragraphs.First().Append("Unité").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[6].Paragraphs.First().Append("Valeur").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[7].Paragraphs.First().Append("Autoroute").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[8].Paragraphs.First().Append("Frais Estimés").Bold().Font("Arial").FontSize(10);
 
             foreach (TripDTO trip in trips)
             {
                 Xceed.Document.NET.Row valuesRow = table.InsertRow();
-                valuesRow.Cells[0].Paragraphs.First().Append(trip.DeparturePlace).Font("Arial").FontSize(9);
-                valuesRow.Cells[1].Paragraphs.First().Append(trip.Destination).Font("Arial").FontSize(9);
-                valuesRow.Cells[2].Paragraphs.First().Append(trip.DepartureDate.ToString("dd/MM/yyyy")).Font("Arial").FontSize(9);
-                valuesRow.Cells[3].Paragraphs.First().Append(trip.ArrivalDate.ToString("dd/MM/yyyy")).Font("Arial").FontSize(9);
-                valuesRow.Cells[4].Paragraphs.First().Append(trip.TransportationMethod).Font("Arial").FontSize(9);
-                valuesRow.Cells[5].Paragraphs.First().Append(trip.Unit).Font("Arial").FontSize(9);
-                valuesRow.Cells[6].Paragraphs.First().Append(trip.Value.ToString().FormatWith(new CultureInfo("fr-FR"))).Font("Arial").FontSize(9);
+                valuesRow.Cells[0].Paragraphs.First().Append(trip.DeparturePlace).Font("Arial").FontSize(10);
+                valuesRow.Cells[1].Paragraphs.First().Append(trip.Destination).Font("Arial").FontSize(10);
+                valuesRow.Cells[2].Paragraphs.First().Append(trip.DepartureDate.ToString("dd/MM/yyyy")).Font("Arial").FontSize(10);
+                valuesRow.Cells[3].Paragraphs.First().Append(trip.ArrivalDate.ToString("dd/MM/yyyy")).Font("Arial").FontSize(10);
+                valuesRow.Cells[4].Paragraphs.First().Append(trip.TransportationMethod).Font("Arial").FontSize(10);
+                valuesRow.Cells[5].Paragraphs.First().Append(trip.Unit).Font("Arial").FontSize(10);
+                valuesRow.Cells[6].Paragraphs.First().Append(trip.Value.ToString().FormatWith(new CultureInfo("fr-FR"))).Font("Arial").FontSize(10);
                 if(trip.HighwayFee > 0)
                 {                  
-                    valuesRow.Cells[7].Paragraphs.First().Append(trip.HighwayFee.ToString().FormatWith(new CultureInfo("fr-FR"))).Font("Arial").FontSize(9);
+                    valuesRow.Cells[7].Paragraphs.First().Append(trip.HighwayFee.ToString().FormatWith(new CultureInfo("fr-FR"))).Font("Arial").FontSize(10);
                 }
                 else
                 {
-                    valuesRow.Cells[7].Paragraphs.First().Append("N/A").Font("Arial").FontSize(9);
+                    valuesRow.Cells[7].Paragraphs.First().Append("N/A").Font("Arial").FontSize(10);
                 }
-                valuesRow.Cells[8].Paragraphs.First().Append(trip.EstimatedFee.ToString().FormatWith(new CultureInfo("fr-FR"))).Font("Arial").FontSize(9);
+                valuesRow.Cells[8].Paragraphs.First().Append(trip.EstimatedFee.ToString().FormatWith(new CultureInfo("fr-FR"))).Font("Arial").FontSize(10);
 
             }
 
