@@ -324,6 +324,21 @@ namespace OTAS.Repository
             return totalAmounts;
         }
 
+        public async Task<List<DepenseCaisseDTO>> GetFinalizedDepenseCaissesForDeciderStats(int deciderUserId)
+        {
+            return await _context.StatusHistories
+                .Where(sh => sh.DeciderUserId == deciderUserId)
+                .Where(sh => sh.DepenseCaisseId != null)
+                .Where(sh => sh.Status == 16)
+                .Include(sh => sh.DepenseCaisse)
+                .Select(sh => new DepenseCaisseDTO
+                {
+                    Currency = sh.DepenseCaisse.Currency,
+                    Total = sh.DepenseCaisse.Total,
+                }).ToListAsync();
+        }
+
+
         public async Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId)
         {
             DateTime? lastCreated = null;

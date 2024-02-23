@@ -385,6 +385,19 @@ namespace OTAS.Repository
                         }).FirstAsync();
         }
 
+        public async Task<List<AvanceCaisseDTO>> GetFinalizedAvanceCaissesForDeciderStats(int deciderUserId)
+        {
+            return await _context.StatusHistories
+                .Where(sh => sh.DeciderUserId == deciderUserId)
+                .Where(sh => sh.AvanceCaisseId != null)
+                .Where(sh => sh.Status == 16)
+                .Include(sh => sh.AvanceCaisse)
+                .Select(sh => new AvanceCaisseDTO
+                {
+                    Currency = sh.AvanceCaisse.Currency,
+                    EstimatedTotal = sh.AvanceCaisse.EstimatedTotal,
+                }).ToListAsync();
+        }
 
 
 

@@ -413,5 +413,21 @@ namespace OTAS.Repository
                 Trips = _mapper.Map<List<TripDTO>>(av.Trips),
             }).FirstAsync();
         }
+
+        public async Task<List<AvanceVoyageViewDTO>> GetFinalizedAvanceVoyagesForDeciderStats(int deciderUserId)
+        {
+            return await _context.StatusHistories
+                .Where(sh => sh.DeciderUserId == deciderUserId)
+                .Where(sh => sh.AvanceVoyageId != null)
+                .Where(sh => sh.Status == 16)
+                .Include(sh => sh.AvanceVoyage)
+                .Select(sh => new AvanceVoyageViewDTO
+                {
+                    Currency = sh.AvanceVoyage.Currency,
+                    EstimatedTotal = sh.AvanceVoyage.EstimatedTotal,
+                }).ToListAsync();
+        }
+
+
     }
 }

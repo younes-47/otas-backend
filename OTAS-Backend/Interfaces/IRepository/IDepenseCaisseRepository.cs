@@ -22,6 +22,8 @@ namespace OTAS.Interfaces.IRepository
         Task<decimal[]> GetRequesterAllTimeRequestedAmountsByUserIdAsync(int userId);
         Task<decimal[]> GetDeciderAllTimeDecidedUponAmountsByUserIdAsync(int userId);
         Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId);
+
+        Task<List<DepenseCaisseDTO>> GetFinalizedDepenseCaissesForDeciderStats(int deciderUserId);
         Task<bool> SaveAsync();
     }
 }

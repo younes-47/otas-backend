@@ -286,6 +286,80 @@ namespace OTAS.Repository
                 .FirstAsync();
         }
 
+        public async Task<int> GetRequestsToLiquidateCountForDecider()
+        {
+            var counterAV = await _context.AvanceVoyages
+                    .Include(av => av.Liquidation)
+                    .Where(av => av.LatestStatus == 10)
+                    .Where(av => av.Liquidation == null && av.Liquidation.AvanceVoyage == null && av.Liquidation.AvanceVoyageId != av.Id)
+                    .ToListAsync();
+
+            var counterAC = await _context.AvanceCaisses
+                    .Include(av => av.Liquidation)
+                    .Where(ac => ac.LatestStatus == 10)
+                    .Where(av => av.Liquidation == null && av.Liquidation.AvanceCaisse == null && av.Liquidation.AvanceCaisseId != av.Id)
+                    .ToListAsync();
+
+            return counterAV.Count + counterAC.Count;
+        }
+
+        public async Task<decimal> GetRequestsToLiquidateTotalByCurrency(string currency)
+        {
+            var counterAV = await _context.AvanceVoyages
+                    .Include(av => av.Liquidation)
+                    .Where(av => av.LatestStatus == 10)
+                    .Where(av => av.Currency == currency)
+                    .Where(av => av.Liquidation == null && av.Liquidation.AvanceVoyage == null && av.Liquidation.AvanceVoyageId != av.Id)
+                    .Select(av => av.EstimatedTotal)
+                    .ToListAsync();
+
+            var counterAC = await _context.AvanceCaisses
+                    .Include(av => av.Liquidation)
+                    .Where(ac => ac.LatestStatus == 10)
+                    .Where(av => av.Currency == currency)
+                    .Where(av => av.Liquidation == null && av.Liquidation.AvanceCaisse == null && av.Liquidation.AvanceCaisseId != av.Id)
+                    .Select(av => av.EstimatedTotal)
+                    .ToListAsync();
+
+            return counterAV.Sum() + counterAC.Sum();
+        }
+
+        public async Task<int> GetOngoingLiquidationsCount() 
+        {             
+            return await _context.Liquidations
+                .Where(lq => lq.LatestStatus != 16 && lq.LatestStatus != 97 && lq.LatestStatus != 98 && lq.LatestStatus != 99)
+                .CountAsync();
+        }
+
+        public async Task<decimal> GetOngoingLiquidationsTotalByCurrency(string currency)
+        {
+            var counter = await _context.Liquidations
+                .Where(lq => lq.Currency == currency)
+                .Where(lq => lq.LatestStatus != 16 && lq.LatestStatus != 97 && lq.LatestStatus != 98 && lq.LatestStatus != 99)
+                .Select(lq => lq.ActualTotal)
+                .ToListAsync();
+
+            return counter.Sum();
+        }
+
+        public async Task<int> GetFinalizedLiquidationsCount()
+        {
+            return await _context.Liquidations
+                .Where(lq => lq.LatestStatus == 16)
+                .CountAsync();
+        }
+
+        public async Task<decimal> GetFinalizedLiquidationsTotalByCurrency(string currency)
+        {
+            var counter = await _context.Liquidations
+                .Where(lq => lq.Currency == currency)
+                .Where(lq => lq.LatestStatus == 16)
+                .Select(lq => lq.ActualTotal)
+                .ToListAsync();
+
+            return counter.Sum();
+        }
+
         // Save context state
         public async Task<bool> SaveAsync()
         {

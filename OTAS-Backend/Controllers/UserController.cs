@@ -20,6 +20,7 @@ namespace OTAS.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IDeciderRepository _deciderRepository;
         private readonly ILdapAuthenticationService _ldapAuthenticationService;
+        private readonly ILiquidationRepository _liquidationRepository;
         private readonly OtasContext _context;
         private readonly IAvanceVoyageRepository _avanceVoyageRepository;
         private readonly IAvanceCaisseRepository _avanceCaisseRepository;
@@ -28,6 +29,7 @@ namespace OTAS.Controllers
         public UserController(IUserRepository userRepository,
             IDeciderRepository deciderRepository,
             ILdapAuthenticationService ldapAuthenticationService,
+            ILiquidationRepository liquidationRepository,
             OtasContext context,
             IAvanceVoyageRepository avanceVoyageRepository,
             IAvanceCaisseRepository avanceCaisseRepository,
@@ -37,6 +39,7 @@ namespace OTAS.Controllers
             _userRepository = userRepository;
             _deciderRepository = deciderRepository;
             _ldapAuthenticationService = ldapAuthenticationService;
+            _liquidationRepository = liquidationRepository;
             _context = context;
             _avanceVoyageRepository = avanceVoyageRepository;
             _avanceCaisseRepository = avanceCaisseRepository;
@@ -189,92 +192,71 @@ namespace OTAS.Controllers
             string username = HttpContext.User.Identity.Name;
             var userId = await _userRepository.GetUserIdByUsernameAsync(username);
 
-            StatsDTO stats = new();
-            StatsMoneyDTO moneyStats = new();
-            StatsRequestsDTO requestsStats = new();
+            DeciderStatsDTO stats = new();
 
-            decimal[] av_Totals = await _avanceVoyageRepository.GetDeciderAllTimeDecidedUponAmountsByUserIdAsync(userId);
-            decimal[] ac_Totals = await _avanceCaisseRepository.GetDeciderAllTimeDecidedUponAmountsByUserIdAsync(userId);
-            decimal[] dc_Totals = await _depenseCaisseRepository.GetDeciderAllTimeDecidedUponAmountsByUserIdAsync(userId);
-
-            moneyStats.AvanceVoyagesAllTimeAmountMAD += av_Totals[0];
-            moneyStats.AvanceVoyagesAllTimeAmountEUR += av_Totals[1];
-
-            moneyStats.AvanceCaissesAllTimeAmountMAD += ac_Totals[0];
-            moneyStats.AvanceCaissesAllTimeAmountEUR += ac_Totals[1];
-
-            moneyStats.DepenseCaissesAllTimeAmountMAD += dc_Totals[0];
-            moneyStats.DepenseCaissesAllTimeAmountEUR += dc_Totals[1];
-
-            moneyStats.AllTimeAmountMAD += av_Totals[0] + ac_Totals[0] + dc_Totals[0];
-            moneyStats.AllTimeAmountEUR += av_Totals[1] + ac_Totals[1] + dc_Totals[1];
-
-            stats.MoneyStats = moneyStats;
-
-            requestsStats.AvanceVoyagesAllTimeCount += _context.StatusHistories
-                                                                .Where(sh => sh.AvanceVoyageId != null && sh.DeciderUserId == userId)
-                                                                .GroupBy(sh => sh.AvanceVoyageId)
-                                                                .Select(sh => sh.Count())
-                                                                .Count();
-
-            requestsStats.AvanceCaissesAllTimeCount += await _context.StatusHistories
-                                                                .Include(sh => sh.AvanceCaisse)
-                                                                .Where(sh => sh.AvanceCaisseId != null && sh.DeciderUserId == userId && sh.AvanceCaisse != null)
-                                                                .GroupBy(sh => sh.AvanceCaisseId)
-                                                                .CountAsync();
-
-            requestsStats.DepenseCaissesAllTimeCount += await _context.StatusHistories
-                                                                .Include(sh => sh.DepenseCaisse)
-                                                                .Where(sh => sh.DepenseCaisseId != null && sh.DeciderUserId == userId && sh.DepenseCaisse != null)
-                                                                .GroupBy(sh => sh.DepenseCaisseId)
-                                                                .CountAsync();
-
-            requestsStats.OrdreMissionsAllTimeCount = await _context.StatusHistories
-                                                                .Include(sh => sh.OrdreMission)
-                                                                .Where(sh => sh.OrdreMissionId != null && sh.DeciderUserId == userId && sh.OrdreMission != null)
-                                                                .GroupBy(sh => sh.OrdreMissionId)
-                                                                .CountAsync();
-
-            requestsStats.AllTimeCount = requestsStats.OrdreMissionsAllTimeCount + requestsStats.AvanceVoyagesAllTimeCount
-                + requestsStats.AvanceCaissesAllTimeCount + requestsStats.DepenseCaissesAllTimeCount;
+            stats.PendingOrdreMissionsCount = _context.OrdreMissions.Where(om => om.NextDeciderUserId == userId).Count();
+            stats.PendingAvanceVoyagesCount = _context.AvanceVoyages.Where(av => av.NextDeciderUserId == userId).Count();
+            stats.PendingAvanceCaissesCount = _context.AvanceCaisses.Where(ac => ac.NextDeciderUserId == userId).Count();
+            stats.PendingDepenseCaissesCount = _context.DepenseCaisses.Where(dc => dc.NextDeciderUserId == userId).Count();
+            stats.PendingLiquidationsCount = _context.Liquidations.Where(l => l.NextDeciderUserId == userId).Count();
 
 
-            requestsStats.AllOngoingRequestsCount = await _context.AvanceVoyages.Where(av => av.NextDeciderUserId == userId).CountAsync();
-
-            requestsStats.AllOngoingRequestsCount += await _context.AvanceCaisses.Where(av => av.NextDeciderUserId == userId).CountAsync();
-
-            requestsStats.AllOngoingRequestsCount += await _context.DepenseCaisses.Where(av => av.NextDeciderUserId == userId).CountAsync();
-
-            requestsStats.AllOngoingRequestsCount += await _context.OrdreMissions.Where(av => av.NextDeciderUserId == userId).CountAsync();
-
-            requestsStats.AllOngoingRequestsCount += await _context.Liquidations.Where(av => av.NextDeciderUserId == userId).CountAsync();
-
-
-            DateTime? lastCreatedReq = DateTime.MinValue;
-
-            DateTime? tempDate = await _context.StatusHistories.Where(sh => sh.DeciderUserId == userId)
-                                                           .OrderByDescending(sh => sh.CreateDate)
-                                                           .Select(sh => sh.CreateDate)
-                                                           .FirstOrDefaultAsync();
-            if (tempDate != null)
+            var finalizedAvancesCaisses = await _avanceCaisseRepository.GetFinalizedAvanceCaissesForDeciderStats(userId);
+            stats.FinalizedAvanceCaissesCount = finalizedAvancesCaisses.Count;
+            foreach (var ac in finalizedAvancesCaisses)
             {
-                if (tempDate > lastCreatedReq)
+                stats.FinalizedAvanceCaissesCount += 1;
+                if (ac.Currency == "MAD")
                 {
-                    lastCreatedReq = tempDate;
+                    stats.FinalizedAvanceCaissesMADCount += ac.EstimatedTotal;
+                }
+                else
+                {
+                    stats.FinalizedAvanceCaissesEURCount += ac.EstimatedTotal;
                 }
             }
 
-            if (lastCreatedReq != DateTime.MinValue)
+            var finalizedAvancesVoyages = await _avanceVoyageRepository.GetFinalizedAvanceVoyagesForDeciderStats(userId);
+            stats.FinalizedAvanceVoyagesCount = finalizedAvancesVoyages.Count;
+            foreach (var av in finalizedAvancesVoyages)
             {
-                TimeSpan difference = (TimeSpan)(DateTime.Now - lastCreatedReq);
-                requestsStats.HoursPassedSinceLastRequest = (decimal)difference.TotalHours;
-            }
-            else
-            {
-                requestsStats.HoursPassedSinceLastRequest = null;
+                stats.FinalizedAvanceVoyagesCount += 1;
+                if (av.Currency == "MAD")
+                {
+                    stats.FinalizedAvanceVoyagesMADCount += av.EstimatedTotal;
+                }
+                else
+                {
+                    stats.FinalizedAvanceVoyagesEURCount += av.EstimatedTotal;
+                }
             }
 
-            stats.RequestsStats = requestsStats;
+            var finalizedDepenseCaisses = await _depenseCaisseRepository.GetFinalizedDepenseCaissesForDeciderStats(userId);
+            stats.FinalizedDepenseCaissesCount = finalizedDepenseCaisses.Count;
+            foreach (var dc in finalizedDepenseCaisses)
+            {
+                stats.FinalizedDepenseCaissesCount += 1;
+                if (dc.Currency == "MAD")
+                {
+                    stats.FinalizedDepenseCaissesMADCount += dc.Total;
+                }
+                else
+                {
+                    stats.FinalizedDepenseCaissesEURCount += dc.Total;
+                }
+            }
+
+            stats.ToLiquidateRequestsCount = await _liquidationRepository.GetRequestsToLiquidateCountForDecider();
+            stats.ToLiquidateRequestsMADCount = await _liquidationRepository.GetRequestsToLiquidateTotalByCurrency("MAD");
+            stats.ToLiquidateRequestsEURCount = await _liquidationRepository.GetRequestsToLiquidateTotalByCurrency("EUR");
+
+            stats.OngoingLiquidationsCount = await _liquidationRepository.GetOngoingLiquidationsCount();
+            stats.OngoingLiquidationsMADCount = await _liquidationRepository.GetOngoingLiquidationsTotalByCurrency("MAD");
+            stats.OngoingLiquidationsEURCount = await _liquidationRepository.GetOngoingLiquidationsTotalByCurrency("EUR");
+
+            stats.FinalizedLiquidationsCount = await _liquidationRepository.GetFinalizedLiquidationsCount();
+            stats.FinalizedLiquidationsMADCount = await _liquidationRepository.GetFinalizedLiquidationsTotalByCurrency("MAD");
+            stats.FinalizedLiquidationsEURCount = await _liquidationRepository.GetFinalizedLiquidationsTotalByCurrency("EUR");
 
             return Ok(stats);
         }

@@ -16,6 +16,16 @@ namespace OTAS.Interfaces.IRepository
         Task<List<LiquidationDeciderTableDTO>> GetLiquidationsTableForDecider(int deciderUserId);
         Task<List<RequestToLiquidate>> GetRequestsToLiquidatesByTypeAsync(string type, int userId);
         Task<LiquidationDeciderViewDTO> GetLiquidationFullDetailsByIdForDecider(int liquidationId);
+
+        Task<int> GetRequestsToLiquidateCountForDecider();
+        Task<decimal> GetRequestsToLiquidateTotalByCurrency(string currency);
+        Task<int> GetOngoingLiquidationsCount();
+        Task<decimal> GetOngoingLiquidationsTotalByCurrency(string currency);
+
+        Task<int> GetFinalizedLiquidationsCount();
+
+        Task<decimal> GetFinalizedLiquidationsTotalByCurrency(string currency);
+
         Task<int> GetLiquidationNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false);
         Task<ServiceResult> UpdateLiquidationAsync(Liquidation liquidation);
         Task<bool> SaveAsync();
