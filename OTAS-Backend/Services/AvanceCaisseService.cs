@@ -525,7 +525,7 @@ namespace OTAS.Services
             AvanceCaisseDocumentDetailsDTO avanceCaisseDetails = await _avanceCaisseRepository.GetAvanceCaisseDocumentDetailsByIdAsync(avanceCaisseId);
             
 
-            var staticDir = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files");
+            var signaturesDir = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files\\Signatures");
             var docPath = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files", "AVANCE_CAISSE_DOCUMENT.docx");
 
             Guid tempName = Guid.NewGuid();
@@ -539,66 +539,104 @@ namespace OTAS.Services
 
             Xceed.Words.NET.DocX docx = DocX.Load(docPath);
 
-            // the following regex is to find all the placeholders in the document that are between "<" and ">"
-            if (docx.FindUniqueByPattern(@"<([^>]+)>", RegexOptions.IgnoreCase).Count > 0)
+            try
             {
-                var replaceTextOptions = new FunctionReplaceTextOptions()
+                // the following regex is to find all the placeholders in the document that are between "<" and ">"
+                if (docx.FindUniqueByPattern(@"<([^>]+)>", RegexOptions.IgnoreCase).Count > 0)
                 {
-                    FindPattern = "<(.*?)>",
-                    RegexMatchHandler = (match) => {     
-                       return ReplaceAvanceCaisseDocumentPlaceHolders(match, avanceCaisseDetails);
-                    },
-                    RegExOptions = RegexOptions.IgnoreCase,
-                    NewFormatting = new Formatting() { FontFamily = new Xceed.Document.NET.Font("Arial") }
-                };
-                docx.ReplaceText(replaceTextOptions);
-                #pragma warning disable CS0618 // func is obsolete
+                    var replaceTextOptions = new FunctionReplaceTextOptions()
+                    {
+                        FindPattern = "<(.*?)>",
+                        RegexMatchHandler = (match) => {
+                            return ReplaceAvanceCaisseDocumentPlaceHolders(match, avanceCaisseDetails);
+                        },
+                        RegExOptions = RegexOptions.IgnoreCase,
+                        NewFormatting = new Formatting() { FontFamily = new Xceed.Document.NET.Font("Arial") }
+                    };
+                    docx.ReplaceText(replaceTextOptions);
+#pragma warning disable CS0618 // func is obsolete
 
-                // Replace the expenses table
-                docx.ReplaceTextWithObject("expenses", _miscService.GenerateExpesnesTableForDocuments(docx, avanceCaisseDetails.Expenses));
+                    // Replace the expenses table
+                    docx.ReplaceTextWithObject("expenses", _miscService.GenerateExpesnesTableForDocuments(docx, avanceCaisseDetails.Expenses));
 
-                // Replace the signatures
-                if (avanceCaisseDetails.Signers.Any(s => s.Level == "MG"))
-                {
-                    docx.ReplaceText("%mg_signature%", avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
-                            .Select(s => $"{s.FirstName} {s.LastName}")
-                            .First());
-                    docx.ReplaceText("%mg_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
-                            .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
-                            .First());
+                    // Replace the signatures
+                    if (avanceCaisseDetails.Signers.Any(s => s.Level == "MG"))
+                    {
+                        docx.ReplaceText("%mg_signature%", avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%mg_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
+                                .First());
 
-                    Xceed.Document.NET.Image signature_img = docx.AddImage(staticDir + "\\mg_signature_img.png");
-                    Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
-                    docx.ReplaceTextWithObject("%mg_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                        string? imgName = avanceCaisseDetails.Signers.Where(s => s.Level == "MG")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%mg_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%mg_signature%", "");
+                        docx.ReplaceText("%mg_signature_date%", "");
+                        docx.ReplaceText("%mg_signature_img%", "");
+                    }
+                    if (avanceCaisseDetails.Signers.Any(s => s.Level == "FM"))
+                    {
+                        docx.ReplaceText("%fm_signature%", avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%fm_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
+                                .First());
+
+                        string? imgName = avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%fm_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%fm_signature%", "");
+                        docx.ReplaceText("%fm_signature_date%", "");
+                        docx.ReplaceText("%fm_signature_img%", "");
+                    }
+                    if (avanceCaisseDetails.Signers.Any(s => s.Level == "GD"))
+                    {
+                        docx.ReplaceText("%gd_signature%", avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%gd_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
+                                .First());
+
+                        string? imgName = avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%gd_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%gd_signature%", "");
+                        docx.ReplaceText("%gd_signature_date%", "");
+                        docx.ReplaceText("%gd_signature_img%", "");
+                    }
+#pragma warning restore CS0618 // func is obsolete
+                    docx.SaveAs(tempFile);
                 }
-                if (avanceCaisseDetails.Signers.Any(s => s.Level == "FM"))
-                {
-                    docx.ReplaceText("%fm_signature%", avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
-                            .Select(s => $"{s.FirstName} {s.LastName}")
-                            .First());
-                    docx.ReplaceText("%fm_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "FM")
-                            .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
-                            .First());
 
-                    Xceed.Document.NET.Image signature_img = docx.AddImage(staticDir + "\\fm_signature_img.png");
-                    Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
-                    docx.ReplaceTextWithObject("%fm_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
-                }
-                if (avanceCaisseDetails.Signers.Any(s => s.Level == "GD"))
-                {
-                    docx.ReplaceText("%gd_signature%", avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
-                            .Select(s => $"{s.FirstName} {s.LastName}")
-                            .First());
-                    docx.ReplaceText("%gd_signature_date%", avanceCaisseDetails.Signers.Where(s => s.Level == "GD")
-                            .Select(s => s.SignDate.ToString("dd/MM/yyyy"))
-                            .First());
-
-                    Xceed.Document.NET.Image signature_img = docx.AddImage(staticDir + "\\gd_signature_img.png");
-                    Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
-                    docx.ReplaceTextWithObject("%gd_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
-                }
-                #pragma warning restore CS0618 // func is obsolete
-                docx.SaveAs(tempFile);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
             }
             
 

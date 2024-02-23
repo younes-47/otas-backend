@@ -16,7 +16,6 @@ using OTAS.Models;
 using OTAS.Repository;
 using OTAS.Services;
 using System.Globalization;
-using TMA_App.Services;
 using System.Collections;
 using Aspose.Pdf.Text;
 using DocumentFormat.OpenXml.Packaging;
@@ -30,6 +29,16 @@ using iText.PdfCleanup;
 using iText.Layout;
 using iText.Kernel.Colors;
 using Xceed.Words.NET;
+using GrapeCity.Documents.Word;
+using GrapeCity.Documents.Word.Layout;
+using iText.IO.Source;
+using Microsoft.AspNetCore.Components.Forms;
+using DocumentFormat.OpenXml.ExtendedProperties;
+using iText.Layout.Element;
+using Microsoft.Office.Interop.Word;
+using java.io;
+using org.docx4j.openpackaging.packages;
+using org.docx4j;
 
 namespace OTAS.Controllers
 {
@@ -219,40 +228,18 @@ namespace OTAS.Controllers
                 return NotFound("Request Not Found");
 
             string docxFileName = await _avanceCaisseService.GenerateAvanceCaisseWordDocument(Id);
-            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+            //var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
             var docxFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", docxFileName + ".docx");
-            var watermarkedPdfPath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", docxFileName + ".pdf");
-
-            //using (var document = DocX.Load(docxFilePath))
-            //{
-            //    // Convert the Document to PDF and output to a pdf file
-            //    DocX.ConvertToPdf(document, "ConvertedDocument.pdf");
-            //}
-            // Remove Watermark
-            CompositeCleanupStrategy strategy = new();
-            strategy.Add(new RegexBasedCleanupStrategy("Evaluation Only. Created with Aspose.PDF. Copyright 2002-2023 Aspose Pty Ltd.")
-                            .SetRedactionColor(ColorConstants.WHITE));
-
-            Guid tempName = Guid.NewGuid();
-            var cleanedDocPath = Path.Combine(tempDir, tempName.ToString() + ".pdf");
-
-            PdfDocument cleanedDoc = new PdfDocument(new PdfReader(watermarkedPdfPath), new PdfWriter(cleanedDocPath).SetCompressionLevel(0));
-
-               
-            // Do the magic
-            PdfCleaner.AutoSweepCleanUp(cleanedDoc, strategy);
-            cleanedDoc.Close();
-            byte[] base64String = System.IO.File.ReadAllBytes(cleanedDocPath);
+            //Guid tempPdfName = Guid.NewGuid();
+            byte[] base64String = System.IO.File.ReadAllBytes(docxFilePath);
 
             /* Delete temp files */
-            System.IO.File.Delete(watermarkedPdfPath);
-            System.IO.File.Delete(cleanedDocPath);
+            System.IO.File.Delete(docxFilePath);
+            //System.IO.File.Delete(tempDir + $"\\{tempPdfName}.pdf");
 
-            
+            Response.Headers.Add($"Content-Disposition", $"attachment; filename=AVANCE_CAISSE_{Id}_DOCUMENT.docx");
 
-            Response.Headers.Add($"Content-Disposition", $"attachment; filename=AVANCE_CAISSE_{Id}_DOCUMENT.pdf");
-
-            return Ok(File(base64String, "application/pdf", $"AVANCE_CAISSE_{Id}_DOCUMENT.pdf"));
+            return Ok(File(base64String, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"AVANCE_CAISSE_{Id}_DOCUMENT.docx"));
 
         }
 

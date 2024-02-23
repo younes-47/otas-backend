@@ -509,6 +509,10 @@ public partial class OtasContext : DbContext
                 .IsRequired()
                 .IsUnicode(false);
 
+            entity.Property(v => v.SignatureImageName)
+               .HasMaxLength(100)
+               .IsUnicode(false);
+
             entity.HasOne(v => v.User).WithMany(u => u.Deciders)
                 .HasForeignKey(v => v.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

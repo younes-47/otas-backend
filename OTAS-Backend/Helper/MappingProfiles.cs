@@ -60,7 +60,12 @@ namespace OTAS.Helper
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
             CreateMap<ExpenseNoCurrencyPostDTO, Expense>().ReverseMap();
             CreateMap<TripPostDTO, Trip>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore());
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.HighwayFee, opt =>
+                {
+                    opt.Condition(src => src.Unit == "KM");
+                    opt.MapFrom(src => src.HighwayFee);
+                }); ;
             CreateMap<ActualRequesterPostDTO, ActualRequester>().ReverseMap();
 
             CreateMap<DepenseCaissePostDTO, DepenseCaisse>()
