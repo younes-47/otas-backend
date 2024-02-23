@@ -16,6 +16,8 @@
 
         public int? ConfirmationNumber { get; set; }
 
+        public DateTime SubmitDate { get; set; }
+
         public List<Signatory> Signers { get; set; } = new List<Signatory>();
 
         public virtual List<TripDTO> Trips { get; set; } = new List<TripDTO>();

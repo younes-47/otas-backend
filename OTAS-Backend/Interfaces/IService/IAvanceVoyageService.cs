@@ -13,5 +13,7 @@ namespace OTAS.Interfaces.IService
         Task<ServiceResult> DecideOnAvanceVoyage(DecisionOnRequestPostDTO decision, int deciderUserId);
         Task<ServiceResult> ConfirmFundsDelivery(int avanceVoyageId, int confirmationNumber);
         Task<ServiceResult> MarkFundsAsPrepared(int avanceVoyageId, string advanceOption, int deciderUserId);
+
+        Task<string> GenerateAvanceVoyageWordDocument(int avanceVoyageId);
     }
 }

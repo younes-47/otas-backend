@@ -14,6 +14,7 @@ using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
 using OTAS.Services;
+using Microsoft.Office.Interop.Word;
 
 namespace OTAS.Controllers
 {
@@ -92,46 +93,37 @@ namespace OTAS.Controllers
             return Ok(mappedAVs);
         }
 
-        //[Authorize(Roles = "requester")]
-        //[HttpGet("Document/Download")]
-        //public async Task<IActionResult> DownloadAvanceVoyageDocument(int Id)
-        //{
-        //    if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(Id) == null)
-        //        return NotFound("Request Not Found");
+        [Authorize(Roles = "requester")]
+        [HttpGet("Document/Download")]
+        public async Task<IActionResult> DownloadAvanceVoyageDocument(int Id)
+        {
+            if (await _avanceVoyageRepository.FindAvanceVoyageByIdAsync(Id) == null)
+                return NotFound("Request Not Found");
 
-        //    string watermarkedFileName = await _avanceVoyageService.GenerateWaterMarkedAvanceVoyageDocument(Id);
-        //    var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
-        //    var watermarkedFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", watermarkedFileName + ".pdf");
+            string docxFileName = await _avanceVoyageService.GenerateAvanceVoyageWordDocument(Id);
+            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+            var docxFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", docxFileName + ".docx");
+            Guid tempPdfName = Guid.NewGuid();
+            var pdfFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", tempPdfName.ToString() + ".pdf");
 
-        //    // Remove Watermark
-        //    CompositeCleanupStrategy strategy = new();
-        //    strategy.Add(new RegexBasedCleanupStrategy("Evaluation Only. Created with Aspose.PDF. Copyright 2002-2023 Aspose Pty Ltd.")
-        //                    .SetRedactionColor(ColorConstants.WHITE));
+            Application wordApplication = new Application();
+            Microsoft.Office.Interop.Word.Document wordDocument = wordApplication.Documents.Open(docxFilePath);
+            wordDocument.ExportAsFixedFormat(pdfFilePath, WdExportFormat.wdExportFormatPDF);
+            wordDocument.Close(false);
+            wordApplication.Quit();
 
-        //    Guid tempName = Guid.NewGuid();
-        //    var cleanedDocPath = Path.Combine(tempDir, tempName.ToString() + ".pdf");
-
-        //    PdfDocument cleanedDoc = new PdfDocument(new PdfReader(watermarkedFilePath), new PdfWriter(cleanedDocPath).SetCompressionLevel(0));
-
-
-        //    // Do the magic
-        //    PdfCleaner.AutoSweepCleanUp(cleanedDoc, strategy);
-
-        //    cleanedDoc.Close();
-
-        //    byte[] base64String = System.IO.File.ReadAllBytes(cleanedDocPath);
-
-        //    /* Delete temp files */
-        //    System.IO.File.Delete(watermarkedFilePath);
-        //    System.IO.File.Delete(cleanedDocPath);
+            byte[] base64String = System.IO.File.ReadAllBytes(pdfFilePath);
 
 
+            /* Delete temp files */
+            System.IO.File.Delete(docxFilePath);
+            System.IO.File.Delete(pdfFilePath);
 
-        //    Response.Headers.Add($"Content-Disposition", $"attachment; filename=AVANCE_VOYAGE_{Id}_DOCUMENT.pdf");
+            Response.Headers.Add($"Content-Disposition", $"attachment; filename=AVANCE_VOYAGE_{Id}_DOCUMENT.pdf");
 
-        //    return Ok(File(base64String, "application/pdf", $"AVANCE_VOYAGE_{Id}_DOCUMENT.pdf"));
+            return Ok(File(base64String, "application/pdf", $"AVANCE_VOYAGE_{Id}_DOCUMENT.pdf"));
 
-        //}
+        }
 
 
 
