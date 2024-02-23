@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic;
+using org.apache.commons.codec.language.bm;
+using OTAS.Models;
 using OTAS.Data;
 using OTAS.DTO.Get;
 using OTAS.Interfaces.IRepository;
@@ -45,6 +47,17 @@ namespace OTAS.Controllers
             _avanceCaisseRepository = avanceCaisseRepository;
             _depenseCaisseRepository = depenseCaisseRepository;
             _mapper = mapper;
+        }
+        [Authorize(Roles = "requester,decider")]
+        [HttpPost("preferredLanguage/{lang}")]
+        public async Task<IActionResult> SetPreferredLanguage(string lang)
+        {
+            User? user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
+            if (user == null) { return BadRequest(); }
+            user.PreferredLanguage = lang;
+            await _userRepository.UpdateUserAsync(user);
+            var output = new { user.PreferredLanguage };
+            return Ok(output);
         }
 
         [Authorize(Roles = "requester,decider")]

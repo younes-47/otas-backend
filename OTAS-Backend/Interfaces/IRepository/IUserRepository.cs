@@ -18,6 +18,7 @@ namespace OTAS.Interfaces.IRepository
         Task<User?> FindUserByUsernameAsync(string username);
         Task<ServiceResult> AddUserAsync(User user);
         Task<User> CreateUserAsync(User user);
+        Task UpdateUserAsync(User user);
         Task<bool> SaveAsync();
     }
 }

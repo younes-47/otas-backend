@@ -91,6 +91,19 @@ namespace OTAS.Repository
             return user;
         }
 
+        public async Task UpdateUserAsync(User user)
+        {
+            _context.Users.Update(user);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw;
+            }
+        }
+
         public async Task<bool> SaveAsync()
         {
             int saved = await _context.SaveChangesAsync();
