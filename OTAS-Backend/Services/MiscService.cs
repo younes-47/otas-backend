@@ -178,7 +178,7 @@ namespace OTAS.Services
             return illustratedStatusHistory;
         }
 
-        public string GetDeciderLevelByStatus(int status, string requestType)
+        public string GetDeciderLevelByStatus(int status, bool? isRequestOM = false)
         {
             string level = "";
             switch (status)
@@ -187,7 +187,7 @@ namespace OTAS.Services
                     level = "MG";
                     break;
                 case 3:
-                    if(requestType == "OM")
+                    if(isRequestOM == true)
                     {
                         level = "HR";
                     }
@@ -203,7 +203,7 @@ namespace OTAS.Services
                     level = "GD";
                     break;
                 case 7:
-                    if (requestType == "OM")
+                    if (isRequestOM == true)
                     {
                         level = "GD";
                     }

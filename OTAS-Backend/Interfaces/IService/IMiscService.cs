@@ -12,7 +12,7 @@ namespace OTAS.Interfaces.IService
         int GenerateRandomNumber(int length);
 
         List<StatusHistoryDTO> IllustrateStatusHistory(List<StatusHistoryDTO> statusHistories);
-        string GetDeciderLevelByStatus(int status, string requestType);
+        string GetDeciderLevelByStatus(int status, bool? isRequestOM = false);
 
         bool IsRequestDecidable(string deciderUsername, string nextDeciderUsername, string latestStatus);
 

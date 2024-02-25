@@ -356,6 +356,49 @@ namespace OTAS.Repository
             return lastCreated;
         }
 
+        public async Task<DepenseCaisseDocumentDetailsDTO> GetDepenseCaisseDocumentDetailsByIdAsync(int depenseCaisseId)
+        {
+            int satatusHistoryBreakRowId = _context.StatusHistories
+                                                .Where(lq => lq.Status == 1 && lq.DepenseCaisseId == depenseCaisseId)
+                                                .OrderByDescending(lq => lq.Id)
+                                                .Select(lq => lq.Id)
+                                                .First();
+
+            return await _context.DepenseCaisses.Where(ac => ac.Id == depenseCaisseId)
+                        .Include(ac => ac.Expenses)
+                        .Include(ac => ac.StatusHistories)
+                        .Include(ac => ac.User)
+                        .Select(ac => new DepenseCaisseDocumentDetailsDTO
+                        {
+                            Id = ac.Id,
+                            FirstName = ac.User.FirstName,
+                            LastName = ac.User.LastName,
+                            Description = ac.Description,
+                            Currency = ac.Currency,
+                            SubmitDate = _context.StatusHistories
+                                        .Where(lq => lq.DepenseCaisseId == depenseCaisseId && lq.Status == 1)
+                                        .OrderByDescending(lq => lq.CreateDate)
+                                        .Select(lq => lq.CreateDate)
+                                        .First(),
+                            Total = ac.Total,
+                            Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses),
+                            Signers = ac.StatusHistories
+                                        .Where(lq => lq.DepenseCaisseId == depenseCaisseId)
+                                        .Where(lq => lq.DeciderUserId != null)
+                                        .Where(lq => lq.Id > satatusHistoryBreakRowId)
+                                        .Select(sh => new Signatory
+                                        {
+                                            FirstName = sh.Decider.FirstName,
+                                            LastName = sh.Decider.LastName,
+                                            SignatureImageName = _context.Deciders.Where(d => d.UserId == sh.Decider.Id).Select(d => d.SignatureImageName).FirstOrDefault(),
+                                            Level = _miscService.GetDeciderLevelByStatus(sh.Status, false),
+                                            SignDate = sh.CreateDate
+                                        })
+                                        .ToList()
+                        }).FirstAsync();
+        }
+
+
 
         public async Task<bool> SaveAsync()
         {

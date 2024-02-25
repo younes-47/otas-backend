@@ -12,5 +12,6 @@ namespace OTAS.Interfaces.IService
         Task<ServiceResult> DeleteDraftedDepenseCaisse(DepenseCaisse depenseCaisse);
         Task<ServiceResult> SubmitDepenseCaisse(int depenseCaisseId);
         Task<ServiceResult> DecideOnDepenseCaisse(DecisionOnRequestPostDTO decision, int deciderUserId);
+        Task<string> GenerateDepenseCaisseWordDocument(int depenseCaisseId);
     }
 }

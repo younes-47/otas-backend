@@ -378,7 +378,7 @@ namespace OTAS.Repository
                                             FirstName = sh.Decider.FirstName,
                                             LastName = sh.Decider.LastName,
                                             SignatureImageName = _context.Deciders.Where(d => d.UserId == sh.Decider.Id).Select(d => d.SignatureImageName).FirstOrDefault(),
-                                            Level = _miscService.GetDeciderLevelByStatus(sh.Status, "AC"),
+                                            Level = _miscService.GetDeciderLevelByStatus(sh.Status, false),
                                             SignDate = sh.CreateDate
                                         })
                                         .ToList()

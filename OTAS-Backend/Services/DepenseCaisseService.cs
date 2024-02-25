@@ -1,12 +1,17 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Hosting;
 using OTAS.Data;
+using OTAS.DTO.Get;
 using OTAS.DTO.Post;
 using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
-using OTAS.Repository;
+using Humanizer;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Xceed.Document.NET;
+using Xceed.Words.NET;
 
 
 namespace OTAS.Services
@@ -439,7 +444,7 @@ namespace OTAS.Services
                     result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(decidedDepenseCaisse);
                     if (!result.Success) return result;
 
-                    StatusHistory decidedAvanceCaisse_SH = new()
+                    StatusHistory decidedDepenseCaisse_SH = new()
                     {
                         DepenseCaisseId = decision.RequestId,
                         DeciderUserId = deciderUserId,
@@ -448,7 +453,7 @@ namespace OTAS.Services
                         Status = decision.DecisionString.ToLower() == "return" ? 98 : 97,
                         NextDeciderUserId = decidedDepenseCaisse.NextDeciderUserId,
                     };
-                    result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);
+                    result = await _statusHistoryRepository.AddStatusAsync(decidedDepenseCaisse_SH);
                     if (!result.Success) return result;
 
                     await transaction.CommitAsync();
@@ -491,7 +496,7 @@ namespace OTAS.Services
                     result = await _depenseCaisseRepository.UpdateDepenseCaisseAsync(decidedDepenseCaisse);
                     if (!result.Success) return result;
 
-                    StatusHistory decidedAvanceCaisse_SH = new()
+                    StatusHistory decidedDepenseCaisse_SH = new()
                     {
                         DepenseCaisseId = decision.RequestId,
                         DeciderUserId = deciderUserId,
@@ -500,7 +505,7 @@ namespace OTAS.Services
                         Status = decidedDepenseCaisse.LatestStatus,
                         NextDeciderUserId = decidedDepenseCaisse.NextDeciderUserId,
                     };
-                    result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);
+                    result = await _statusHistoryRepository.AddStatusAsync(decidedDepenseCaisse_SH);
                     if (!result.Success) return result;
 
                     await transaction.CommitAsync();
@@ -516,6 +521,151 @@ namespace OTAS.Services
             result.Success = true;
             result.Message = "DepenseCaisse is decided upon successfully";
             return result;
+        }
+
+        public async Task<string> GenerateDepenseCaisseWordDocument(int depenseCaisseId)
+        {
+            DepenseCaisseDocumentDetailsDTO depenseCaisseDetails = await _depenseCaisseRepository.GetDepenseCaisseDocumentDetailsByIdAsync(depenseCaisseId);
+
+
+            var signaturesDir = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files\\Signatures");
+            var docPath = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files", "DEPENSE_CAISSE_DOCUMENT.docx");
+
+            Guid tempName = Guid.NewGuid();
+            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+
+            if (!Directory.Exists(tempDir))
+            {
+                Directory.CreateDirectory(tempDir);
+            }
+            var tempFile = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", tempName.ToString());
+
+            Xceed.Words.NET.DocX docx = DocX.Load(docPath);
+
+            try
+            {
+                // the following regex is to find all the placeholders in the document that are between "<" and ">"
+                if (docx.FindUniqueByPattern(@"<([^>]+)>", RegexOptions.IgnoreCase).Count > 0)
+                {
+                    var replaceTextOptions = new FunctionReplaceTextOptions()
+                    {
+                        FindPattern = "<(.*?)>",
+                        RegexMatchHandler = (match) => {
+                            return ReplaceDepenseCaisseDocumentPlaceHolders(match, depenseCaisseDetails);
+                        },
+                        RegExOptions = RegexOptions.IgnoreCase,
+                        NewFormatting = new Formatting() { FontFamily = new Xceed.Document.NET.Font("Arial"), Bold = false }
+                    };
+                    docx.ReplaceText(replaceTextOptions);
+#pragma warning disable CS0618 // func is obsolete
+
+                    // Replace the expenses table
+                    docx.ReplaceTextWithObject("expenses", _miscService.GenerateExpesnesTableForDocuments(docx, depenseCaisseDetails.Expenses));
+
+                    // Replace the signatures
+                    if (depenseCaisseDetails.Signers.Any(s => s.Level == "MG"))
+                    {
+                        docx.ReplaceText("%mg_signature%", depenseCaisseDetails.Signers.Where(s => s.Level == "MG")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%mg_signature_date%", depenseCaisseDetails.Signers.Where(s => s.Level == "MG")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = depenseCaisseDetails.Signers.Where(s => s.Level == "MG")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%mg_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%mg_signature%", "");
+                        docx.ReplaceText("%mg_signature_date%", "");
+                        docx.ReplaceText("%mg_signature_img%", "");
+                    }
+                    if (depenseCaisseDetails.Signers.Any(s => s.Level == "FM"))
+                    {
+                        docx.ReplaceText("%fm_signature%", depenseCaisseDetails.Signers.Where(s => s.Level == "FM")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%fm_signature_date%", depenseCaisseDetails.Signers.Where(s => s.Level == "FM")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = depenseCaisseDetails.Signers.Where(s => s.Level == "FM")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%fm_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%fm_signature%", "");
+                        docx.ReplaceText("%fm_signature_date%", "");
+                        docx.ReplaceText("%fm_signature_img%", "");
+                    }
+                    if (depenseCaisseDetails.Signers.Any(s => s.Level == "GD"))
+                    {
+                        docx.ReplaceText("%gd_signature%", depenseCaisseDetails.Signers.Where(s => s.Level == "GD")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%gd_signature_date%", depenseCaisseDetails.Signers.Where(s => s.Level == "GD")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = depenseCaisseDetails.Signers.Where(s => s.Level == "GD")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%gd_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%gd_signature%", "");
+                        docx.ReplaceText("%gd_signature_date%", "");
+                        docx.ReplaceText("%gd_signature_img%", "");
+                    }
+#pragma warning restore CS0618 // func is obsolete
+                    docx.SaveAs(tempFile);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+
+
+            return tempName.ToString();
+
+        }
+
+        public string ReplaceDepenseCaisseDocumentPlaceHolders(string placeHolder, DepenseCaisseDocumentDetailsDTO depenseCaisseDetails)
+        {
+#pragma warning disable CS8604 // null warning.
+            Dictionary<string, string> _replacePatterns = new Dictionary<string, string>()
+              {
+                { "id", depenseCaisseDetails.Id.ToString() },
+                { "full_name", depenseCaisseDetails.FirstName + " " + depenseCaisseDetails.LastName },
+                { "date", depenseCaisseDetails.SubmitDate.ToString("dd/MM/yyyy") },
+                { "amount", depenseCaisseDetails.Total.ToString().FormatWith(new CultureInfo("fr-FR")) },
+                { "worded_amount", ((int)depenseCaisseDetails.Total).ToWords(new CultureInfo("fr-FR")) },
+                { "currency", depenseCaisseDetails.Currency.ToString() },
+                { "description", depenseCaisseDetails.Description.ToString() },
+              };
+#pragma warning restore CS8604 // null warning
+            if (_replacePatterns.ContainsKey(placeHolder))
+            {
+                return _replacePatterns[placeHolder];
+            }
+            return placeHolder;
         }
 
     }
