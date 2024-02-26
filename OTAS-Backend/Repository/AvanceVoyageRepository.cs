@@ -223,7 +223,7 @@ namespace OTAS.Repository
                                         {
                                             FirstName = sh.Decider.FirstName,
                                             LastName = sh.Decider.LastName,
-                                            Level = _miscService.GetDeciderLevelByStatus(sh.Status, "AC"),
+                                            Level = _miscService.GetDeciderLevelByStatus(sh.Status, false),
                                         })
                                         .ToList()
                         }).FirstAsync();
