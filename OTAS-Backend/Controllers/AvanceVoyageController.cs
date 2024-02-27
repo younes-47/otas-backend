@@ -93,7 +93,7 @@ namespace OTAS.Controllers
             return Ok(mappedAVs);
         }
 
-        [Authorize(Roles = "requester")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("Document/Download")]
         public async Task<IActionResult> DownloadAvanceVoyageDocument(int Id)
         {

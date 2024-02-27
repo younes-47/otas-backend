@@ -174,6 +174,56 @@ namespace OTAS.Repository
                 .FirstAsync();
         }
 
+        public async Task<OrdreMissionDocumentDetailsDTO> GetOrdreMissionDocumentDetailsByIdAsync(int ordreMissionId)
+        {
+            int satatusHistoryBreakRowId = _context.StatusHistories
+                                                .Where(lq => lq.Status == 1 && lq.OrdreMissionId == ordreMissionId)
+                                                .OrderByDescending(lq => lq.Id)
+                                                .Select(lq => lq.Id)
+                                                .First();
+
+            return await _context.OrdreMissions.Where(ac => ac.Id == ordreMissionId)
+                        .Include(ac => ac.AvanceVoyages)
+                        .Include(ac => ac.StatusHistories)
+                        .Include(ac => ac.User)
+                        .Select(ac => new OrdreMissionDocumentDetailsDTO
+                        {
+                            Id = ac.Id,
+                            FirstName = ac.User.FirstName,
+                            LastName = ac.User.LastName,
+                            Description = ac.Description,
+                            SubmitDate = _context.StatusHistories
+                                        .Where(lq => lq.OrdreMissionId == ordreMissionId && lq.Status == 1)
+                                        .OrderByDescending(lq => lq.CreateDate)
+                                        .Select(lq => lq.CreateDate)
+                                        .First(),
+                            AvanceVoyagesDetails = ac.AvanceVoyages.Select(av => new OrdreMissionAvanceDetailsDTO
+                            {
+                                Id = av.Id,
+                                EstimatedTotal = av.EstimatedTotal,
+                                ActualTotal = av.ActualTotal,
+                                Currency = av.Currency,
+                                LatestStatus = av.LatestStatusNavigation.StatusString,
+                                Trips = _mapper.Map<List<TripDTO>>(av.Trips),
+                                Expenses = _mapper.Map<List<ExpenseDTO>>(av.Expenses),
+                            }).ToList(),
+                            Signers = ac.StatusHistories
+                                        .Where(lq => lq.OrdreMissionId == ordreMissionId)
+                                        .Where(lq => lq.DeciderUserId != null)
+                                        .Where(lq => lq.Id > satatusHistoryBreakRowId)
+                                        .Select(sh => new Signatory
+                                        {
+                                            FirstName = sh.Decider.FirstName,
+                                            LastName = sh.Decider.LastName,
+                                            SignatureImageName = _context.Deciders.Where(d => d.UserId == sh.Decider.Id).Select(d => d.SignatureImageName).FirstOrDefault(),
+                                            Level = _miscService.GetDeciderLevelByStatus(sh.Status, true),
+                                            SignDate = sh.CreateDate
+                                        })
+                                        .ToList()
+                        }).FirstAsync();
+        }
+
+
         public async Task<List<OrdreMissionDTO>?> GetOrdresMissionByUserIdAsync(int userid)
         {
             List<OrdreMissionDTO> ordreMissionDTO = await _context.OrdreMissions

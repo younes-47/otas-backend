@@ -13,6 +13,7 @@ namespace OTAS.Interfaces.IService
         Task<ServiceResult> SubmitOrdreMissionWithAvanceVoyage(int ordreMissionId);
         Task<ServiceResult> DecideOnOrdreMission(DecisionOnRequestPostDTO decision, int deciderUserId);
         Task<ServiceResult> ApproveOrdreMissionWithAvanceVoyage(int ordreMissionId, int deciderUserId);
+        Task<string> GenerateOrdreMissionWordDocument(int ordreMissionId);
         Task<ServiceResult> ModifyOrdreMissionWithAvanceVoyage(OrdreMissionPutDTO ordreMission);
         Task<ServiceResult> DeleteDraftedOrdreMissionWithAvanceVoyages(OrdreMission ordreMission);
     }

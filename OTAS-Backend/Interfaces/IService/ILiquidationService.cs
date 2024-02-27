@@ -14,5 +14,8 @@ namespace OTAS.Interfaces.IService
         Task<ServiceResult> SubmitLiquidation(int liquidationId);
         Task<ServiceResult> DecideOnLiquidation(DecisionOnRequestPostDTO decision, int deciderUserId);
 
+        Task<string> GenerateAvanceVoyageLiquidationWordDocument(int liquidationId);
+        Task<string> GenerateAvanceCaisseLiquidationWordDocument(int liquidationId);
+
     }
 }

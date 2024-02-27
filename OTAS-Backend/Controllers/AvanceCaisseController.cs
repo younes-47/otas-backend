@@ -191,7 +191,7 @@ namespace OTAS.Controllers
             return Ok(mappedACs);
         }
 
-        [Authorize(Roles = "requester")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("Document/Download")]
         public async Task<IActionResult> DownloadAvanceCaisseDocument(int Id)
         {

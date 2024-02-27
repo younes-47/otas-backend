@@ -252,6 +252,26 @@ namespace OTAS.Services
             return table;
         }
 
+        public Xceed.Document.NET.Table GenerateExpesnesTableForLiquidationDocuments(Xceed.Words.NET.DocX docx, List<ExpenseDTO> expenses)
+        {
+            Xceed.Document.NET.Table table = docx.AddTable(1, 2);
+            table.SetColumnWidth(0, 400, false);
+            table.SetColumnWidth(1, 150, false);
+            Xceed.Document.NET.Row headersRows = table.Rows[0];
+            headersRows.Cells[0].Paragraphs.First().Append("Description").Bold().Font("Arial").FontSize(11);
+            headersRows.Cells[1].Paragraphs.First().Append("Montant dépensé").Bold().Font("Arial").FontSize(11);
+
+
+            foreach (ExpenseDTO expense in expenses)
+            {
+                Xceed.Document.NET.Row valuesRow = table.InsertRow();
+                valuesRow.Cells[0].Paragraphs.First().Append(expense.Description).Font("Arial");
+                valuesRow.Cells[1].Paragraphs.First().Append(expense.Currency + " " + expense.ActualFee.ToString().FormatWith(new CultureInfo("fr-FR"))).Font("Arial").FontSize(11);
+            }
+
+            return table;
+        }
+
         public Xceed.Document.NET.Table GenerateTripsTableForDocuments(Xceed.Words.NET.DocX docx, List<TripDTO> trips)
         {
             Xceed.Document.NET.Table table = docx.AddTable(1, 9);
@@ -291,6 +311,47 @@ namespace OTAS.Services
 
             return table;
         }
+
+        public Xceed.Document.NET.Table GenerateTripsTableForLiquidationDocuments(Xceed.Words.NET.DocX docx, List<TripDTO> trips)
+        {
+            Xceed.Document.NET.Table table = docx.AddTable(1, 9);
+            Xceed.Document.NET.Row headersRows = table.Rows[0];
+
+            headersRows.Cells[0].Paragraphs.First().Append("Départ").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[1].Paragraphs.First().Append("Destination").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[2].Paragraphs.First().Append("Date de départ").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[3].Paragraphs.First().Append("Date d'arrivée").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[4].Paragraphs.First().Append("Transport").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[5].Paragraphs.First().Append("Unité").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[6].Paragraphs.First().Append("Valeur").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[7].Paragraphs.First().Append("Autoroute").Bold().Font("Arial").FontSize(10);
+            headersRows.Cells[8].Paragraphs.First().Append("Montant dépensé").Bold().Font("Arial").FontSize(10);
+
+            foreach (TripDTO trip in trips)
+            {
+                Xceed.Document.NET.Row valuesRow = table.InsertRow();
+                valuesRow.Cells[0].Paragraphs.First().Append(trip.DeparturePlace).Font("Arial").FontSize(10);
+                valuesRow.Cells[1].Paragraphs.First().Append(trip.Destination).Font("Arial").FontSize(10);
+                valuesRow.Cells[2].Paragraphs.First().Append(trip.DepartureDate.ToString("dd/MM/yyyy")).Font("Arial").FontSize(10);
+                valuesRow.Cells[3].Paragraphs.First().Append(trip.ArrivalDate.ToString("dd/MM/yyyy")).Font("Arial").FontSize(10);
+                valuesRow.Cells[4].Paragraphs.First().Append(trip.TransportationMethod).Font("Arial").FontSize(10);
+                valuesRow.Cells[5].Paragraphs.First().Append(trip.Unit).Font("Arial").FontSize(10);
+                valuesRow.Cells[6].Paragraphs.First().Append(trip.Value.ToString().FormatWith(new CultureInfo("fr-FR"))).Font("Arial").FontSize(10);
+                if (trip.HighwayFee > 0)
+                {
+                    valuesRow.Cells[7].Paragraphs.First().Append(trip.HighwayFee.ToString().FormatWith(new CultureInfo("fr-FR"))).Font("Arial").FontSize(10);
+                }
+                else
+                {
+                    valuesRow.Cells[7].Paragraphs.First().Append("N/A").Font("Arial").FontSize(10);
+                }
+                valuesRow.Cells[8].Paragraphs.First().Append(trip.ActualFee.ToString().FormatWith(new CultureInfo("fr-FR"))).Font("Arial").FontSize(10);
+
+            }
+
+            return table;
+        }
+
 
 
 

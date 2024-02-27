@@ -19,6 +19,8 @@ namespace OTAS.Interfaces.IRepository
 
         Task<int> GetRequestsToLiquidateCountForDecider();
         Task<decimal> GetRequestsToLiquidateTotalByCurrency(string currency);
+        Task<LiquidationAvanceCaisseDocumentDetailsDTO> GetAvanceCaisseLiquidationDocumentDetailsByIdAsync(int liquidationId);
+        Task<LiquidationAvanceVoyageDocumentDetailsDTO> GetAvanceVoyageLiquidationDocumentDetailsByIdAsync(int liquidationId);
         Task<int> GetOngoingLiquidationsCount();
         Task<decimal> GetOngoingLiquidationsTotalByCurrency(string currency);
 

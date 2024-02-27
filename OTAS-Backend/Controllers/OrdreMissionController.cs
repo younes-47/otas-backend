@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Office.Interop.Word;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
 using OTAS.DTO.Put;
@@ -23,6 +25,7 @@ namespace OTAS.Controllers
         private readonly IUserRepository _userRepository;
         private readonly ILdapAuthenticationService _ldapAuthenticationService;
         private readonly IActualRequesterRepository _actualRequesterRepository;
+        private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IMiscService _miscService;
         private readonly IDeciderRepository _deciderRepository;
         private readonly IMapper _mapper;
@@ -32,6 +35,7 @@ namespace OTAS.Controllers
             IUserRepository userRepository,
             ILdapAuthenticationService ldapAuthenticationService,
             IActualRequesterRepository actualRequesterRepository,
+            IWebHostEnvironment webHostEnvironment,
             IMiscService miscService,
             IDeciderRepository deciderRepository,
             IMapper mapper)
@@ -41,6 +45,7 @@ namespace OTAS.Controllers
             _userRepository = userRepository;
             _ldapAuthenticationService = ldapAuthenticationService;
             _actualRequesterRepository = actualRequesterRepository;
+            _webHostEnvironment = webHostEnvironment;
             _miscService = miscService;
             _deciderRepository = deciderRepository;
             _mapper = mapper;
@@ -182,6 +187,38 @@ namespace OTAS.Controllers
             ordreMission.StatusHistory = _miscService.IllustrateStatusHistory(ordreMission.StatusHistory);
 
             return Ok(ordreMission);
+        }
+
+        [Authorize(Roles = "requester,decider")]
+        [HttpGet("Document/Download")]
+        public async Task<IActionResult> DownloadOrdreMissionDocument(int Id)
+        {
+            if (await _ordreMissionRepository.FindOrdreMissionByIdAsync(Id) == null)
+                return NotFound("Request Not Found");
+
+            string docxFileName = await _ordreMissionService.GenerateOrdreMissionWordDocument(Id);
+            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+            var docxFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", docxFileName + ".docx");
+            Guid tempPdfName = Guid.NewGuid();
+            var pdfFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", tempPdfName.ToString() + ".pdf");
+
+            Application wordApplication = new Application();
+            Microsoft.Office.Interop.Word.Document wordDocument = wordApplication.Documents.Open(docxFilePath);
+            wordDocument.ExportAsFixedFormat(pdfFilePath, WdExportFormat.wdExportFormatPDF);
+            wordDocument.Close(false);
+            wordApplication.Quit();
+
+            byte[] base64String = System.IO.File.ReadAllBytes(pdfFilePath);
+
+
+            /* Delete temp files */
+            System.IO.File.Delete(docxFilePath);
+            System.IO.File.Delete(pdfFilePath);
+
+            Response.Headers.Add($"Content-Disposition", $"attachment; filename=ORDRE_MISSION_{Id}_DOCUMENT.pdf");
+
+            return Ok(File(base64String, "application/pdf", $"ORDRE_MISSION_{Id}_DOCUMENT.pdf"));
+
         }
 
         [Authorize(Roles = "requester,decider")]

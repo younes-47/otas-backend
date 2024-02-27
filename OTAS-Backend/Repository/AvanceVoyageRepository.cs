@@ -213,6 +213,11 @@ namespace OTAS.Repository
                             Currency = ac.Currency,
                             EstimatedTotal = ac.EstimatedTotal,
                             ConfirmationNumber = ac.ConfirmationNumber,
+                            SubmitDate = _context.StatusHistories
+                                        .Where(lq => lq.AvanceVoyageId == avanceVoyageId && lq.Status == 1)
+                                        .OrderByDescending(lq => lq.CreateDate)
+                                        .Select(lq => lq.CreateDate)
+                                        .First(),
                             Expenses = _mapper.Map<List<ExpenseDTO>>(ac.Expenses),
                             Trips = _mapper.Map<List<TripDTO>>(ac.Trips),
                             Signers = ac.StatusHistories
@@ -223,7 +228,9 @@ namespace OTAS.Repository
                                         {
                                             FirstName = sh.Decider.FirstName,
                                             LastName = sh.Decider.LastName,
+                                            SignatureImageName = _context.Deciders.Where(d => d.UserId == sh.Decider.Id).Select(d => d.SignatureImageName).FirstOrDefault(),
                                             Level = _miscService.GetDeciderLevelByStatus(sh.Status, false),
+                                            SignDate = sh.CreateDate
                                         })
                                         .ToList()
                         }).FirstAsync();

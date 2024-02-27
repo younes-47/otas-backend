@@ -172,7 +172,7 @@ namespace OTAS.Controllers
             }
         }
 
-        [Authorize(Roles = "requester")]
+        [Authorize(Roles = "requester,decider")]
         [HttpGet("Document/Download")]
         public async Task<IActionResult> DownloadDepenseCaisseDocument(int Id)
         {

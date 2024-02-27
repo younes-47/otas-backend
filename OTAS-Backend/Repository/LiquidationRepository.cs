@@ -10,6 +10,7 @@ using Azure.Core;
 using System.Reflection.Metadata.Ecma335;
 using OTAS.Interfaces.IService;
 using Microsoft.Extensions.Logging.Console;
+using AutoMapper;
 
 namespace OTAS.Repository
 {
@@ -19,14 +20,16 @@ namespace OTAS.Repository
         private readonly IDeciderRepository _deciderRepository;
         private readonly IUserRepository _userRepository;
         private readonly IMiscService _miscService;
+        private readonly IMapper _mapper;
 
         public LiquidationRepository(OtasContext context, IDeciderRepository deciderRepository,
-                                IUserRepository userRepository, IMiscService miscService)
+                                IUserRepository userRepository, IMiscService miscService, IMapper mapper)
         {
             _context = context;
             _deciderRepository = deciderRepository;
             _userRepository = userRepository;
             _miscService = miscService;
+            _mapper = mapper;
         }
 
         public async Task<Liquidation?> FindLiquidationAsync(int liquidationId)
@@ -323,6 +326,96 @@ namespace OTAS.Repository
 
             return counterAV.Sum() + counterAC.Sum();
         }
+
+        public async Task<LiquidationAvanceCaisseDocumentDetailsDTO> GetAvanceCaisseLiquidationDocumentDetailsByIdAsync(int liquidationId)
+        {
+            int satatusHistoryBreakRowId = _context.StatusHistories
+                                                .Where(lq => lq.Status == 1 && lq.LiquidationId == liquidationId)
+                                                .OrderByDescending(lq => lq.Id)
+                                                .Select(lq => lq.Id)
+                                                .First();
+
+            return await _context.Liquidations.Where(ac => ac.Id == liquidationId)
+                        .Include(ac => ac.AvanceCaisse)
+                        .Include(ac => ac.StatusHistories)
+                        .Include(ac => ac.User)
+                        .Select(ac => new LiquidationAvanceCaisseDocumentDetailsDTO
+                        {
+                            Id = ac.Id,
+                            FirstName = ac.User.FirstName,
+                            LastName = ac.User.LastName,
+                            Description = ac.AvanceCaisse.Description,
+                            Currency = ac.Currency,
+                            SubmitDate = _context.StatusHistories
+                                        .Where(lq => lq.LiquidationId == liquidationId && lq.Status == 1)
+                                        .OrderByDescending(lq => lq.CreateDate)
+                                        .Select(lq => lq.CreateDate)
+                                        .First(),
+                            ActualTotal = ac.ActualTotal,
+                            EstimatedTotal = ac.AvanceCaisse.EstimatedTotal,
+                            Result = ac.Result,
+                            Expenses = _mapper.Map<List<ExpenseDTO>>(ac.AvanceCaisse.Expenses),
+                            Signers = ac.StatusHistories
+                                        .Where(lq => lq.LiquidationId == liquidationId)
+                                        .Where(lq => lq.DeciderUserId != null)
+                                        .Where(lq => lq.Id > satatusHistoryBreakRowId)
+                                        .Select(sh => new Signatory
+                                        {
+                                            FirstName = sh.Decider.FirstName,
+                                            LastName = sh.Decider.LastName,
+                                            SignatureImageName = _context.Deciders.Where(d => d.UserId == sh.Decider.Id).Select(d => d.SignatureImageName).FirstOrDefault(),
+                                            Level = _miscService.GetDeciderLevelByStatus(sh.Status, false),
+                                            SignDate = sh.CreateDate
+                                        })
+                                        .ToList()
+                        }).FirstAsync();
+        }
+
+        public async Task<LiquidationAvanceVoyageDocumentDetailsDTO> GetAvanceVoyageLiquidationDocumentDetailsByIdAsync(int liquidationId)
+        {
+            int satatusHistoryBreakRowId = _context.StatusHistories
+                                                .Where(lq => lq.Status == 1 && lq.LiquidationId == liquidationId)
+                                                .OrderByDescending(lq => lq.Id)
+                                                .Select(lq => lq.Id)
+                                                .First();
+
+            return await _context.Liquidations.Where(ac => ac.Id == liquidationId)
+                        .Include(ac => ac.AvanceVoyage)
+                        .Include(ac => ac.StatusHistories)
+                        .Include(ac => ac.User)
+                        .Select(ac => new LiquidationAvanceVoyageDocumentDetailsDTO
+                        {
+                            Id = ac.Id,
+                            FirstName = ac.User.FirstName,
+                            LastName = ac.User.LastName,
+                            Description = ac.AvanceVoyage.OrdreMission.Description,
+                            Currency = ac.Currency,
+                            SubmitDate = _context.StatusHistories
+                                        .Where(lq => lq.LiquidationId == liquidationId && lq.Status == 1)
+                                        .OrderByDescending(lq => lq.CreateDate)
+                                        .Select(lq => lq.CreateDate)
+                                        .First(),
+                            ActualTotal = ac.ActualTotal,
+                            EstimatedTotal = ac.AvanceVoyage.EstimatedTotal,
+                            Result = ac.Result,
+                            Expenses = _mapper.Map<List<ExpenseDTO>>(ac.AvanceVoyage.Expenses),
+                            Trips = _mapper.Map<List<TripDTO>>(ac.AvanceVoyage.Trips),
+                            Signers = ac.StatusHistories
+                                        .Where(lq => lq.LiquidationId == liquidationId)
+                                        .Where(lq => lq.DeciderUserId != null)
+                                        .Where(lq => lq.Id > satatusHistoryBreakRowId)
+                                        .Select(sh => new Signatory
+                                        {
+                                            FirstName = sh.Decider.FirstName,
+                                            LastName = sh.Decider.LastName,
+                                            SignatureImageName = _context.Deciders.Where(d => d.UserId == sh.Decider.Id).Select(d => d.SignatureImageName).FirstOrDefault(),
+                                            Level = _miscService.GetDeciderLevelByStatus(sh.Status, false),
+                                            SignDate = sh.CreateDate
+                                        })
+                                        .ToList()
+                        }).FirstAsync();
+        }
+
 
         public async Task<int> GetOngoingLiquidationsCount() 
         {             

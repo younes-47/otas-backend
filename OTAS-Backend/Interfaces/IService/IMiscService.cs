@@ -18,7 +18,11 @@ namespace OTAS.Interfaces.IService
 
         Xceed.Document.NET.Table GenerateExpesnesTableForDocuments(Xceed.Words.NET.DocX docx, List<ExpenseDTO> expenses);
 
+        Xceed.Document.NET.Table GenerateExpesnesTableForLiquidationDocuments(Xceed.Words.NET.DocX docx, List<ExpenseDTO> expenses);
+
         Xceed.Document.NET.Table GenerateTripsTableForDocuments(Xceed.Words.NET.DocX docx, List<TripDTO> trips);
+
+        Xceed.Document.NET.Table GenerateTripsTableForLiquidationDocuments(Xceed.Words.NET.DocX docx, List<TripDTO> trips);
 
     }
 }

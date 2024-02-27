@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Humanizer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Identity.Web;
 using OTAS.Data;
@@ -9,6 +10,10 @@ using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
 using OTAS.Repository;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Xceed.Document.NET;
+using Xceed.Words.NET;
 
 namespace OTAS.Services
 {
@@ -797,6 +802,333 @@ namespace OTAS.Services
             result.Message = "Liquidation is decided upon successfully";
             return result;
         }
+
+        public async Task<string> GenerateAvanceCaisseLiquidationWordDocument(int liquidationId)
+        {
+            LiquidationAvanceCaisseDocumentDetailsDTO liquidationDetails = await _liquidationRepository.GetAvanceCaisseLiquidationDocumentDetailsByIdAsync(liquidationId);
+
+
+            var signaturesDir = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files\\Signatures");
+            var docPath = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files", "LIQUIDATION_AC_DOCUMENT.docx");
+
+            Guid tempName = Guid.NewGuid();
+            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+
+            if (!Directory.Exists(tempDir))
+            {
+                Directory.CreateDirectory(tempDir);
+            }
+            var tempFile = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", tempName.ToString());
+
+            Xceed.Words.NET.DocX docx = DocX.Load(docPath);
+
+            try
+            {
+                // the following regex is to find all the placeholders in the document that are between "<" and ">"
+                if (docx.FindUniqueByPattern(@"<([^>]+)>", RegexOptions.IgnoreCase).Count > 0)
+                {
+                    var replaceTextOptions = new FunctionReplaceTextOptions()
+                    {
+                        FindPattern = "<(.*?)>",
+                        RegexMatchHandler = (match) => {
+                            return ReplaceLiquidationAvanceCaisseDocumentPlaceHolders(match, liquidationDetails);
+                        },
+                        RegExOptions = RegexOptions.IgnoreCase,
+                        NewFormatting = new Formatting() { FontFamily = new Xceed.Document.NET.Font("Arial"), Bold = false }
+                    };
+                    docx.ReplaceText(replaceTextOptions);
+#pragma warning disable CS0618 // func is obsolete
+
+                    // Replace the expenses table
+                    docx.ReplaceTextWithObject("expenses", _miscService.GenerateExpesnesTableForLiquidationDocuments(docx, liquidationDetails.Expenses));
+
+                    // Replace result
+                    if (liquidationDetails.Result >= 0)
+                    {
+                        docx.ReplaceText("requester_credit", Math.Abs(liquidationDetails.Result).ToString());
+                        docx.ReplaceText("company_credit", "0.00");
+                    }
+                    else
+                    {
+                        docx.ReplaceText("company_credit", Math.Abs(liquidationDetails.Result).ToString());
+                        docx.ReplaceText("requester_credit", "0.00");
+                    }
+
+
+                    // Replace the signatures
+                    if (liquidationDetails.Signers.Any(s => s.Level == "MG"))
+                    {
+                        docx.ReplaceText("%mg_signature%", liquidationDetails.Signers.Where(s => s.Level == "MG")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%mg_signature_date%", liquidationDetails.Signers.Where(s => s.Level == "MG")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = liquidationDetails.Signers.Where(s => s.Level == "MG")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%mg_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%mg_signature%", "");
+                        docx.ReplaceText("%mg_signature_date%", "");
+                        docx.ReplaceText("%mg_signature_img%", "");
+                    }
+                    if (liquidationDetails.Signers.Any(s => s.Level == "FM"))
+                    {
+                        docx.ReplaceText("%fm_signature%", liquidationDetails.Signers.Where(s => s.Level == "FM")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%fm_signature_date%", liquidationDetails.Signers.Where(s => s.Level == "FM")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = liquidationDetails.Signers.Where(s => s.Level == "FM")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%fm_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%fm_signature%", "");
+                        docx.ReplaceText("%fm_signature_date%", "");
+                        docx.ReplaceText("%fm_signature_img%", "");
+                    }
+                    if (liquidationDetails.Signers.Any(s => s.Level == "GD"))
+                    {
+                        docx.ReplaceText("%gd_signature%", liquidationDetails.Signers.Where(s => s.Level == "GD")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%gd_signature_date%", liquidationDetails.Signers.Where(s => s.Level == "GD")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = liquidationDetails.Signers.Where(s => s.Level == "GD")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%gd_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%gd_signature%", "");
+                        docx.ReplaceText("%gd_signature_date%", "");
+                        docx.ReplaceText("%gd_signature_img%", "");
+                    }
+#pragma warning restore CS0618 // func is obsolete
+                    docx.SaveAs(tempFile);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+
+
+            return tempName.ToString();
+
+        }
+
+        public async Task<string> GenerateAvanceVoyageLiquidationWordDocument(int liquidationId)
+        {
+            LiquidationAvanceVoyageDocumentDetailsDTO liquidationDetails = await _liquidationRepository.GetAvanceVoyageLiquidationDocumentDetailsByIdAsync(liquidationId);
+
+
+            var signaturesDir = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files\\Signatures");
+            var docPath = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files", "LIQUIDATION_AV_DOCUMENT.docx");
+
+            Guid tempName = Guid.NewGuid();
+            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+
+            if (!Directory.Exists(tempDir))
+            {
+                Directory.CreateDirectory(tempDir);
+            }
+            var tempFile = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", tempName.ToString());
+
+            Xceed.Words.NET.DocX docx = DocX.Load(docPath);
+
+            try
+            {
+                // the following regex is to find all the placeholders in the document that are between "<" and ">"
+                if (docx.FindUniqueByPattern(@"<([^>]+)>", RegexOptions.IgnoreCase).Count > 0)
+                {
+                    var replaceTextOptions = new FunctionReplaceTextOptions()
+                    {
+                        FindPattern = "<(.*?)>",
+                        RegexMatchHandler = (match) => {
+                            return ReplaceLiquidationAvanceVoyageDocumentPlaceHolders(match, liquidationDetails);
+                        },
+                        RegExOptions = RegexOptions.IgnoreCase,
+                        NewFormatting = new Formatting() { FontFamily = new Xceed.Document.NET.Font("Arial"), Bold = false }
+                    };
+                    docx.ReplaceText(replaceTextOptions);
+#pragma warning disable CS0618 // func is obsolete
+
+                    // Replace the expenses table
+                    if (liquidationDetails.Expenses.Count > 0)
+                    {
+                        docx.ReplaceTextWithObject("expenses", _miscService.GenerateExpesnesTableForLiquidationDocuments(docx, liquidationDetails.Expenses));
+                    }
+                    else
+                    {
+                        docx.ReplaceText("expenses", "(Pas de dépense)");
+                    }
+
+                    // Replace the trips table
+                    docx.ReplaceTextWithObject("trips", _miscService.GenerateTripsTableForLiquidationDocuments(docx, liquidationDetails.Trips));
+
+                    // Replace result
+                    if(liquidationDetails.Result >= 0)
+                    {
+                        docx.ReplaceText("requester_credit", Math.Abs(liquidationDetails.Result).ToString());
+                        docx.ReplaceText("company_credit", "0.00");
+                    }
+                    else
+                    {
+                        docx.ReplaceText("company_credit", Math.Abs(liquidationDetails.Result).ToString());
+                        docx.ReplaceText("requester_credit", "0.00");
+                    }
+
+                    // Replace the signatures
+                    if (liquidationDetails.Signers.Any(s => s.Level == "MG"))
+                    {
+                        docx.ReplaceText("%mg_signature%", liquidationDetails.Signers.Where(s => s.Level == "MG")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%mg_signature_date%", liquidationDetails.Signers.Where(s => s.Level == "MG")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = liquidationDetails.Signers.Where(s => s.Level == "MG")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%mg_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%mg_signature%", "");
+                        docx.ReplaceText("%mg_signature_date%", "");
+                        docx.ReplaceText("%mg_signature_img%", "");
+                    }
+                    if (liquidationDetails.Signers.Any(s => s.Level == "FM"))
+                    {
+                        docx.ReplaceText("%fm_signature%", liquidationDetails.Signers.Where(s => s.Level == "FM")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%fm_signature_date%", liquidationDetails.Signers.Where(s => s.Level == "FM")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = liquidationDetails.Signers.Where(s => s.Level == "FM")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%fm_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%fm_signature%", "");
+                        docx.ReplaceText("%fm_signature_date%", "");
+                        docx.ReplaceText("%fm_signature_img%", "");
+                    }
+                    if (liquidationDetails.Signers.Any(s => s.Level == "GD"))
+                    {
+                        docx.ReplaceText("%gd_signature%", liquidationDetails.Signers.Where(s => s.Level == "GD")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%gd_signature_date%", liquidationDetails.Signers.Where(s => s.Level == "GD")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = liquidationDetails.Signers.Where(s => s.Level == "GD")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%gd_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%gd_signature%", "");
+                        docx.ReplaceText("%gd_signature_date%", "");
+                        docx.ReplaceText("%gd_signature_img%", "");
+                    }
+#pragma warning restore CS0618 // func is obsolete
+                    docx.SaveAs(tempFile);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+
+
+            return tempName.ToString();
+
+        }
+
+
+        public string ReplaceLiquidationAvanceCaisseDocumentPlaceHolders(string placeHolder, LiquidationAvanceCaisseDocumentDetailsDTO liquidationDetails)
+        {
+            Dictionary<string, string> _replacePatterns = new Dictionary<string, string>()
+              {
+                { "id", liquidationDetails.Id.ToString() },
+                { "full_name", liquidationDetails.FirstName + " " + liquidationDetails.LastName },
+                { "date", liquidationDetails.SubmitDate.ToString("dd/MM/yyyy") },
+                { "actual_amount", liquidationDetails.ActualTotal.ToString().FormatWith(new CultureInfo("fr-FR")) },
+                { "estimated_amount", liquidationDetails.EstimatedTotal.ToString().FormatWith(new CultureInfo("fr-FR")) },
+                { "worded_amount", ((int)liquidationDetails.ActualTotal).ToWords(new CultureInfo("fr-FR")) },
+                { "currency", liquidationDetails.Currency.ToString() },
+                { "description", liquidationDetails.Description.ToString() },
+              };
+            if (_replacePatterns.ContainsKey(placeHolder))
+            {
+                return _replacePatterns[placeHolder];
+            }
+            return placeHolder;
+        }
+
+        public string ReplaceLiquidationAvanceVoyageDocumentPlaceHolders(string placeHolder, LiquidationAvanceVoyageDocumentDetailsDTO liquidationDetails)
+        {
+#pragma warning disable CS8604 // null warning.
+            Dictionary<string, string> _replacePatterns = new Dictionary<string, string>()
+              {
+                { "id", liquidationDetails.Id.ToString() },
+                { "full_name", liquidationDetails.FirstName + " " + liquidationDetails.LastName },
+                { "date", liquidationDetails.SubmitDate.ToString("dd/MM/yyyy") },
+                { "actual_amount", liquidationDetails.ActualTotal.ToString().FormatWith(new CultureInfo("fr-FR")) },
+                { "estimated_amount", liquidationDetails.EstimatedTotal.ToString().FormatWith(new CultureInfo("fr-FR")) },
+                { "worded_amount", ((int)liquidationDetails.ActualTotal).ToWords(new CultureInfo("fr-FR")) },
+                { "currency", liquidationDetails.Currency.ToString() },
+                { "description", liquidationDetails.Description.ToString() },
+              };
+#pragma warning restore CS8604 // null warning
+            if (_replacePatterns.ContainsKey(placeHolder))
+            {
+                return _replacePatterns[placeHolder];
+            }
+            return placeHolder;
+        }
+
 
 
     }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Office.Interop.Word;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
 using OTAS.DTO.Put;
@@ -251,6 +252,48 @@ namespace OTAS.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [Authorize(Roles = "requester,decider")]
+        [HttpGet("Document/Download")]
+        public async Task<IActionResult> DownloadLiquidationDocument(int Id)
+        {
+            Liquidation? liquidation = await _liquidationRepository.FindLiquidationAsync(Id);
+            if (liquidation == null)
+                return NotFound("Request Not Found");
+
+            string docxFileName;
+            if (liquidation.AvanceCaisseId != null)
+            {
+                docxFileName = await _liquidationService.GenerateAvanceCaisseLiquidationWordDocument(Id);
+            }
+            else
+            {
+                docxFileName = await _liquidationService.GenerateAvanceVoyageLiquidationWordDocument(Id);
+            }
+            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+            var docxFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", docxFileName + ".docx");
+            Guid tempPdfName = Guid.NewGuid();
+            var pdfFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", tempPdfName.ToString() + ".pdf");
+
+            Application wordApplication = new Application();
+            Microsoft.Office.Interop.Word.Document wordDocument = wordApplication.Documents.Open(docxFilePath);
+            wordDocument.ExportAsFixedFormat(pdfFilePath, WdExportFormat.wdExportFormatPDF);
+            wordDocument.Close(false);
+            wordApplication.Quit();
+
+            byte[] base64String = System.IO.File.ReadAllBytes(pdfFilePath);
+
+
+            /* Delete temp files */
+            System.IO.File.Delete(docxFilePath);
+            System.IO.File.Delete(pdfFilePath);
+
+            Response.Headers.Add($"Content-Disposition", $"attachment; filename=LIQUIDATION_{Id}_DOCUMENT.pdf");
+
+            return Ok(File(base64String, "application/pdf", $"LIQUIDATION_{Id}_DOCUMENT.pdf"));
+
+        }
+
 
         [Authorize(Roles = "requester,decider")]
         [HttpPut("Modify")]

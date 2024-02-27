@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using Azure.Core;
+using Humanizer;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using OTAS.Data;
 using OTAS.DTO.Get;
@@ -9,6 +11,10 @@ using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Xceed.Document.NET;
+using Xceed.Words.NET;
 
 namespace OTAS.Services
 {
@@ -18,10 +24,12 @@ namespace OTAS.Services
         private readonly IAvanceVoyageRepository _avanceVoyageRepository;
         private readonly IAvanceVoyageService _avanceVoyageService;
         private readonly IOrdreMissionRepository _ordreMissionRepository;
+        private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly ITripRepository _tripRepository;
         private readonly IExpenseRepository _expenseRepository;
         private readonly IStatusHistoryRepository _statusHistoryRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IMiscService _miscService;
         private readonly IDeciderRepository _deciderRepository;
         private readonly OtasContext _context;
         private readonly IMapper _mapper;
@@ -32,10 +40,12 @@ namespace OTAS.Services
                 IAvanceVoyageRepository avanceVoyageRepository,
                 IAvanceVoyageService avanceVoyageService,
                 IOrdreMissionRepository ordreMissionRepository,
+                IWebHostEnvironment webHostEnvironment,
                 ITripRepository tripRepository,
                 IExpenseRepository expenseRepository,
                 IStatusHistoryRepository statusHistoryRepository,
                 IUserRepository userRepository,
+                IMiscService miscService,
                 IDeciderRepository deciderRepository,
                 OtasContext context,
                 IMapper mapper
@@ -45,10 +55,12 @@ namespace OTAS.Services
             _avanceVoyageRepository = avanceVoyageRepository;
             _avanceVoyageService = avanceVoyageService;
             _ordreMissionRepository = ordreMissionRepository;
+            _webHostEnvironment = webHostEnvironment;
             _tripRepository = tripRepository;
             _expenseRepository = expenseRepository;
             _statusHistoryRepository = statusHistoryRepository;
             _userRepository = userRepository;
+            _miscService = miscService;
             _deciderRepository = deciderRepository;
             _context = context;
             _mapper = mapper;
@@ -641,6 +653,252 @@ namespace OTAS.Services
             result.Message = "OrdreMission & AvanceVoyage(s) are Approved successfully";
             return result;
         }
+
+
+        public async Task<string> GenerateOrdreMissionWordDocument(int ordreMissionId)
+        {
+            OrdreMissionDocumentDetailsDTO ordreMissionDetails = await _ordreMissionRepository.GetOrdreMissionDocumentDetailsByIdAsync(ordreMissionId);
+
+
+            var signaturesDir = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files\\Signatures");
+            var docPath = Path.Combine(_webHostEnvironment.WebRootPath, "Static-Files", "ORDRE_MISSION_DOCUMENT.docx");
+
+            Guid tempName = Guid.NewGuid();
+            var tempDir = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files");
+
+            if (!Directory.Exists(tempDir))
+            {
+                Directory.CreateDirectory(tempDir);
+            }
+            var tempFile = Path.Combine(_webHostEnvironment.WebRootPath, "Temp-Files", tempName.ToString());
+
+            Xceed.Words.NET.DocX docx = DocX.Load(docPath);
+
+            try
+            {
+                // the following regex is to find all the placeholders in the document that are between "<" and ">"
+                if (docx.FindUniqueByPattern(@"<([^>]+)>", RegexOptions.IgnoreCase).Count > 0)
+                {
+                    var replaceTextOptions = new FunctionReplaceTextOptions()
+                    {
+                        FindPattern = "<(.*?)>",
+                        RegexMatchHandler = (match) => {
+                            return ReplaceOrdreMissionDocumentPlaceHolders(match, ordreMissionDetails);
+                        },
+                        RegExOptions = RegexOptions.IgnoreCase,
+                        NewFormatting = new Formatting() { FontFamily = new Xceed.Document.NET.Font("Arial"), Bold = false }
+                    };
+                    docx.ReplaceText(replaceTextOptions);
+#pragma warning disable CS0618 // func is obsolete
+
+                    // Replace the expenses table
+                    List<ExpenseDTO> expenses = new();
+
+                    foreach (var av in ordreMissionDetails.AvanceVoyagesDetails)
+                    {
+                        expenses.AddRange(av.Expenses);
+                    }
+                    if (expenses.Count > 0)
+                    {
+                        docx.ReplaceTextWithObject("expenses", _miscService.GenerateExpesnesTableForDocuments(docx, expenses));
+                    }
+                    else
+                    {
+                        docx.ReplaceText("expenses", "(Pas de dépense)");
+                    }
+
+                    // Replace the trips table
+                    List<TripDTO> trips = new();
+
+                    foreach (var av in ordreMissionDetails.AvanceVoyagesDetails)
+                    {
+                        trips.AddRange(av.Trips);
+                    }
+                    docx.ReplaceTextWithObject("trips", _miscService.GenerateTripsTableForDocuments(docx, trips));
+
+                    // Replace the signatures
+                    if (ordreMissionDetails.Signers.Any(s => s.Level == "MG"))
+                    {
+                        docx.ReplaceText("%mg_signature%", ordreMissionDetails.Signers.Where(s => s.Level == "MG")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%mg_signature_date%", ordreMissionDetails.Signers.Where(s => s.Level == "MG")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = ordreMissionDetails.Signers.Where(s => s.Level == "MG")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%mg_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%mg_signature%", "");
+                        docx.ReplaceText("%mg_signature_date%", "");
+                        docx.ReplaceText("%mg_signature_img%", "");
+                    }
+                    if (ordreMissionDetails.Signers.Any(s => s.Level == "HR"))
+                    {
+                        docx.ReplaceText("%hr_signature%", ordreMissionDetails.Signers.Where(s => s.Level == "HR")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%hr_signature_date%", ordreMissionDetails.Signers.Where(s => s.Level == "HR")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = ordreMissionDetails.Signers.Where(s => s.Level == "HR")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%hr_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%hr_signature%", "");
+                        docx.ReplaceText("%hr_signature_date%", "");
+                        docx.ReplaceText("%hr_signature_img%", "");
+                    }
+                    if (ordreMissionDetails.Signers.Any(s => s.Level == "FM"))
+                    {
+                        docx.ReplaceText("%fm_signature%", ordreMissionDetails.Signers.Where(s => s.Level == "FM")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%fm_signature_date%", ordreMissionDetails.Signers.Where(s => s.Level == "FM")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = ordreMissionDetails.Signers.Where(s => s.Level == "FM")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%fm_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%fm_signature%", "");
+                        docx.ReplaceText("%fm_signature_date%", "");
+                        docx.ReplaceText("%fm_signature_img%", "");
+                    }
+                    if (ordreMissionDetails.Signers.Any(s => s.Level == "GD"))
+                    {
+                        docx.ReplaceText("%gd_signature%", ordreMissionDetails.Signers.Where(s => s.Level == "GD")
+                                .Select(s => $"{s.FirstName} {s.LastName}")
+                                .First());
+                        docx.ReplaceText("%gd_signature_date%", ordreMissionDetails.Signers.Where(s => s.Level == "GD")
+                                .Select(s => s.SignDate.ToString("dd/MM/yyyy hh:mm"))
+                                .First());
+
+                        string? imgName = ordreMissionDetails.Signers.Where(s => s.Level == "GD")
+                                        .Select(s => s.SignatureImageName)
+                                        .First();
+
+                        Xceed.Document.NET.Image signature_img = docx.AddImage(signaturesDir + $"\\{imgName}");
+                        Xceed.Document.NET.Picture signature_pic = signature_img.CreatePicture(75.84f, 92.16f);
+                        docx.ReplaceTextWithObject("%gd_signature_img%", signature_pic, false, RegexOptions.IgnoreCase);
+                    }
+                    else
+                    {
+                        docx.ReplaceText("%gd_signature%", "");
+                        docx.ReplaceText("%gd_signature_date%", "");
+                        docx.ReplaceText("%gd_signature_img%", "");
+                    }
+#pragma warning restore CS0618 // func is obsolete
+                    docx.SaveAs(tempFile);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+
+
+            return tempName.ToString();
+
+        }
+
+        public string ReplaceOrdreMissionDocumentPlaceHolders(string placeHolder, OrdreMissionDocumentDetailsDTO ordreMissionDetails)
+        {
+            #pragma warning disable CS8604 // null warning.
+            #pragma warning disable CS8602 // Dereference of a possibly null reference.
+            Dictionary<string, string> _replacePatterns = new Dictionary<string, string>()
+              {
+                { "id", ordreMissionDetails.Id.ToString() },
+                { "full_name", ordreMissionDetails.FirstName + " " + ordreMissionDetails.LastName },
+                { "date", ordreMissionDetails.SubmitDate.ToString("dd/MM/yyyy") },
+                { "amount", ordreMissionDetails.AvanceVoyagesDetails
+                                                .Where(av => av.Currency == "MAD")
+                                                .Any() ?
+                                                ordreMissionDetails.AvanceVoyagesDetails
+                                                .Where(av => av.Currency == "MAD")
+                                                .Select(av => av.EstimatedTotal)
+                                                .FirstOrDefault()
+                                                .ToString().FormatWith(new CultureInfo("fr-FR"))
+                                                : ""},
+                { "currency", ordreMissionDetails.AvanceVoyagesDetails
+                                .Where(av => av.Currency == "MAD")
+                                .Any() ?
+                                ordreMissionDetails.AvanceVoyagesDetails
+                                .Where(av => av.Currency == "MAD")
+                                .Select(av => av.Currency)
+                                .FirstOrDefault()
+                                .ToString().FormatWith(new CultureInfo("fr-FR"))
+                                : ""},
+                { "amount_2", ordreMissionDetails.AvanceVoyagesDetails
+                                                .Where(av => av.Currency == "EUR")
+                                                .Any() ?
+                                                ordreMissionDetails.AvanceVoyagesDetails
+                                                .Where(av => av.Currency == "EUR")
+                                                .Select(av => av.EstimatedTotal)
+                                                .FirstOrDefault()
+                                                .ToString().FormatWith(new CultureInfo("fr-FR"))
+                                                : ""},
+                { "currency_2", ordreMissionDetails.AvanceVoyagesDetails
+                                .Where(av => av.Currency == "EUR")
+                                .Any() ?
+                                ordreMissionDetails.AvanceVoyagesDetails
+                                .Where(av => av.Currency == "EUR")
+                                .Select(av => av.Currency)
+                                .FirstOrDefault()
+                                .ToString().FormatWith(new CultureInfo("fr-FR"))
+                                : ""},
+                { "worded_amount", ordreMissionDetails.AvanceVoyagesDetails
+                                                .Where(av => av.Currency == "MAD")
+                                                .Any() ? 
+                                                ((int)ordreMissionDetails
+                                                .AvanceVoyagesDetails
+                                                .Where(av => av.Currency == "MAD")
+                                                .Select(av => av.EstimatedTotal)
+                                                .FirstOrDefault()).ToWords(new CultureInfo("fr-FR")) 
+                                                : "" },
+                { "worded_amount_2", ordreMissionDetails.AvanceVoyagesDetails
+                                .Where(av => av.Currency == "EUR")
+                                .Any() ?
+                                $@"ET {((int)ordreMissionDetails
+                                        .AvanceVoyagesDetails
+                                        .Where(av => av.Currency == "EUR")
+                                        .Select(av => av.EstimatedTotal)
+                                        .FirstOrDefault()).ToWords(new CultureInfo("fr-FR"))}"
+                                : "" },
+                { "description", ordreMissionDetails.Description.ToString() },
+              };
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+#pragma warning restore CS8604 // null warning
+            if (_replacePatterns.ContainsKey(placeHolder))
+            {
+                return _replacePatterns[placeHolder];
+            }
+            return placeHolder;
+        }
+
+
 
     }
 }
