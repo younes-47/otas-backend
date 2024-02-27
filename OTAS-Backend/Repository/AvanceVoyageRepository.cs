@@ -423,17 +423,33 @@ namespace OTAS.Repository
 
         public async Task<List<AvanceVoyageViewDTO>> GetFinalizedAvanceVoyagesForDeciderStats(int deciderUserId)
         {
-            return await _context.StatusHistories
+            var temp =  await _context.StatusHistories
                 .Where(sh => sh.DeciderUserId == deciderUserId)
                 .Where(sh => sh.AvanceVoyageId != null)
-                .Where(sh => sh.Status == 16)
+                .Where(sh => sh.AvanceVoyage.LatestStatus == 10)
                 .Include(sh => sh.AvanceVoyage)
                 .Select(sh => new AvanceVoyageViewDTO
                 {
+                    Id = sh.AvanceVoyage.Id,
                     Currency = sh.AvanceVoyage.Currency,
                     EstimatedTotal = sh.AvanceVoyage.EstimatedTotal,
                 }).ToListAsync();
+
+            return temp.Distinct(new AvanceVoyageViewDTO()).ToList();
         }
+
+        public async Task<List<AvanceVoyageViewDTO>> GetFinalizedAvanceVoyagesForRequesterStats(int userId)
+        {
+            return await _context.AvanceVoyages
+                .Where(sh => sh.UserId == userId)
+                .Where(sh => sh.LatestStatus == 10)
+                .Select(sh => new AvanceVoyageViewDTO
+                {
+                    Currency = sh.Currency,
+                    EstimatedTotal = sh.EstimatedTotal,
+                }).ToListAsync();
+        }
+
 
 
     }

@@ -26,6 +26,7 @@ namespace OTAS.Interfaces.IRepository
         Task<DepenseCaisseDocumentDetailsDTO> GetDepenseCaisseDocumentDetailsByIdAsync(int depenseCaisseId);
 
         Task<List<DepenseCaisseDTO>> GetFinalizedDepenseCaissesForDeciderStats(int deciderUserId);
+        Task<List<DepenseCaisseDTO>> GetFinalizedDepenseCaissesForRequesterStats(int userId);
         Task<bool> SaveAsync();
     }
 }

@@ -1,6 +1,8 @@
-﻿namespace OTAS.DTO.Get
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace OTAS.DTO.Get
 {
-    public class DepenseCaisseDTO
+    public class DepenseCaisseDTO : IEqualityComparer<DepenseCaisseDTO>
     {
         public int Id { get; set; }
 
@@ -18,5 +20,14 @@
 
         public DateTime CreateDate { get; set; }
 
+        public bool Equals(DepenseCaisseDTO? x, DepenseCaisseDTO? y)
+        {
+            return x != null && y != null && x.Id == y.Id;
+        }
+
+        public int GetHashCode([DisallowNull] DepenseCaisseDTO obj)
+        {
+            return obj.Id.GetHashCode();
+        }
     }
 }

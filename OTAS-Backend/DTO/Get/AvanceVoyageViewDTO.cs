@@ -1,8 +1,9 @@
 ﻿using OTAS.Models;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OTAS.DTO.Get
 {
-    public class AvanceVoyageViewDTO
+    public class AvanceVoyageViewDTO : IEqualityComparer<AvanceVoyageViewDTO>
     {
         public int Id { get; set; }
 
@@ -28,5 +29,14 @@ namespace OTAS.DTO.Get
         public virtual List<ExpenseDTO> Expenses { get; set; } = new List<ExpenseDTO>();
         public virtual List<StatusHistoryDTO> StatusHistory { get; set; } = new List<StatusHistoryDTO>();
 
+        public bool Equals(AvanceVoyageViewDTO? x, AvanceVoyageViewDTO? y)
+        {
+            return x != null && y != null && x.Id == y.Id;
+        }
+
+        public int GetHashCode([DisallowNull] AvanceVoyageViewDTO obj)
+        {
+            return obj.Id.GetHashCode();
+        }
     }
 }

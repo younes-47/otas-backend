@@ -18,15 +18,21 @@ namespace OTAS.Interfaces.IRepository
         Task<LiquidationDeciderViewDTO> GetLiquidationFullDetailsByIdForDecider(int liquidationId);
 
         Task<int> GetRequestsToLiquidateCountForDecider();
-        Task<decimal> GetRequestsToLiquidateTotalByCurrency(string currency);
+        Task<int> GetRequestsToLiquidateCountForRequester(int userId);
+        Task<decimal> GetRequestsToLiquidateTotalByCurrencyForDecider(string currency);
+        Task<decimal> GetRequestsToLiquidateTotalByCurrencyForRequester(string currency, int userId);
         Task<LiquidationAvanceCaisseDocumentDetailsDTO> GetAvanceCaisseLiquidationDocumentDetailsByIdAsync(int liquidationId);
         Task<LiquidationAvanceVoyageDocumentDetailsDTO> GetAvanceVoyageLiquidationDocumentDetailsByIdAsync(int liquidationId);
-        Task<int> GetOngoingLiquidationsCount();
-        Task<decimal> GetOngoingLiquidationsTotalByCurrency(string currency);
+        Task<int> GetOngoingLiquidationsCountForDecider();
+        Task<int> GetOngoingLiquidationsCountForRequester(int userId);
+        Task<decimal> GetOngoingLiquidationsTotalByCurrencyForDecider(string currency);
+        Task<decimal> GetOngoingLiquidationsTotalByCurrencyForRequester(string currency, int userId);
 
-        Task<int> GetFinalizedLiquidationsCount();
+        Task<int> GetFinalizedLiquidationsCountForDecider();
+        Task<int> GetFinalizedLiquidationsCountForRequester(int userId);
 
-        Task<decimal> GetFinalizedLiquidationsTotalByCurrency(string currency);
+        Task<decimal> GetFinalizedLiquidationsTotalByCurrencyForDecider(string currency);
+        Task<decimal> GetFinalizedLiquidationsTotalByCurrencyForRequester(string currency, int userId);
 
         Task<int> GetLiquidationNextDeciderUserId(string currentlevel, bool? isReturnedToFMByTR = false, bool? isReturnedToTRbyFM = false);
         Task<ServiceResult> UpdateLiquidationAsync(Liquidation liquidation);

@@ -22,6 +22,7 @@ namespace OTAS.Interfaces.IRepository
         Task<DateTime?> GetTheLatestCreatedRequestByUserIdAsync(int userId);
         Task<LiquidationRequestDetailsDTO> GetAvanceVoyageDetailsForLiquidationAsync(int requestId);
         Task<List<AvanceVoyageViewDTO>> GetFinalizedAvanceVoyagesForDeciderStats(int deciderUserId);
+        Task<List<AvanceVoyageViewDTO>> GetFinalizedAvanceVoyagesForRequesterStats(int userId);
 
         //Post Methods
         Task<ServiceResult> AddAvanceVoyageAsync(AvanceVoyage voyage);

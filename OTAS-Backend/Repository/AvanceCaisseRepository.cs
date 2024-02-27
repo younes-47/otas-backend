@@ -387,19 +387,32 @@ namespace OTAS.Repository
 
         public async Task<List<AvanceCaisseDTO>> GetFinalizedAvanceCaissesForDeciderStats(int deciderUserId)
         {
-            return await _context.StatusHistories
+            var temp =  await _context.StatusHistories
+                .Include(sh => sh.AvanceCaisse)
                 .Where(sh => sh.DeciderUserId == deciderUserId)
                 .Where(sh => sh.AvanceCaisseId != null)
-                .Where(sh => sh.Status == 16)
-                .Include(sh => sh.AvanceCaisse)
+                .Where(sh => sh.AvanceCaisse.LatestStatus == 10)
                 .Select(sh => new AvanceCaisseDTO
                 {
+                    Id = sh.AvanceCaisse.Id,
                     Currency = sh.AvanceCaisse.Currency,
                     EstimatedTotal = sh.AvanceCaisse.EstimatedTotal,
                 }).ToListAsync();
+
+            return temp.Distinct(new AvanceCaisseDTO()).ToList();
         }
 
-
+        public async Task<List<AvanceCaisseDTO>> GetFinalizedAvanceCaissesForRequesterStats(int userId)
+        {
+            return  await _context.AvanceCaisses
+                .Where(sh => sh.UserId == userId)
+                .Where(sh => sh.LatestStatus == 10)
+                .Select(sh => new AvanceCaisseDTO
+                {
+                    Currency = sh.Currency,
+                    EstimatedTotal = sh.EstimatedTotal,
+                }).ToListAsync();
+        }
 
         public async Task<string?> DecodeStatusAsync(int statusCode)
         {

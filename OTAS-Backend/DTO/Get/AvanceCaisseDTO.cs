@@ -1,8 +1,9 @@
 ﻿using OTAS.Models;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OTAS.DTO.Get
 {
-    public class AvanceCaisseDTO
+    public class AvanceCaisseDTO : IEqualityComparer<AvanceCaisseDTO>
     {
         public int Id { get; set; }
 
@@ -22,5 +23,14 @@ namespace OTAS.DTO.Get
 
         public DateTime CreateDate { get; set; }
 
+        public bool Equals(AvanceCaisseDTO? x, AvanceCaisseDTO? y)
+        {
+            return x != null && y != null && x.Id == y.Id;
+        }
+
+        public int GetHashCode([DisallowNull] AvanceCaisseDTO obj)
+        {
+            return obj.Id.GetHashCode();
+        }
     }
 }
