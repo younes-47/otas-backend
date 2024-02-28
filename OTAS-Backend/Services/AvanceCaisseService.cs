@@ -1,13 +1,5 @@
-﻿using Aspose.Pdf;
-using Aspose.Pdf.Operators;
-using Aspose.Pdf.Text;
-using Aspose.Words.Replacing;
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
+﻿using AutoMapper;
 using Humanizer;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using OTAS.Data;
 using OTAS.DTO.Get;
 using OTAS.DTO.Post;
@@ -15,10 +7,7 @@ using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
-using OTAS.Repository;
-using System;
 using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 using Xceed.Document.NET;
 using Xceed.Words.NET;
@@ -153,7 +142,7 @@ namespace OTAS.Services
 
                 await transaction.CommitAsync();
                 // send email to the next decider
-                _miscService.SendMailToDecider("AC", avanceCaisse_DB.NextDeciderUserId, avanceCaisse_DB.Id);
+                await _miscService.SendMailToDecider("AC", avanceCaisse_DB.NextDeciderUserId, avanceCaisse_DB.Id);
             }
             catch (Exception exception)
             {
@@ -259,7 +248,7 @@ namespace OTAS.Services
                     await transaction.CommitAsync();
 
                     // send email to the next decider
-                    _miscService.SendMailToDecider("AC", decidedAvanceCaisse.NextDeciderUserId, decidedAvanceCaisse.Id);
+                    await _miscService.SendMailToDecider("AC", decidedAvanceCaisse.NextDeciderUserId, decidedAvanceCaisse.Id);
                 }
                 catch (Exception exception)
                 {

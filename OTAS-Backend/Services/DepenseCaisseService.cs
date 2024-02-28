@@ -335,7 +335,7 @@ namespace OTAS.Services
 
                 await transaction.CommitAsync();
                 // send email to the next decider
-                _miscService.SendMailToDecider("DC", depenseCaisse_DB.NextDeciderUserId, depenseCaisse_DB.Id);
+                await _miscService.SendMailToDecider("DC", depenseCaisse_DB.NextDeciderUserId, depenseCaisse_DB.Id);
             }
             catch (Exception exception)
             {
@@ -512,7 +512,7 @@ namespace OTAS.Services
 
                     await transaction.CommitAsync();
                     // send email to the next decider
-                    _miscService.SendMailToDecider("DC", decidedDepenseCaisse.NextDeciderUserId, decidedDepenseCaisse.Id);
+                    await _miscService.SendMailToDecider("DC", decidedDepenseCaisse.NextDeciderUserId, decidedDepenseCaisse.Id);
                 }
                 catch (Exception exception)
                 {

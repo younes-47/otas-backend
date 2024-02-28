@@ -1,16 +1,9 @@
-﻿using AutoMapper.Execution;
-using OTAS.DTO.Get;
+﻿using OTAS.DTO.Get;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using Humanizer;
-using Aspose.Cells;
-using System.Text.RegularExpressions;
-using Aspose.Pdf;
-using Aspose.Pdf.Text;
 using System.Net.Mail;
 using System.Net;
 using OTAS.Interfaces.IRepository;
@@ -441,7 +434,7 @@ namespace OTAS.Services
             return emailMessage;
         }
 
-        public async void SendMailToDecider(string requestType,int? nextDecider, int requestId)
+        public async Task<bool> SendMailToDecider(string requestType,int? nextDecider, int requestId)
         {
             string emailBody = "";
 
@@ -459,7 +452,7 @@ namespace OTAS.Services
             }
             else
             {
-                return;
+                return false;
             }
             try
             {
@@ -482,6 +475,7 @@ namespace OTAS.Services
                     client.UseDefaultCredentials = false;
                     await client.SendMailAsync(msg);
                 }
+                return true;
             }
             catch (Exception ex)
             {
