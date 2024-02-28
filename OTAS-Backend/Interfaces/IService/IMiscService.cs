@@ -24,5 +24,9 @@ namespace OTAS.Interfaces.IService
 
         Xceed.Document.NET.Table GenerateTripsTableForLiquidationDocuments(Xceed.Words.NET.DocX docx, List<TripDTO> trips);
 
+        string GenerateEmailBodyEnglish(string requestType, int requestId, string deciderFullName);
+
+        string GenerateEmailBodyFrench(string requestType, int requestId, string deciderFullName);
+
     }
 }

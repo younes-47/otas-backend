@@ -253,7 +253,21 @@ namespace OTAS.Services
                     result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);
                     if (!result.Success) return result;
 
+
                     await transaction.CommitAsync();
+
+                    // send email to the next decider
+                    UserDTO deciderInfo = await _deciderRepository.GetDeciderInfoForEmailNotificationAsync(deciderUserId);
+                    string emailBody;
+                    if (deciderInfo.PreferredLanguage == "en")
+                    {
+                        emailBody = _miscService.GenerateEmailBodyEnglish("AC", decidedAvanceCaisse.Id, $"{deciderInfo.FirstName} {deciderInfo.LastName}");
+                    }
+                    else
+                    {
+                        emailBody = _miscService.GenerateEmailBodyFrench("AC", decidedAvanceCaisse.Id, $"{deciderInfo.FirstName} {deciderInfo.LastName}");
+                    }
+
                 }
                 catch (Exception exception)
                 {

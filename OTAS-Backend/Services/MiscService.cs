@@ -352,7 +352,81 @@ namespace OTAS.Services
             return table;
         }
 
+        public string GenerateEmailBodyFrench(string requestType, int requestId, string deciderFullName)
+        {
+            string link = "localhost:3000/decide-on-requests";
+            string requestHeader = "";
+            switch (requestType)
+            {
+                case "OM":
+                    link += "/decide-on-ordre-mission";
+                    requestHeader = "Ordre de mission";
+                    break;
+                case "AV":
+                    link += "/decide-on-avance-voyage";
+                    requestHeader = "Avance de voyage";
+                    break;
+                case "AC":
+                    link += "/decide-on-avance-caisse";
+                    requestHeader = "Avance de caisse";
+                    break;
+                case "DC":
+                    link += "/decide-on-depense-caisse";
+                    requestHeader = "Dépense de caisse";
+                    break;
+                case "LQ":
+                    link += "/decide-on-liquidation";
+                    requestHeader = "Liquidation";
+                    break;
+                default:
+                    break;
+            }
+            string emailMessage = $"<h4>Bonjour {deciderFullName},</h4>" + "<br/>" +
+                $"<p>Vous avez une nouvelle demande en attente de votre validation!</p>" + "<br/>" +
+                $"<p>{requestHeader} #{requestId}</p>" + "<br/>" +
+                $"<p><a href='{link}'>Cliquez ici pour plus de details</a></p>" + "<br/>" +
+                $"<p>Cordialement,</p>";
 
+            return emailMessage;
+        }
+
+        public string GenerateEmailBodyEnglish(string requestType, int requestId, string deciderFullName)
+        {
+            string link = "localhost:3000/decide-on-requests";
+            string requestHeader = "";
+            switch (requestType)
+            {
+                case "OM":
+                    link += "/decide-on-ordre-mission";
+                    requestHeader = "Mission Order";
+                    break;
+                case "AV":
+                    link += "/decide-on-avance-voyage";
+                    requestHeader = "Travel Advance";
+                    break;
+                case "AC":
+                    link += "/decide-on-avance-caisse";
+                    requestHeader = "Cash Advance";
+                    break;
+                case "DC":
+                    link += "/decide-on-depense-caisse";
+                    requestHeader = "Cash Expense";
+                    break;
+                case "LQ":
+                    link += "/decide-on-liquidation";
+                    requestHeader = "Liquidation";
+                    break;
+                default:
+                    break;
+            }
+            string emailMessage = $"<h4>Hello {deciderFullName},</h4>" + "<br/>" +
+                $"<p>You have a new request pending your approval!</p>" + "<br/>" +
+                $"<p>{requestHeader} #{requestId}</p>" + "<br/>" +
+                $"<p><a href='{link}'>Click here for more details</a></p>" + "<br/>" +
+                $"<p>Sincerely,</p>";
+
+            return emailMessage;
+        }
 
 
     }

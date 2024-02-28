@@ -86,5 +86,20 @@ namespace OTAS.Repository
                     Username = d.User.Username,
                 }).ToListAsync();
         }
+
+        public async Task<UserDTO> GetDeciderInfoForEmailNotificationAsync(int deciderUserId)
+        {
+            UserDTO decider = await _context.Deciders
+                .Where(d => d.UserId == deciderUserId)
+                .Include(d => d.User)
+                .Select(d => new UserDTO
+                { 
+                    FirstName = d.User.FirstName,
+                    LastName = d.User.LastName,
+                    PreferredLanguage = d.User.PreferredLanguage
+                })
+                .FirstAsync();
+            return decider;
+        }
     }
 }
