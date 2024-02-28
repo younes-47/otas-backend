@@ -11,6 +11,9 @@ using Aspose.Cells;
 using System.Text.RegularExpressions;
 using Aspose.Pdf;
 using Aspose.Pdf.Text;
+using System.Net.Mail;
+using System.Net;
+using OTAS.Interfaces.IRepository;
 
 namespace OTAS.Services
 {
@@ -22,6 +25,11 @@ namespace OTAS.Services
     */
     public class MiscService : IMiscService
     {
+        private readonly IDeciderRepository _deciderRepository;
+        public MiscService(IDeciderRepository deciderRepository)
+        {
+            _deciderRepository = deciderRepository;
+        }
         public decimal CalculateExpensesEstimatedTotal(List<Expense> expenses)
         {
             decimal estimatedTotal = 0;
@@ -433,6 +441,52 @@ namespace OTAS.Services
             return emailMessage;
         }
 
+        public async void SendMailToDecider(string requestType,int? nextDecider, int requestId)
+        {
+            string emailBody = "";
 
+            if (nextDecider != null)
+            {
+                UserDTO deciderInfo = await _deciderRepository.GetDeciderInfoForEmailNotificationAsync((int)nextDecider);
+                if (deciderInfo.PreferredLanguage == "fr")
+                {
+                    emailBody = GenerateEmailBodyFrench(requestType, requestId, $"{deciderInfo.FirstName} {deciderInfo.LastName}");
+                }
+                else
+                {
+                    emailBody = GenerateEmailBodyEnglish(requestType, requestId, $"{deciderInfo.FirstName} {deciderInfo.LastName}");
+                }
+            }
+            else
+            {
+                return;
+            }
+            try
+            {
+                string userName = "otas_alert@dicastalma.com";
+                string password = "Dikamorocco@05";
+                MailMessage msg = new();
+                msg.To.Add(new MailAddress("anass.assila.7@gmail.com"));
+                msg.From = new MailAddress(userName);
+                msg.Subject = "New request pending approval";
+                msg.Body = emailBody;
+                msg.IsBodyHtml = true;
+                using (SmtpClient client = new()
+                {
+                    Host = "smtp.office365.com",
+                    Credentials = new NetworkCredential(userName, password),
+                    Port = 587,
+                    EnableSsl = true,
+                })
+                {
+                    client.UseDefaultCredentials = false;
+                    await client.SendMailAsync(msg);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException(ex.Message);
+            }
+        }
     }
 }

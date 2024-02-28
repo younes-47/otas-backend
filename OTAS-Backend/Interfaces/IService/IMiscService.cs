@@ -27,6 +27,7 @@ namespace OTAS.Interfaces.IService
         string GenerateEmailBodyEnglish(string requestType, int requestId, string deciderFullName);
 
         string GenerateEmailBodyFrench(string requestType, int requestId, string deciderFullName);
+        void SendMailToDecider(string requestType, int? nextDecider, int requestId);
 
     }
 }

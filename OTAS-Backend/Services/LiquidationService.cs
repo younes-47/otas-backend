@@ -666,6 +666,8 @@ namespace OTAS.Services
                 }
 
                 await transaction.CommitAsync();
+                // send email to the next decider
+                _miscService.SendMailToDecider("LQ", liquidation_DB.NextDeciderUserId, liquidation_DB.Id);
             }
             catch (Exception exception)
             {
@@ -789,6 +791,8 @@ namespace OTAS.Services
                     if (!result.Success) return result;
 
                     await transaction.CommitAsync();
+                    // send email to the next decider
+                    _miscService.SendMailToDecider("LQ", decidedLiquidation.NextDeciderUserId, decidedLiquidation.Id);
                 }
                 catch (Exception exception)
                 {
