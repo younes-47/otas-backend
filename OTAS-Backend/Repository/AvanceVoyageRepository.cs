@@ -76,7 +76,7 @@ namespace OTAS.Repository
             List<AvanceVoyageDeciderTableDTO> avanceVoyages = await _context.AvanceVoyages
                 .Include(av => av.LatestStatusNavigation)
                 .Include(av => av.OrdreMission)
-                .Where(av => (av.NextDeciderUserId == deciderUserId && av.OrdreMission.LatestStatus > av.LatestStatus) || (av.LatestStatus >= 8 && isDeciderTR))
+                .Where(av => (av.NextDeciderUserId == deciderUserId && av.OrdreMission.LatestStatus > av.LatestStatus) || (av.NextDeciderUserId == deciderUserId && isDeciderTR))
                 .Select(av => new AvanceVoyageDeciderTableDTO
                 {
                     Id = av.Id,
@@ -85,9 +85,7 @@ namespace OTAS.Repository
                     OrdreMissionId = av.OrdreMission.Id,
                     OrdreMissionDescription = av.OrdreMission.Description,
                     Currency = av.Currency,
-                    IsDecidable = av.LatestStatusNavigation.StatusString != "Funds Collected" &&
-                                  av.LatestStatusNavigation.StatusString != "Finalized" &&
-                                  av.LatestStatusNavigation.StatusString != "Approved",
+                    IsDecidable = _miscService.IsRequestDecidable(deciderUserId, av.NextDeciderUserId, av.LatestStatusNavigation.StatusString),
                     CreateDate = av.CreateDate,
                 })
                 .ToListAsync();

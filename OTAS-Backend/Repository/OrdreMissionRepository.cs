@@ -54,9 +54,7 @@ namespace OTAS.Repository
                     Description = om.Description,
                     Abroad = om.Abroad,
                     OnBehalf = om.OnBehalf,
-                    IsDecidable = om.LatestStatusString.StatusString != "Funds Collected" &&
-                                  om.LatestStatusString.StatusString != "Finalized" &&
-                                  om.LatestStatusString.StatusString != "Approved",
+                    IsDecidable = _miscService.IsRequestDecidable(deciderUserId, om.NextDeciderUserId, om.LatestStatusString.StatusString),
                     DepartureDate = om.DepartureDate,
                     ReturnDate = om.ReturnDate,
                     CreateDate = om.CreateDate,

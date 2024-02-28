@@ -181,9 +181,7 @@ namespace OTAS.Repository
                     OnBehalf = dc.OnBehalf,
                     Description = dc.Description,
                     Currency = dc.Currency,
-                    IsDecidable = dc.LatestStatusNavigation.StatusString != "Funds Collected" &&
-                                  dc.LatestStatusNavigation.StatusString != "Finalized" &&
-                                  dc.LatestStatusNavigation.StatusString != "Approved",
+                    IsDecidable = _miscService.IsRequestDecidable(deciderUserId, dc.NextDeciderUserId, dc.LatestStatusNavigation.StatusString),
                     CreateDate = dc.CreateDate,
                 })
                 .ToListAsync();

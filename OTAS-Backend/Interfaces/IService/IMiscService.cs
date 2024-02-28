@@ -14,7 +14,7 @@ namespace OTAS.Interfaces.IService
         List<StatusHistoryDTO> IllustrateStatusHistory(List<StatusHistoryDTO> statusHistories);
         string GetDeciderLevelByStatus(int status, bool? isRequestOM = false);
 
-        bool IsRequestDecidable(string deciderUsername, string nextDeciderUsername, string latestStatus);
+        bool IsRequestDecidable(int deciderUserId, int? nextDeciderUserId, string latestStatus);
 
         Xceed.Document.NET.Table GenerateExpesnesTableForDocuments(Xceed.Words.NET.DocX docx, List<ExpenseDTO> expenses);
 

@@ -145,7 +145,7 @@ namespace OTAS.Services
                         explicitStatusHistory.Total = statusHistory.Total;
                         break;
                     case "Pending Treasury's Validation":
-                        if (explicitStatusHistory.DeciderFirstName != null)
+                        if (statusHistory.DeciderFirstName != null)
                         {
                             explicitStatusHistory.Status = "Approved";
                             explicitStatusHistory.CreateDate = statusHistory.CreateDate;
@@ -215,6 +215,9 @@ namespace OTAS.Services
                 case 8:
                     level = "GD";
                     break;
+                case 13:
+                    level = "GD";
+                    break;
                 default:
                     break;
             }
@@ -222,10 +225,12 @@ namespace OTAS.Services
             return level;
         }
 
-        public bool IsRequestDecidable(string deciderUsername, string  nextDeciderUsername, string latestStatus)
+        public bool IsRequestDecidable(int deciderUserId, int?  nextDeciderUserId, string latestStatus)
         {
-            if(deciderUsername == nextDeciderUsername && latestStatus != "Funds Collected" 
-                && latestStatus != "Finalized" && latestStatus != "Approved")
+            if(deciderUserId == nextDeciderUserId && latestStatus != "Funds Collected" 
+                && latestStatus != "Finalized" && latestStatus != "Approved" && 
+                latestStatus != "Returned for missing evidences" && latestStatus != "Returned"
+                && latestStatus  != "Rejected")
                 return true;
 
             return false;

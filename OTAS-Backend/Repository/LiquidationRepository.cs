@@ -166,9 +166,7 @@ namespace OTAS.Repository
                     RequestType = lq.AvanceCaisseId != null ? "AC" : "AV",
                     RequestId = lq.AvanceCaisseId != null ? (int)lq.AvanceCaisseId : (int)lq.AvanceVoyageId,
                     ActualTotal = lq.ActualTotal,
-                    IsDecidable = lq.LatestStatusNavigation.StatusString != "Funds Collected" &&
-                                  lq.LatestStatusNavigation.StatusString != "Finalized" &&
-                                  lq.LatestStatusNavigation.StatusString != "Approved",
+                    IsDecidable = _miscService.IsRequestDecidable(deciderUserId, lq.NextDeciderUserId, lq.LatestStatusNavigation.StatusString),
                     ReceiptsFileName = lq.ReceiptsFileName,
                     OnBehalf = lq.OnBehalf,
                     Description = lq.AvanceCaisseId != null ? lq.AvanceCaisse.Description : lq.AvanceVoyage.OrdreMission.Description,

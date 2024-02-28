@@ -57,9 +57,7 @@ namespace OTAS.Repository
                 {
                     Id = ac.Id,
                     EstimatedTotal = ac.EstimatedTotal,
-                    IsDecidable = ac.LatestStatusNavigation.StatusString != "Funds Collected" &&
-                                  ac.LatestStatusNavigation.StatusString != "Finalized" &&
-                                  ac.LatestStatusNavigation.StatusString != "Approved",
+                    IsDecidable = _miscService.IsRequestDecidable(deciderUserId, ac.NextDeciderUserId, ac.LatestStatusNavigation.StatusString),
                     OnBehalf = ac.OnBehalf,
                     Description = ac.Description,
                     Currency = ac.Currency,
