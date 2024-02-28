@@ -84,9 +84,6 @@ namespace OTAS.Controllers
                 if (sortedTrips[i].DepartureDate > sortedTrips[i].ArrivalDate)
                     return BadRequest("One of the trips has a departure date bigger than its arrival date!");
 
-                if (sortedTrips[i].DepartureDate > sortedTrips[i].ArrivalDate)
-                    return BadRequest("One of the trips has a departure date bigger than its arrival date!");
-
                 if (i == sortedTrips.Count - 1) break; // prevent out of range index exception
                 if (sortedTrips[i].ArrivalDate > sortedTrips[i + 1].DepartureDate)
                     return BadRequest("Trips dates don't make sense! You can't start another trip before you arrive from the previous one.");
@@ -131,6 +128,20 @@ namespace OTAS.Controllers
                 return BadRequest( "OrdreMission must have at least 2 trips!");
             if (ordreMission.OnBehalf == true && ordreMission.ActualRequester == null)
                 return BadRequest("You must fill actual requester's info in case you are filling this request on behalf of someone");
+
+
+            var sortedTrips = ordreMission.Trips.OrderBy(trip => trip.DepartureDate).ToList();
+            for (int i = 0; i < sortedTrips.Count; i++)
+            {
+                if (ordreMission.Abroad == false && sortedTrips[i].Unit == "EUR")
+                    return BadRequest("A trip estimated fee cannot be in EUR if your mission is not abroad!");
+                if (sortedTrips[i].DepartureDate > sortedTrips[i].ArrivalDate)
+                    return BadRequest("One of the trips has a departure date bigger than its arrival date!");
+
+                if (i == sortedTrips.Count - 1) break; // prevent out of range index exception
+                if (sortedTrips[i].ArrivalDate > sortedTrips[i + 1].DepartureDate)
+                    return BadRequest("Trips dates don't make sense! You can't start another trip before you arrive from the previous one.");
+            }
 
             if (ordreMission.Abroad == false)
             {
