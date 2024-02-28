@@ -16,6 +16,7 @@ using Aspose.Pdf.Operators;
 using System.Text.RegularExpressions;
 using Xceed.Document.NET;
 using Xceed.Words.NET;
+using Microsoft.EntityFrameworkCore;
 
 namespace OTAS.Services
 {
@@ -115,6 +116,32 @@ namespace OTAS.Services
                     result = await _ordreMissionRepository.UpdateOrdreMission(linkedOrdreMission);
                     if (!result.Success) return result;
 
+                    // Check for Linked avancevoyage
+                    AvanceVoyage? linkedAvanceVoyage = await _context.AvanceVoyages.Where(av => av.OrdreMissionId == linkedOrdreMission.Id && av.Id != decidedAvanceVoyage.Id).FirstOrDefaultAsync();
+                    if (linkedAvanceVoyage != null)
+                    {
+
+                        linkedAvanceVoyage.DeciderComment = linkedOrdreMission.LatestStatus == 97 ? "Automatically rejected by the system because the related request has been rejected"
+                            : "Automatically returned by the system because the related request has been returned"; ;
+                        linkedAvanceVoyage.DeciderUserId = 1; // System 
+                        linkedAvanceVoyage.NextDeciderUserId = null; /* next decider is set to null if returned or rejected for OM */
+                        linkedAvanceVoyage.LatestStatus = linkedOrdreMission.LatestStatus;
+                        result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(linkedAvanceVoyage);
+                        if (!result.Success) return result;
+
+                        StatusHistory linkedAvanceVoyage_SH = new()
+                        {
+                            Total = linkedAvanceVoyage.EstimatedTotal,
+                            AvanceVoyageId = linkedAvanceVoyage.Id,
+                            DeciderUserId = linkedAvanceVoyage.DeciderUserId,
+                            DeciderComment = linkedAvanceVoyage.DeciderComment,
+                            Status = linkedAvanceVoyage.LatestStatus,
+                            NextDeciderUserId = linkedAvanceVoyage.NextDeciderUserId,
+                        };
+                        result = await _statusHistoryRepository.AddStatusAsync(linkedAvanceVoyage_SH);
+                        if (!result.Success) return result;
+                    }
+                    // Check for Linked avancevoyage
                     StatusHistory decidedLinkedOrdreMission_SH = new()
                     {
                         OrdreMissionId = linkedOrdreMission.Id,
