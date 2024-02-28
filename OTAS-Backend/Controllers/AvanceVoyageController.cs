@@ -1,8 +1,4 @@
 ﻿using AutoMapper;
-using iText.Kernel.Colors;
-using iText.Kernel.Pdf;
-using iText.PdfCleanup.Autosweep;
-using iText.PdfCleanup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
