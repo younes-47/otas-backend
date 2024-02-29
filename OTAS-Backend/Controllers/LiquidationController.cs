@@ -431,7 +431,7 @@ namespace OTAS.Controllers
             if (await _userRepository.FindUserByUserIdAsync(user.Id) == null)
                 return NotFound("Decider is not found");
 
-            bool isDecisionValid = decision.DecisionString.ToLower() == "approve" || decision.DecisionString.ToLower() == "return" || decision.DecisionString.ToLower() == "reject";
+            bool isDecisionValid = decision.DecisionString.ToLower() == "approve" || decision.DecisionString.ToLower() == "return";
             if (!isDecisionValid) return BadRequest("Decision is invalid!");
 
 

@@ -695,8 +695,8 @@ namespace OTAS.Services
                 return result;
             }
 
-            // CASE: REJECTION / RETURN
-            if (decision.DecisionString == "return" || decision.DecisionString == "reject")
+            // CASE: RETURN
+            if (decision.DecisionString == "return")
             {
                 var transaction = _context.Database.BeginTransaction();
                 try
@@ -720,8 +720,8 @@ namespace OTAS.Services
                     }
                     else
                     {
-                        decidedLiquidation.NextDeciderUserId = null; /* next decider is set to null if returned or rejected normally */
-                        decidedLiquidation.LatestStatus = decision.DecisionString.ToLower() == "return" ? 98 : 97; /* returned normaly or rejected */
+                        decidedLiquidation.NextDeciderUserId = null; /* next decider is set to null if returned normally */
+                        decidedLiquidation.LatestStatus = 98; /* returned normaly */
                     }
                     result = await _liquidationRepository.UpdateLiquidationAsync(decidedLiquidation);
                     if (!result.Success) return result;
@@ -732,7 +732,7 @@ namespace OTAS.Services
                         DeciderUserId = deciderUserId,
                         DeciderComment = decision.DeciderComment,
                         Total = decidedLiquidation.ActualTotal,
-                        Status = decision.DecisionString.ToLower() == "return" ? 98 : 97,
+                        Status = 98,
                         NextDeciderUserId = decidedLiquidation.NextDeciderUserId,
                     };
                     result = await _statusHistoryRepository.AddStatusAsync(decidedAvanceCaisse_SH);
