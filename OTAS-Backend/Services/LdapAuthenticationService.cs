@@ -17,7 +17,11 @@ namespace TMA_App.Services
             {
                 DirectorySearcher search = new DirectorySearcher(entry);
 
-                search.Filter = $"(SAMAccountName={username})";
+                // Users having a session
+                //search.Filter = $"(SAMAccountName={username})";
+
+                // Users having a license
+                search.Filter = $"(&(SAMAccountName={username})(|(memberOf=CN=M365_E3_License_Group,OU=IT,OU=DMA-Office,DC=dicastalma,DC=com)(memberOf=CN=M365_BPrem_All_Access,OU=IT,OU=DMA-Office,DC=dicastalma,DC=com)))";
                 search.PropertiesToLoad.Add("cn");
                 SearchResult result = search.FindOne();
                 if (result == null)
