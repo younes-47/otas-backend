@@ -200,7 +200,7 @@ namespace OTAS.Services
             }
 
             bool IS_LONGER_THAN_ONEDAY = true;
-            if (tempOM.ReturnDate.Day == tempOM.DepartureDate.Day) IS_LONGER_THAN_ONEDAY = false;
+            if (tempOM.ReturnDate.Date == tempOM.DepartureDate.Date) IS_LONGER_THAN_ONEDAY = false;
 
             // CASE: REJECTION / RETURN
             if (decision.DecisionString.ToLower() == "return" || decision.DecisionString.ToLower() == "reject")
@@ -287,7 +287,7 @@ namespace OTAS.Services
                             decidedOrdreMission.LatestStatus = 4;
                             break;
                         case 4:
-                            decidedOrdreMission.NextDeciderUserId = await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("GD", IS_LONGER_THAN_ONEDAY);
+                            decidedOrdreMission.NextDeciderUserId = IS_LONGER_THAN_ONEDAY ? await _ordreMissionRepository.GetOrdreMissionNextDeciderUserId("GD", IS_LONGER_THAN_ONEDAY) : null;
                             decidedOrdreMission.LatestStatus = IS_LONGER_THAN_ONEDAY ? 5 : 7;  /* if it is not longer than one day skip VP*/
                             break;
                         case 5:
