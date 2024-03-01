@@ -75,19 +75,19 @@ namespace OTAS.Controllers
             {
                 result.Success = false;
                 result.Message = "AvanceCaisse must have at least one expense! You can't request an AvanceCaisse with no expense.";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             if (avanceCaisse.Currency != "MAD" && avanceCaisse.Currency != "EUR")
             {
                 result.Success = false;
                 result.Message = "Invalid currency! Please choose suitable currency from the dropdownmenu!";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             if (avanceCaisse.OnBehalf == true && avanceCaisse.ActualRequester == null)
             {
                 result.Success = false;
                 result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             var user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
             result = await _avanceCaisseService.CreateAvanceCaisseAsync(avanceCaisse, user.Id);
@@ -177,7 +177,7 @@ namespace OTAS.Controllers
             {
                 result.Success = false;
                 result.Message = "The request is not in a draft. You cannot delete requests in a different status than draft.";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
 
             result = await _avanceCaisseService.DeleteDraftedAvanceCaisse(avanceCaisse);
@@ -360,7 +360,7 @@ namespace OTAS.Controllers
 
             ServiceResult result = await _avanceCaisseService.ConfirmFundsDelivery(action.RequestId, action.ConfirmationNumber);
             if (!result.Success)
-                return Forbid(result.Message);
+                return BadRequest(result.Message);
 
             return Ok(result.Message);
         }

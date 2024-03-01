@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using Xceed.Document.NET;
 using Xceed.Words.NET;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace OTAS.Services
 {
@@ -150,11 +151,11 @@ namespace OTAS.Services
                     await transaction.CommitAsync();
 
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
                     transaction.Rollback();
                     result.Success = false;
-                    result.Message = ex.Message;
+                    result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                     return result;
                 }
             }
@@ -208,7 +209,7 @@ namespace OTAS.Services
                 catch (Exception exception)
                 {
                     result.Success = false;
-                    result.Message = exception.Message;
+                    result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                     return result;
                 }
             }
@@ -1160,7 +1161,7 @@ namespace OTAS.Services
             catch (Exception exception)
             {
                 result.Success = false;
-                result.Message = exception.Message;
+                result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                 return result;
             }
 
@@ -1209,7 +1210,7 @@ namespace OTAS.Services
             catch (Exception exception)
             {
                 result.Success = false;
-                result.Message = exception.Message;
+                result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                 return result;
             }
 

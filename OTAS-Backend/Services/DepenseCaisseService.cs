@@ -12,6 +12,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Xceed.Document.NET;
 using Xceed.Words.NET;
+using System;
 
 
 namespace OTAS.Services
@@ -129,10 +130,10 @@ namespace OTAS.Services
 
                 result.Id = mappedDepenseCaisse.Id;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
                 result.Success = false;
-                result.Message = $"ERROR: {ex.Message} ||| {ex.InnerException} ||| {ex.StackTrace}";
+                result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                 return result;
             }
 
@@ -291,7 +292,7 @@ namespace OTAS.Services
             catch (Exception exception)
             {
                 result.Success = false;
-                result.Message = exception.Message + exception.GetType() + exception.StackTrace;
+                result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                 return result;
             }
 
@@ -340,7 +341,7 @@ namespace OTAS.Services
             catch (Exception exception)
             {
                 result.Success = false;
-                result.Message = exception.Message;
+                result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                 return result;
             }
 
@@ -390,11 +391,11 @@ namespace OTAS.Services
                 /* Delete old file */
                 System.IO.File.Delete(filePath);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
                 transaction.Rollback();
                 result.Success = false;
-                result.Message = ex.Message;
+                result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                 return result;
             }
             result.Success = true;
@@ -463,7 +464,7 @@ namespace OTAS.Services
                 catch (Exception exception)
                 {
                     result.Success = false;
-                    result.Message = exception.Message;
+                    result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                     return result;
                 }
                 
@@ -517,7 +518,7 @@ namespace OTAS.Services
                 catch (Exception exception)
                 {
                     result.Success = false;
-                    result.Message = exception.Message;
+                    result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                     return result;
                 }
             }

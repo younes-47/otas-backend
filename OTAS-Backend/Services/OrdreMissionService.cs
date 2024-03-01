@@ -10,6 +10,7 @@ using OTAS.DTO.Put;
 using OTAS.Interfaces.IRepository;
 using OTAS.Interfaces.IService;
 using OTAS.Models;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -132,7 +133,7 @@ namespace OTAS.Services
             {
                 transaction.Rollback();
                 result.Success = false;
-                result.Message = exception.Message + exception.Source + exception.StackTrace;
+                result.Message = exception.Message + " ERROR TYPE: " + exception.GetType() ;
                 return result;
             }
         }
@@ -175,7 +176,7 @@ namespace OTAS.Services
             catch (Exception exception)
             {
                 result.Success = false;
-                result.Message = exception.Message;
+                result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                 return result;
             }
 
@@ -259,7 +260,7 @@ namespace OTAS.Services
                 catch (Exception exception)
                 {
                     result.Success = false;
-                    result.Message = exception.Message;
+                    result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                     return result;
                 }
             }
@@ -317,7 +318,7 @@ namespace OTAS.Services
                 catch (Exception exception)
                 {
                     result.Success = false;
-                    result.Message = exception.Message;
+                    result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                     return result;
                 }
             }
@@ -452,7 +453,7 @@ namespace OTAS.Services
             catch (Exception exception)
             {
                 result.Success = false;
-                result.Message = exception.Message + exception.GetType() + exception.StackTrace;
+                result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                 return result;
             }
 
@@ -523,11 +524,11 @@ namespace OTAS.Services
                 await transaction.CommitAsync();
 
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
                 transaction.Rollback();
                 result.Success = false;
-                result.Message = ex.Message;
+                result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                 return result;
             }
             result.Success = true;
@@ -645,7 +646,7 @@ namespace OTAS.Services
             catch (Exception exception)
             {
                 result.Success = false;
-                result.Message = exception.Message;
+                result.Message = exception.Message + " ERROR TYPE: " + exception.GetType();
                 return result;
             }
 

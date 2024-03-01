@@ -256,7 +256,7 @@ namespace OTAS.Controllers
 
             ServiceResult result = await _avanceVoyageService.ConfirmFundsDelivery(action.RequestId, action.ConfirmationNumber);
             if (!result.Success)
-                return Forbid(result.Message);
+                return BadRequest(result.Message);
 
             return Ok(result.Message);
         }

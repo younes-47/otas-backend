@@ -73,7 +73,19 @@ namespace OTAS.Controllers
                 return BadRequest(ModelState);
 
             var user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
-            ServiceResult result;
+            ServiceResult result = new();
+
+            bool isPDF = liquidation.ReceiptsFile[0] == 0x25 &&
+                       liquidation.ReceiptsFile[1] == 0x50 &&
+                       liquidation.ReceiptsFile[2] == 0x44 &&
+                       liquidation.ReceiptsFile[3] == 0x46 &&
+                       liquidation.ReceiptsFile[4] == 0x2D;
+            if (!isPDF)
+            {
+                result.Success = false;
+                result.Message = "File Type is invalid! You must upload a pdf file.";
+                return BadRequest(result.Message);
+            }
 
             if (liquidation.RequestType == "AV")
             {
@@ -90,7 +102,7 @@ namespace OTAS.Controllers
                     return BadRequest("You must liquidate all expenses and trips!");
 
                 result = await _liquidationService.LiquidateAvanceVoyage(avanceVoyageDB, liquidation, user.Id);
-                if (!result.Success) return BadRequest($"{result.Message}");
+                if (!result.Success) return BadRequest(result.Message);
             }
             else
             {
@@ -107,7 +119,7 @@ namespace OTAS.Controllers
                     return BadRequest("You must liquidate all expenses!");
 
                 result = await _liquidationService.LiquidateAvanceCaisse(avanceCaisseDB, liquidation, user.Id);
-                if (!result.Success) return BadRequest($"{result.Message}");
+                if (!result.Success) return BadRequest(result.Message);
 
             }
 
@@ -127,7 +139,7 @@ namespace OTAS.Controllers
             {
                 result.Success = false;
                 result.Message = "The request is not in a draft status. You cannot delete requests in a different status than draft.";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
 
             result = await _liquidationService.DeleteDraftedLiquidation(liquidation);
@@ -317,19 +329,19 @@ namespace OTAS.Controllers
             {
                 result.Success = false;
                 result.Message = "You can't modify or resubmit a rejected request!";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             if (liquidation_DB.LatestStatus != 98 && liquidation_DB.LatestStatus != 99 && liquidation_DB.LatestStatus != 15)
             {
                 result.Success = false;
                 result.Message = "The DP you are trying to modify is not a draft nor returned! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             if (liquidation.Action.ToLower() == "save" && liquidation_DB.LatestStatus == 98)
             {
                 result.Success = false;
                 result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
 
             if(liquidation.RequestType == "AV")
@@ -409,7 +421,7 @@ namespace OTAS.Controllers
             {
                 result.Success = false;
                 result.Message = "You've already submitted this Liquidation!";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             result = await _liquidationService.SubmitLiquidation(Id);
             if (!result.Success) return BadRequest(result.Message);

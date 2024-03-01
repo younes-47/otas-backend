@@ -78,23 +78,36 @@ namespace OTAS.Controllers
 
             ServiceResult result = new();
 
+
+            bool isPDF = depenseCaisse.ReceiptsFile[0] == 0x25 && 
+                       depenseCaisse.ReceiptsFile[1] == 0x50 && 
+                       depenseCaisse.ReceiptsFile[2] == 0x44 && 
+                       depenseCaisse.ReceiptsFile[3] == 0x46 && 
+                       depenseCaisse.ReceiptsFile[4] == 0x2D;
+            if (!isPDF)
+            {
+                result.Success = false;
+                result.Message = "File Type is invalid! You must upload a pdf file.";
+                return BadRequest(result.Message);
+            }
+
             if (depenseCaisse.Expenses.Count < 1)
             {
                 result.Success = false;
                 result.Message = "DepenseCaisse must contain at least one expense! You can't request a DepenseCaisse with no expense.";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             if (depenseCaisse.Currency != "MAD" && depenseCaisse.Currency != "EUR")
             {
                 result.Success = false;
                 result.Message = "Invalid currency! Please choose suitable currency from the dropdownmenu!";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             if (depenseCaisse.OnBehalf == true && depenseCaisse.ActualRequester == null)
             {
                 result.Success = false;
                 result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
 
             var user = await _userRepository.GetUserByHttpContextAsync(HttpContext);
@@ -219,35 +232,49 @@ namespace OTAS.Controllers
             if (depenseCaisse.Action.ToLower() == "save" && (depenseCaisse_DB.LatestStatus == 98 || depenseCaisse_DB.LatestStatus == 97)) 
                 return BadRequest("You cannot save a returned or a rejected request as a draft!");
             ServiceResult result = new();
+            if (depenseCaisse.ReceiptsFile != null)
+            {
+                bool isPDF = depenseCaisse.ReceiptsFile[0] == 0x25 && 
+                                depenseCaisse.ReceiptsFile[1] == 0x50 &&  
+                                depenseCaisse.ReceiptsFile[2] == 0x44 &&  
+                                depenseCaisse.ReceiptsFile[3] == 0x46 &&  
+                                depenseCaisse.ReceiptsFile[4] == 0x2D;
+                if (!isPDF)
+                {
+                    result.Success = false;
+                    result.Message = "File Type is invalid! You must upload a pdf file.";
+                    return BadRequest(result.Message);
+                }
+            }
             if (depenseCaisse_DB.LatestStatus == 97)
             {
                 result.Success = false;
                 result.Message = "You can't modify or resubmit a rejected request!";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             if (depenseCaisse_DB.LatestStatus != 98 && depenseCaisse_DB.LatestStatus != 99 && depenseCaisse_DB.LatestStatus != 15)
             {
                 result.Success = false;
                 result.Message = "The DP you are trying to modify is not a draft nor returned! If you think this error is not supposed to occur, report the IT department with the issue. If not, please don't attempt to manipulate the system. Thanks";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             if (depenseCaisse.Action.ToLower() == "save" && depenseCaisse_DB.LatestStatus == 98)
             {
                 result.Success = false;
                 result.Message = "You can't modify and save a returned request as a draft again. You may want to apply your modifications to you request and resubmit it directly";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             if (depenseCaisse.Expenses.Count < 1)
             {
                 result.Success = false;
                 result.Message = "DepenseCaisse must have at least one expense! You can't request a DP with no expense.";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             if (depenseCaisse.OnBehalf == true && depenseCaisse.ActualRequester == null)
             {
                 result.Success = false;
                 result.Message = "You must fill actual requester's info in case you are filing this request on behalf of someone";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
 
 
@@ -268,7 +295,7 @@ namespace OTAS.Controllers
             {
                 result.Success = false;
                 result.Message = "You've already submitted this DepenseCaisse!";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
             result = await _depenseCaisseService.SubmitDepenseCaisse(Id);
             if (!result.Success) return BadRequest(result.Message);
@@ -288,7 +315,7 @@ namespace OTAS.Controllers
             {
                 result.Success = false;
                 result.Message = "The request is not in a draft status. You cannot delete requests in a different status than draft.";
-                return BadRequest(result);
+                return BadRequest(result.Message);
             }
 
             
