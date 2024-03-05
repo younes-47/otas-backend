@@ -92,43 +92,6 @@ namespace OTAS.Services
                     if (!result.Success) return result;
                 }
 
-                // Adding new Trips
-                foreach (TripPostDTO newTrip in avanceVoyageLiquidation.NewTrips)
-                {
-                    Trip mappedTrip = _mapper.Map<Trip>(newTrip);
-                    mappedTrip.AvanceVoyageId = avanceVoyageLiquidation.RequestId;
-                    if(newTrip.Unit == "KM")
-                    {
-                        mappedTrip.Unit = newTrip.Unit;
-                        mappedTrip.HighwayFee = newTrip.HighwayFee;
-                        mappedTrip.ActualFee = _miscService.CalculateTripEstimatedFee(mappedTrip);
-                        actualTotal += mappedTrip.ActualFee;
-                    }
-                    else
-                    {
-                        mappedTrip.Unit = avanceVoyageDB.Currency;
-                        mappedTrip.ActualFee = newTrip.Value;
-                        actualTotal -= mappedTrip.ActualFee;
-                    }
-                    result = await _tripRepository.AddTripAsync(mappedTrip);
-                    if (!result.Success) return result;
-                }
-
-                // Adding new Expenses
-                foreach (var newExpense in avanceVoyageLiquidation.NewExpenses)
-                {
-                    var mappedExpense = _mapper.Map<Expense>(newExpense);
-                    mappedExpense.AvanceVoyageId = avanceVoyageLiquidation.RequestId;
-                    mappedExpense.Currency = avanceVoyageDB.Currency;
-                    mappedExpense.ActualFee = newExpense.EstimatedFee;
-                    actualTotal += mappedExpense.ActualFee;
-                    result = await _expenseRepository.AddExpenseAsync(mappedExpense);
-                    if (!result.Success) return result;
-                }
-
-                avanceVoyageDB.ActualTotal = actualTotal;
-                result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyageDB);
-                if (!result.Success) return result;
 
                 Liquidation liquidation = new();
 
@@ -138,6 +101,14 @@ namespace OTAS.Services
                 liquidation.Result = (int)(actualTotal - avanceVoyageDB.EstimatedTotal);
                 liquidation.UserId = avanceVoyageDB.UserId;
                 liquidation.Currency = avanceVoyageDB.Currency;
+
+
+
+
+                avanceVoyageDB.ActualTotal = actualTotal;
+                result = await _avanceVoyageRepository.UpdateAvanceVoyageAsync(avanceVoyageDB);
+                if (!result.Success) return result;
+
 
                 /* _webHostEnvironment.WebRootPath == wwwroot\ (the default folder to store files) */
                 var uploadsFolderPath = Path.Combine(_webHostEnvironment.WebRootPath, "Liquidation-Avance-Voyage-Receipts");
@@ -165,6 +136,42 @@ namespace OTAS.Services
                     Status = liquidation.LatestStatus,
                 };
                 result = await _statusHistoryRepository.AddStatusAsync(DC_status);
+
+                // Adding new Expenses
+                foreach (var newExpense in avanceVoyageLiquidation.NewExpenses)
+                {
+                    var mappedExpense = _mapper.Map<Expense>(newExpense);
+                    mappedExpense.LiquidationId = liquidation.Id;
+                    mappedExpense.Currency = avanceVoyageDB.Currency;
+                    mappedExpense.ActualFee = newExpense.EstimatedFee;
+                    actualTotal += mappedExpense.ActualFee;
+                    result = await _expenseRepository.AddExpenseAsync(mappedExpense);
+                    if (!result.Success) return result;
+                }
+
+                // Adding new Trips
+                foreach (TripPostDTO newTrip in avanceVoyageLiquidation.NewTrips)
+                {
+                    Trip mappedTrip = _mapper.Map<Trip>(newTrip);
+                    mappedTrip.LiquidationId = liquidation.Id;
+                    if (newTrip.Unit == "KM")
+                    {
+                        mappedTrip.Unit = newTrip.Unit;
+                        mappedTrip.HighwayFee = newTrip.HighwayFee;
+                        mappedTrip.ActualFee = _miscService.CalculateTripEstimatedFee(mappedTrip);
+                        actualTotal += mappedTrip.ActualFee;
+                    }
+                    else
+                    {
+                        mappedTrip.Unit = avanceVoyageDB.Currency;
+                        mappedTrip.ActualFee = newTrip.Value;
+                        actualTotal -= mappedTrip.ActualFee;
+                    }
+                    result = await _tripRepository.AddTripAsync(mappedTrip);
+                    if (!result.Success) return result;
+                }
+
+
 
                 if (!result.Success)
                 {
@@ -251,6 +258,8 @@ namespace OTAS.Services
                     Status = liquidation.LatestStatus,
                 };
 
+                result = await _statusHistoryRepository.AddStatusAsync(DC_status);
+
                 // Adding new Expenses
                 foreach (var newExpense in avanceCaisseLiquidation.NewExpenses)
                 {
@@ -262,10 +271,6 @@ namespace OTAS.Services
                     result = await _expenseRepository.AddExpenseAsync(mappedExpense);
                     if (!result.Success) return result;
                 }
-
-
-
-                result = await _statusHistoryRepository.AddStatusAsync(DC_status);
 
                 if (!result.Success)
                 {
@@ -458,7 +463,7 @@ namespace OTAS.Services
                         var mappedExpenses = _mapper.Map<List<Expense>>(liquidation_REQ.NewExpenses);
                         foreach (Expense expense in mappedExpenses)
                         {
-                            expense.AvanceVoyageId = liquidation_REQ.RequestId;
+                            expense.LiquidationId = liquidation_REQ.Id;
                             expense.Currency = liquidation_DB.Currency;
                             newTotal += expense.ActualFee;
                         }
@@ -471,7 +476,7 @@ namespace OTAS.Services
                         var mappedTrips = _mapper.Map<List<Trip>>(liquidation_REQ.NewTrips);
                         foreach (Trip trip in mappedTrips)
                         {
-                            trip.AvanceVoyageId = liquidation_REQ.RequestId;
+                            trip.LiquidationId = liquidation_REQ.Id;
                             newTotal += trip.ActualFee;
                         }
                         result = await _tripRepository.AddTripsAsync(mappedTrips);
@@ -502,7 +507,7 @@ namespace OTAS.Services
                         var mappedExpenses = _mapper.Map<List<Expense>>(liquidation_REQ.NewExpenses);
                         foreach (Expense expense in mappedExpenses)
                         {
-                            expense.AvanceCaisseId = liquidation_REQ.RequestId;
+                            expense.LiquidationId = liquidation_REQ.Id;
                             expense.Currency = liquidation_DB.Currency;
                             newTotal += expense.ActualFee;
                         }
