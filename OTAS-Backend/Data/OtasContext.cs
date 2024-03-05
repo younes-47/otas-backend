@@ -269,6 +269,10 @@ public partial class OtasContext : DbContext
             entity.Property(e => e.ExpenseDate).HasColumnType("datetime");
             entity.Property(e => e.UpdateDate).HasColumnType("datetime");
 
+            entity.HasOne(d => d.Liquidation).WithMany(p => p.Expenses)
+                .HasForeignKey(d => d.LiquidationId)
+                .HasConstraintName("FK_LQ_Expenses");
+
             entity.HasOne(d => d.AvanceCaisse).WithMany(p => p.Expenses)
                 .HasForeignKey(d => d.AvanceCaisseId)
                 .HasConstraintName("FK_AC_Expenses");
@@ -491,6 +495,11 @@ public partial class OtasContext : DbContext
                 .HasForeignKey(d => d.AvanceVoyageId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AVoyage_Trips");
+
+            entity.HasOne(d => d.Liquidation).WithMany(p => p.Trips)
+                .HasForeignKey(d => d.LiquidationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LQ_Trips");
         });
 
         modelBuilder.Entity<Decider>(entity =>

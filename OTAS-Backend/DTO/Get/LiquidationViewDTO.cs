@@ -30,6 +30,9 @@ namespace OTAS.DTO.Get
 
         public virtual List<StatusHistoryDTO> StatusHistory { get; set; } = new List<StatusHistoryDTO>();
 
+        public virtual List<ExpenseDTO> Expenses { get; set; } = new List<ExpenseDTO>();
+
+        public virtual List<TripDTO> Trips { get; set; } = new List<TripDTO>();
 
     }
 }

@@ -7,7 +7,9 @@ public partial class Trip
 {
     public int Id { get; set; }
 
-    public int AvanceVoyageId { get; set; }
+    public int? AvanceVoyageId { get; set; }
+
+    public int? LiquidationId { get; set; }
 
     public string DeparturePlace { get; set; } = null!;
 
@@ -34,5 +36,7 @@ public partial class Trip
      * and we want to know when the user has provided the ActualFee */
     public DateTime? UpdateDate { get; set; }
 
-    public virtual AvanceVoyage AvanceVoyage { get; set; } = null!;
+    public virtual AvanceVoyage? AvanceVoyage { get; set; }
+
+    public virtual Liquidation? Liquidation { get; set; }
 }

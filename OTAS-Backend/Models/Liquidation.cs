@@ -44,4 +44,6 @@ public partial class Liquidation
     public virtual User User { get; set; } = null!;
     public virtual User? Decider { get; set; }
     public virtual User? NextDecider { get; set; }
+    public virtual List<Expense> Expenses { get; set; } = new List<Expense>();
+    public virtual List<Trip> Trips { get; set; } = new List<Trip>();
 }

@@ -212,18 +212,6 @@ namespace OTAS.Services
                 }
 
 
-                // Adding new Expenses
-                foreach (var newExpense in avanceCaisseLiquidation.NewExpenses)
-                {
-                    var mappedExpense = _mapper.Map<Expense>(newExpense);
-                    mappedExpense.AvanceCaisseId = avanceCaisseLiquidation.RequestId;
-                    mappedExpense.Currency = avanceCaisseDB.Currency;
-                    mappedExpense.ActualFee = newExpense.EstimatedFee;
-                    actualTotal += mappedExpense.ActualFee;
-                    result = await _expenseRepository.AddExpenseAsync(mappedExpense);
-                    if (!result.Success) return result;
-                }
-
                 avanceCaisseDB.ActualTotal = actualTotal;
                 result = await _avanceCaisseRepository.UpdateAvanceCaisseAsync(avanceCaisseDB);
                 if (!result.Success) return result;
@@ -262,6 +250,21 @@ namespace OTAS.Services
                     LiquidationId = liquidation.Id,
                     Status = liquidation.LatestStatus,
                 };
+
+                // Adding new Expenses
+                foreach (var newExpense in avanceCaisseLiquidation.NewExpenses)
+                {
+                    var mappedExpense = _mapper.Map<Expense>(newExpense);
+                    mappedExpense.LiquidationId = liquidation.Id;
+                    mappedExpense.Currency = avanceCaisseDB.Currency;
+                    mappedExpense.ActualFee = newExpense.EstimatedFee;
+                    actualTotal += mappedExpense.ActualFee;
+                    result = await _expenseRepository.AddExpenseAsync(mappedExpense);
+                    if (!result.Success) return result;
+                }
+
+
+
                 result = await _statusHistoryRepository.AddStatusAsync(DC_status);
 
                 if (!result.Success)

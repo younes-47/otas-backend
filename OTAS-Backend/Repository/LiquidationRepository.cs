@@ -66,6 +66,8 @@ namespace OTAS.Repository
                     CreateDate = lq.CreateDate,
                     LatestStatus = lq.LatestStatusNavigation.StatusString,
                     ReceiptsFileName = lq.ReceiptsFileName,
+                    Expenses = _mapper.Map<List<ExpenseDTO>>(lq.Expenses),
+                    Trips = _mapper.Map<List<TripDTO>>(lq.Trips),
                     StatusHistory = lq.StatusHistories.Select(sh => new StatusHistoryDTO
                     {
                         Status = sh.StatusNavigation.StatusString,

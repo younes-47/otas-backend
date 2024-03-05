@@ -11,6 +11,8 @@ public partial class Expense
 
     public int? DepenseCaisseId { get; set; }
 
+    public int? LiquidationId { get; set; }
+
     public string Currency { get; set; } = null!;
 
     public decimal EstimatedFee { get; set; }
@@ -32,4 +34,6 @@ public partial class Expense
     public virtual AvanceVoyage? AvanceVoyage { get; set; }
 
     public virtual DepenseCaisse? DepenseCaisse { get; set; }
+
+    public virtual Liquidation? Liquidation { get; set; }
 }
